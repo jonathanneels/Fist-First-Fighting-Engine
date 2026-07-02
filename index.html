@@ -5554,32 +5554,43 @@ function setDirectionInput(fighter, dir, value) {
             ${required > 0 ? `<span style="font-size:7px;color:#8ab4ff;">${required}%</span>` : ''}
         `;
 
-        const triggerAttack = () => {
-            if (!p1 || p1.health <= 0) return;
-            if (!p1._history) p1._history = [];
-            if (!p1._historyTimes) p1._historyTimes = [];
+      const triggerAttack = () => {
+    if (!p1 || p1.health <= 0) return;
+    if (!p1._history) p1._history = [];
+    if (!p1._historyTimes) p1._historyTimes = [];
 
-            // Zoek de originele index in moves (niet de gefilterde)
-            const originalIndex = moves.indexOf(move);
-            if (originalIndex < 0) return;
-            const buttonCode = String(originalIndex + 1);
-            const now = Date.now();
+    // Zoek de oorspronkelijke index in de move‑lijst
+    const originalIndex = moves.indexOf(move);
+    if (originalIndex < 0) return;
+    const buttonCode = String(originalIndex + 1);
+    const now = Date.now();
 
-            const lastEntry = p1._history[p1._history.length - 1];
-            if (lastEntry !== buttonCode) {
-                p1._pendingButton = buttonCode;
-                p1._history.push(buttonCode);
-                p1._historyTimes.push(now);
-            }
+    // 1️⃣ Huidige richting toevoegen (als die bestaat en anders is dan de laatste)
+    const dir = getCurrentDir(p1);
+    if (dir !== 'idle') {
+        const last = p1._history[p1._history.length - 1];
+        if (last !== dir) {
+            p1._history.push(dir);
+            p1._historyTimes.push(now);
+        }
+    }
 
-            const maxAge = 1000;
-            while (p1._history.length > 0 && (now - p1._historyTimes[0] > maxAge)) {
-                p1._history.shift();
-                p1._historyTimes.shift();
-            }
+    // 2️⃣ De knop toevoegen (alleen als die niet al de laatste is)
+    const lastEntry = p1._history[p1._history.length - 1];
+    if (lastEntry !== buttonCode) {
+        p1._history.push(buttonCode);
+        p1._historyTimes.push(now);
+    }
 
-            p1.startAttackByCommand(buttonCode, p1._history);
-        };
+    // History niet te lang laten worden (max 12 entries)
+    while (p1._history.length > 12) {
+        p1._history.shift();
+        p1._historyTimes.shift();
+    }
+
+    // 3️⃣ Aanval starten met de bijgewerkte history
+    p1.startAttackByCommand(buttonCode, p1._history);
+};
 
         btn.addEventListener('touchstart', (e) => {
             e.preventDefault();
