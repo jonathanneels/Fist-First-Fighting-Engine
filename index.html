@@ -6163,6 +6163,7 @@ if (mode === 'network') {
     }
 }
 
+var _atkBtnUiTimer=0;
             function update() {
 				
  
@@ -6536,6 +6537,9 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
                 updateWinIndicators();
 
                 // ─── Touch attacks updaten (low energy class) ──────
+				_atkBtnUiTimer++;
+if (_atkBtnUiTimer >= 10) {
+    _atkBtnUiTimer = 0;
                 const allAtkBtns = touchAttacks.querySelectorAll('.atk-btn');
                 if (allAtkBtns.length > 0 && p1) {
                     const moves = (project.characters[p1.charId] || {}).moves || DEFAULT_MOVES;
@@ -6552,7 +6556,7 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
                     });
                 }
             }
-
+}
             var isOutrRendered = false;
 
             function render() {
