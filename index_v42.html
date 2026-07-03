@@ -1469,7 +1469,7 @@ let travelCubes = [];
     settingsActions: [],
     charActions: ['moves'],
     stageActions: []
-    },   settings: {
+    },   settings: {showMoveNamesInTraining:true,
                     audioEnabled: true,
                     roundCount: 3,
                     timerSeconds: 99,
@@ -4179,6 +4179,64 @@ if (this.statusTimer > 0) {
     ctx.restore();
 	if(this.statusTimer)	this.statusTimer-=1;
 }
+
+
+ // ─── Toon huidige input (P1, training) ────────────────────────
+if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showMoveNamesInTraining) {
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${14 * camera.zoom}px monospace`;
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 10;
+
+    const startX = 20 * camera.zoom;
+    let y = 120 * camera.zoom;
+    const lineHeight = 20 * camera.zoom;
+
+    // ─── Richtingen (live) ──────────────────────────────────────
+    ctx.fillStyle = '#ffdd44';
+    ctx.fillText('Current Input (P1):', startX, y);
+    y += lineHeight;
+    const dirs = ['up', 'down', 'left', 'right'];
+    for (const dir of dirs) {
+        const status = this.input[dir] ? 'true' : 'false';
+        ctx.fillStyle = this.input[dir] ? '#8affd0' : '#ff6a6a';
+        ctx.fillText(`  ${dir}: ${status}`, startX, y);
+        y += lineHeight;
+    }
+
+    // ─── Aanvalsknoppen (via recente history) ──────────────────
+    y += lineHeight * 0.5;
+    ctx.fillStyle = '#ffdd44';
+    ctx.fillText('Attacks (recently pressed):', startX, y);
+    y += lineHeight;
+
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const attackStatus = [false, false, false, false, false, false];
+
+    // Doorloop history en markeer knoppen die < 2 seconden geleden zijn ingedrukt
+    for (let i = 0; i < this._history.length; i++) {
+        const entry = this._history[i];
+        if (/^[1-6]$/.test(entry)) {
+            const btnIndex = parseInt(entry) - 1;
+            const time = this._historyTimes[i] || 0;
+            if (now - time < 2000) {
+                attackStatus[btnIndex] = true;
+            }
+        }
+    }
+
+    for (let i = 0; i < 6; i++) {
+        const status = attackStatus[i] ? 'true' : 'false';
+        ctx.fillStyle = attackStatus[i] ? '#8affd0' : '#ff6a6a';
+        ctx.fillText(`  attack${i+1}: ${status}`, startX, y);
+        y += lineHeight;
+    }
+
+    ctx.restore();
+}
+
 	
 	// ─── COUNTER SHIELD ──────────────────────────────
  if (project.settings.showCounterShield  &&this.counterActive) {
@@ -5676,6 +5734,13 @@ function setDirectionInput(fighter, dir, value) {
     if (lastEntry !== buttonCode) {
         p1._history.push(buttonCode);
         p1._historyTimes.push(now);
+		
+		//bugfix for temp: otherwise training wont see the hit
+		        p1._history.push(buttonCode);
+        p1._historyTimes.push(now);
+///
+
+
     }
 
     // History niet te lang laten worden (max 12 entries)
@@ -7260,6 +7325,9 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (project.settings.startX2 === undefined) project.settings.startX2 = 690;
 if (!project.settings.useGamepadP1) project.settings.useGamepadP1 = true;
 if (!project.settings.useGamepadP2) project.settings.useGamepadP2 = true;
+if (project.settings.showMoveNamesInTraining === undefined) {
+    project.settings.showMoveNamesInTraining = true;
+}
 
         project.currentStageId = data.currentStageId || 'dojo';
         project.laneMode = data.laneMode || false;
@@ -7739,7 +7807,7 @@ let html = `<h2>📝 Characters</h2>
 
     html += `</div>
              <div style="margin-top:12px;font-size:12px;color:#6a6a8a;">
-                Huidig: P1 = ${project.selectedP1Char} (${project.characters[project.selectedP1Char]?.name || '?'}) &nbsp;|&nbsp; 
+                P1 = ${project.selectedP1Char} (${project.characters[project.selectedP1Char]?.name || '?'}) &nbsp;|&nbsp; 
                 P2 = ${project.selectedP2Char} (${project.characters[project.selectedP2Char]?.name || '?'})
              </div>`;
 
