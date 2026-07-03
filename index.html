@@ -977,16 +977,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             font-family: inherit;
         }
-        #pauseBtn {
-    position: fixed !important;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    /* eventueel padding en font-size aanpassen voor mobiel */
-    font-size: clamp(14px, 2vh, 20px);
-         }
-        .file-input-wrap {
+         .file-input-wrap {
             display: flex;
             align-items: center;
             gap: 4px;
@@ -1070,9 +1061,51 @@
 #touchDpad .dpad-btn {
     pointer-events: none; /* zodat de toucharea de events vangt */
 }
+/* Hamburger knop */
+#hamburgerBtn {
+    position: fixed !important;
+    bottom: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    font-size: 25px !important;
+      color: #fff !important;
+      z-index: 1000 !important;
+    text-align: center !important;
+	opacity:0.5;
+    }
+#hamburgerBtn:hover {
+    background: rgba(255,255,255,0.15);
+}
+#hamburgerBtn:active {
+    transform: translateX(-50%) scale(0.9) !important;
+}
+
+
+/* TopMenu standaard zichtbaar, maar kan worden verborgen */
+#topMenu {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+#topMenu.hidden {
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none; /* zodat je er niet per ongeluk op klikt */
+}
     </style>
 </head>
 <body>
+<div id="hamburgerBtn" style=" z-index:40; font-size:28px; cursor:pointer; background:rgba(0,0,0,0.5); padding:6px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); color:#fff; user-select:none; touch-action:manipulation;">
+    ☰
+</div>
 
     <div id="gameWrapper">
         <canvas id="gameCanvas"></canvas>
@@ -1475,6 +1508,8 @@ let travelCubes = [];
     healthBarBorderRadius: 12,
     energyBarHeight: 10,
     energyBarBorderRadius: 4, 
+	useGamepadP1:true,
+	useGamepadP2:true
 
                 },
                 stages: DEFAULT_STAGES.map(s => ({ ...s })),
@@ -2284,8 +2319,11 @@ function matchCommand(history, buttonPressed, command) {
 
             // ─── PROJECTILE / MINE CLASSES ──────────────────────
 class Projectile {
-    constructor(x, y, dir, damage, speed = 8, owner, spriteImg, frameIdx = 0, startDistance = 0,
-                extraImage = null, life = 300, teleportX = 0, teleportY = 0, range = 40, chipDamage = true) {
+    constructor(x, y, dir, damage, speed = 8, owner, spriteImg,
+                row = 0, startFrame = 0, endFrame = 3,
+                startDistance = 0, extraImage = null, life = 300,
+                teleportX = 0, teleportY = 0, range = 40, chipDamage = true,
+                animSpeed = 5) {
         this.x = x;
         this.y = y;
         this.dir = dir;
@@ -2296,16 +2334,22 @@ class Projectile {
         this.active = true;
         this.trail = [];
         this.spriteImg = spriteImg || null;
-        this.frameIdx = frameIdx || 0;
+        this.row = row || 0;
+        this.startFrame = startFrame || 0;
+        this.endFrame = endFrame || startFrame + 3;
+        this.currentOffset = 0; // offset binnen de rij
+        this.animTimer = 0;
+        this.animSpeed = animSpeed || 5;
         this.type = 'projectile';
         this.startDistance = startDistance || 0;
+        this.distanceTraveled = 0;
         this.extraImage = extraImage || null;
         this.life = life || 300;
         this.teleportX = teleportX || 0;
         this.teleportY = teleportY || 0;
-		this.range = range || 40;
+        this.range = range || 40;
+        this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
-		    this.chipDamage = chipDamage;
 
         if (this.extraImage) {
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
@@ -2317,9 +2361,20 @@ class Projectile {
         }
     }
 
-      update() {
+    update() {
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
+
+        // Animatie: verhoog offset binnen startFrame..endFrame
+        this.animTimer++;
+        if (this.animTimer >= this.animSpeed) {
+            this.animTimer = 0;
+            const range = this.endFrame - this.startFrame + 1;
+            if (range > 1) {
+                this.currentOffset = (this.currentOffset + 1) % range;
+            }
+        }
+
         this.x += this.dir * this.speed;
         this.distanceTraveled += this.speed;
         this.trail.push({ x: this.x, y: this.y });
@@ -2329,25 +2384,16 @@ class Projectile {
         const target = (this.owner === p1) ? p2 : p1;
         if (!target || target.health <= 0) return;
 
-        // Startdistance check (projectiel moet zich eerst verplaatsen)
         if (this.startDistance > 0 && this.distanceTraveled < this.startDistance) return;
-
-        // Lane check (als laneMode aan staat)
         if (laneMode && this.owner && this.owner.lane !== target.lane) return;
 
-        // Friendly fire check
-        if (!this.friendlyFire && this.owner === target) return;
-
-        // Hit detectie
         const dx = Math.abs(target.cx - this.x);
-        const dy = Math.abs(target.cy - this.y); 
-		const hitRadius = this.range || 40;
-
+        const dy = Math.abs(target.cy - this.y);
+        const hitRadius = this.range || 40;
         if (dx < hitRadius && dy < hitRadius) {
             let blocked = false;
             let damageToApply = this.damage;
 
-            // Block check
             if (target.state === 'block' || target.state === 'block_crouch') {
                 let blockSuccess = true;
                 if (this.height === 'low' && target.state === 'block') blockSuccess = false;
@@ -2364,10 +2410,8 @@ class Projectile {
                 }
             }
 
-            // Schade toepassen
             target.takeDamage(damageToApply, this.dir, blocked);
 
-            // Teleport
             if (this.teleportX !== 0 || this.teleportY !== 0) {
                 target.x += this.teleportX * (-target.facing);
                 target.y -= this.teleportY;
@@ -2392,70 +2436,75 @@ class Projectile {
                     target.y = LANE_Y[closest] - target.h;
                 }
             }
-
             this.active = false;
         }
     }
 
+    draw(ctx, camera) {
+        if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0) return;
+        const sx = (this.x - camera.offsetX) * camera.zoom;
+        const sy = (this.y - camera.offsetY) * camera.zoom;
+        const r = (this.radius || 16) * camera.zoom;
 
-   
+        if (this.extraImage && this.imageLoaded) {
+            const w = r * 2;
+            const h = r * 2;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
+            ctx.restore();
+            return;
+        }
 
-                draw(ctx, camera) {
-                    if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0)
-                    return;
-                    const sx = (this.x - camera.offsetX) * camera.zoom;
-                    const sy = (this.y - camera.offsetY) * camera.zoom;
-                    const r = (this.radius || 16) * camera.zoom;
-                    if (this.extraImage && this.imageLoaded) {
-                        const w = r * 2;
-                        const h = r * 2;
-                        ctx.save();
-                        ctx.translate(sx, sy);
-                        ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
-                        ctx.restore();
-                        return;
-                    }
-                    if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
-                        const fw = 64,
-                            fh = 64;
-                        const cols = 8;
-                        const col = (this.frameIdx || 0) % cols;
-                        const row = Math.floor((this.frameIdx || 0) / cols);
-                        ctx.save();
-                        ctx.translate(sx, sy);
-                        ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
-                        ctx.restore();
-                        return;
-                    }
-                    if (!isFinite(r) || r <= 0) return;
-                    const maxR = 200;
-                    const safeR = Math.min(r, maxR * camera.zoom);
-                    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, safeR * 1.8);
-                    grad.addColorStop(0, 'rgba(255,255,200,0.9)');
-                    grad.addColorStop(0.3, 'rgba(255,220,100,0.7)');
-                    grad.addColorStop(0.7, 'rgba(255,150,50,0.3)');
-                    grad.addColorStop(1, 'rgba(255,100,0,0)');
-                    ctx.shadowColor = 'rgba(255,200,50,0.5)';
-                    // ctx.shadowBlur = 30;
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 1.8, 0, Math.PI * 2);
-                    ctx.fill();
-                    // ctx.shadowBlur = 0;
-                    ctx.fillStyle = '#fffbe6';
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 0.7, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#ffdd44';
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 0.4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
+        if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
+            const owner = this.owner;
+            const fw = owner?.spriteFrameWidth ?? 64;
+            const fh = owner?.spriteFrameHeight ?? 64;
+            const cols = owner?.spriteCols ?? 8;
 
-            class Mine {
-    constructor(x, y, damage, owner, spriteImg, frameIdx = 0, range = 60, startDistance = 0,
-                friendlyFire = false, extraImage = null, life = 300, teleportX = 0, teleportY = 0, chipDamage = true) {
+            // Bereken de absolute frame-index: row * cols + (startFrame + currentOffset)
+            const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
+            const col = frameIndex % cols;
+            const row = Math.floor(frameIndex / cols);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
+        // Fallback
+        if (!isFinite(r) || r <= 0) return;
+        const maxR = 200;
+        const safeR = Math.min(r, maxR * camera.zoom);
+        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, safeR * 1.8);
+        grad.addColorStop(0, 'rgba(255,255,200,0.9)');
+        grad.addColorStop(0.3, 'rgba(255,220,100,0.7)');
+        grad.addColorStop(0.7, 'rgba(255,150,50,0.3)');
+        grad.addColorStop(1, 'rgba(255,100,0,0)');
+        ctx.shadowColor = 'rgba(255,200,50,0.5)';
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fffbe6';
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffdd44';
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+class Mine {
+    constructor(x, y, damage, owner, spriteImg,
+                row = 0, startFrame = 0, endFrame = 3,
+                range = 60, startDistance = 0,
+                friendlyFire = false, extraImage = null, life = 300,
+                teleportX = 0, teleportY = 0, chipDamage = true,
+                animSpeed = 5) {
         this.x = x;
         this.y = y;
         this.damage = damage || 15;
@@ -2463,7 +2512,12 @@ class Projectile {
         this.radius = 20;
         this.active = true;
         this.spriteImg = spriteImg || null;
-        this.frameIdx = frameIdx || 0;
+        this.row = row || 0;
+        this.startFrame = startFrame || 0;
+        this.endFrame = endFrame || startFrame + 3;
+        this.currentOffset = 0;
+        this.animTimer = 0;
+        this.animSpeed = animSpeed || 5;
         this.type = 'mine';
         this.exploded = false;
         this.explosionTimer = 0;
@@ -2474,27 +2528,44 @@ class Projectile {
         this.life = life || 300;
         this.teleportX = teleportX || 0;
         this.teleportY = teleportY || 0;
-		    this.chipDamage = chipDamage;
+        this.chipDamage = chipDamage !== undefined ? chipDamage : true;
+        this.imageLoaded = false;
 
+        if (this.extraImage) {
+            if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
+                this.imageLoaded = true;
+            } else {
+                this.extraImage.onload = () => { this.imageLoaded = true; };
+                this.extraImage.onerror = () => { this.imageLoaded = false; };
+            }
+        }
     }
 
-      update(opponents) {
+    update(opponents) {
         if (this.exploded) {
             this.explosionTimer--;
             if (this.explosionTimer <= 0) this.active = false;
             return;
         }
+
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
+
+        // Animatie
+        this.animTimer++;
+        if (this.animTimer >= this.animSpeed) {
+            this.animTimer = 0;
+            const range = this.endFrame - this.startFrame + 1;
+            if (range > 1) {
+                this.currentOffset = (this.currentOffset + 1) % range;
+            }
+        }
 
         for (const opp of opponents) {
             if (!opp || opp.health <= 0) continue;
             const isOwner = (opp === this.owner);
-            // Friendly fire filter
             if (this.friendlyFire && !isOwner) continue;
             if (!this.friendlyFire && isOwner) continue;
-
-            // Lane check (als laneMode aan staat)
             if (laneMode && this.owner && opp.lane !== this.owner.lane) continue;
 
             const dx = Math.abs(opp.cx - this.x);
@@ -2511,26 +2582,22 @@ class Projectile {
         this.exploded = true;
         this.explosionTimer = 20;
 
-        // Block check voor mijn (optioneel, maar laten we toevoegen voor consistentie)
         let damageToApply = this.damage;
         let blocked = false;
         if (target.state === 'block' || target.state === 'block_crouch') {
-            // Mijnen zijn standaard 'low' (op de grond) en unblockable = false
-            // We gebruiken 'low' en chipDamage = true
             if (target.state === 'block') {
-                // stand-block blokkeert low niet, dus volledige schade
+                // stand-block blokkeert low niet
             } else {
-                // crouch-block blokkeert low wel, dus block
                 blocked = true;
- if (this.chipDamage) {
-            damageToApply = Math.max(1, Math.floor(this.damage * 0.1));
-        } else {
-            damageToApply = 0;
-        }            }
+                if (this.chipDamage) {
+                    damageToApply = Math.max(1, Math.floor(this.damage * 0.1));
+                } else {
+                    damageToApply = 0;
+                }
+            }
         }
         target.takeDamage(damageToApply, this.owner ? this.owner.facing : 1, blocked);
 
-        // Teleport
         if (this.teleportX !== 0 || this.teleportY !== 0) {
             let victim = this.friendlyFire ? this.owner : target;
             if (victim) {
@@ -2564,59 +2631,63 @@ class Projectile {
         }
     }
 
-                draw(ctx, camera) {
-                    if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0)
-                    return;
-                    const sx = (this.x - camera.offsetX) * camera.zoom;
-                    const sy = (this.y - camera.offsetY) * camera.zoom;
-                    const r = (this.radius || 20) * camera.zoom;
-                    if (this.extraImage && this.extraImage.complete && this.extraImage.naturalWidth > 0) {
-                        const w = r * 2;
-                        const h = r * 2;
-                        ctx.save();
-                        ctx.translate(sx, sy);
-                        ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
-                        ctx.restore();
-                        return;
-                    }
-                    if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
-                        const fw = 64,
-                            fh = 64;
-                        const cols = 8;
-                        const col = (this.frameIdx || 0) % cols;
-                        const row = Math.floor((this.frameIdx || 0) / cols);
-                        ctx.save();
-                        ctx.translate(sx, sy);
-                        ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
-                        ctx.restore();
-                        return;
-                    }
-                    if (!isFinite(r) || r <= 0) return;
-                    const maxR = 200;
-                    const safeR = Math.min(r, maxR * camera.zoom);
-                    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, safeR * 1.8);
-                    grad.addColorStop(0, 'rgba(255,255,200,0.9)');
-                    grad.addColorStop(0.3, 'rgba(255,220,100,0.7)');
-                    grad.addColorStop(0.7, 'rgba(255,150,50,0.3)');
-                    grad.addColorStop(1, 'rgba(255,100,0,0)');
-                    ctx.shadowColor = 'rgba(255,200,50,0.5)';
-                    // ctx.shadowBlur = 30;
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 1.8, 0, Math.PI * 2);
-                    ctx.fill();
-                    // ctx.shadowBlur = 0;
-                    ctx.fillStyle = '#fffbe6';
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 0.7, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#ffdd44';
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, safeR * 0.4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
+    draw(ctx, camera) {
+        if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0) return;
+        const sx = (this.x - camera.offsetX) * camera.zoom;
+        const sy = (this.y - camera.offsetY) * camera.zoom;
+        const r = (this.radius || 20) * camera.zoom;
 
+        if (this.extraImage && this.imageLoaded) {
+            const w = r * 2;
+            const h = r * 2;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
+            ctx.restore();
+            return;
+        }
+
+        if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
+            const owner = this.owner;
+            const fw = owner?.spriteFrameWidth ?? 64;
+            const fh = owner?.spriteFrameHeight ?? 64;
+            const cols = owner?.spriteCols ?? 8;
+
+            const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
+            const col = frameIndex % cols;
+            const row = Math.floor(frameIndex / cols);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
+        // Fallback
+        if (!isFinite(r) || r <= 0) return;
+        const maxR = 200;
+        const safeR = Math.min(r, maxR * camera.zoom);
+        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, safeR * 1.8);
+        grad.addColorStop(0, 'rgba(255,255,200,0.9)');
+        grad.addColorStop(0.3, 'rgba(255,220,100,0.7)');
+        grad.addColorStop(0.7, 'rgba(255,150,50,0.3)');
+        grad.addColorStop(1, 'rgba(255,100,0,0)');
+        ctx.shadowColor = 'rgba(255,200,50,0.5)';
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fffbe6';
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffdd44';
+        ctx.beginPath();
+        ctx.arc(sx, sy, safeR * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
 function applyBarStyles() {
  
  //   const healthHeight = project.settings.healthBarHeight || 16;
@@ -3031,107 +3102,117 @@ startAttack(idx) {
         }
     }
 
-    // ─── Projectiel ─────────────────────────────────
-    if (move.type === 'projectile') {
-        if (this._projectileCooldown > 0) return false;
-        this._projectileCooldown = 30;
-        const sprite = this.spriteImg;
-        const frameIdx = move.startFrame || 0;
-        let extraImg = null;
-        if (move.projectileImage) {
-            if (extraImages[move.projectileImage]) {
-                extraImg = extraImages[move.projectileImage];
-            } else {
-                const img = new Image();
-                img.src = move.projectileImage;
-                extraImages[move.projectileImage] = img;
-                extraImg = img;
-            }
+ // ─── Projectiel ─────────────────────────────────
+if (move.type === 'projectile') {
+    if (this._projectileCooldown > 0) return false;
+    this._projectileCooldown = 30;
+    const sprite = this.spriteImg;
+    const row = move.row || 0;
+    const startFrame = move.startFrame || 0;
+    const endFrame = move.endFrame || startFrame + 3;
+    let extraImg = null;
+    if (move.projectileImage) {
+        if (extraImages[move.projectileImage]) {
+            extraImg = extraImages[move.projectileImage];
+        } else {
+            const img = new Image();
+            img.src = move.projectileImage;
+            extraImages[move.projectileImage] = img;
+            extraImg = img;
         }
-		    if (move.attackImage) {
+    }
+    if (move.attackImage) {
         let img = extraImages[move.attackImage];
         if (!img) {
-                 img = new Image();
-        img.src = move.attackImage;
-        this.projectileMijnImg = img;
- this.projectileMijnTimer = 30
- 		}
-     }
-
-		const startDist = (move.startDistance && move.startDistance > 0) ? move.startDistance : 30;
-
-        const proj = new Projectile(
-    this.cx + this.facing * startDist,
-    this.cy - 8,
-    this.facing,
-    move.damage || 10,
-    move.speed || 10,
-    this,
-    sprite,
-    frameIdx,
-    move.startDistance || 0,
-    extraImg,
-    120,
-    move.teleportX || 0,
-    move.teleportY || 0,
-    move.range || 40 ,
-    move.chipDamage !== false
-        );
-        projectiles.push(proj);
-        this.playSound('projectile');
-        return true;
+            img = new Image();
+            img.src = move.attackImage;
+            this.projectileMijnImg = img;
+            this.projectileMijnTimer = 30;
+        }
     }
 
-    // ─── Mijn ──────────────────────────────────────
-    if (move.type === 'mine') {
-        if (this._mineCooldown > 0) return false;
-        this._mineCooldown = 45;
-        const sprite = this.spriteImg;
-        const frameIdx = move.startFrame || 0;
-        let extraImg = null;
-        if (move.mineImage) {
-            if (extraImages[move.mineImage]) {
-                extraImg = extraImages[move.mineImage];
-            } else {
-                const img = new Image();
-                img.src = move.mineImage;
-                extraImages[move.mineImage] = img;
-                extraImg = img;
-            }
+    const startDist = (move.startDistance && move.startDistance > 0) ? move.startDistance : 30;
+
+    const proj = new Projectile(
+        this.cx + this.facing * startDist,
+        this.cy - 8,
+        this.facing,
+        move.damage || 10,
+        move.speed || 10,
+        this,
+        sprite,
+        row,
+        startFrame,
+        endFrame,
+        move.startDistance || 0,
+        extraImg,
+        120,
+        move.teleportX || 0,
+        move.teleportY || 0,
+        move.range || 40,
+        move.chipDamage !== false,
+        5
+    );
+    projectiles.push(proj);
+    this.playSound('projectile');
+    return true;
+}
+
+// ─── Mijn ──────────────────────────────────────
+if (move.type === 'mine') {
+    if (this._mineCooldown > 0) return false;
+    this._mineCooldown = 45;
+    const sprite = this.spriteImg;
+    const row = move.row || 0;
+    const startFrame = move.startFrame || 0;
+    const endFrame = move.endFrame || startFrame + 3;
+    let extraImg = null;
+    if (move.mineImage) {
+        if (extraImages[move.mineImage]) {
+            extraImg = extraImages[move.mineImage];
+        } else {
+            const img = new Image();
+            img.src = move.mineImage;
+            extraImages[move.mineImage] = img;
+            extraImg = img;
         }
-		
-		    if (move.attackImage) {
+    }
+    if (move.attackImage) {
         let img = extraImages[move.attackImage];
         if (!img) {
-                 img = new Image();
-        img.src = move.attackImage;
-        this.projectileMijnImg = img;
- this.projectileMijnTimer = 30
- 		}
-     }
-const offsetX = move.startDistance || 0; // offset in pixels
-const mineX = this.x + (this.facing === 1 ? this.w : 0) + this.facing * offsetX;
-const mineLife = move.speed ? move.speed : 300;
-const mine = new Mine(
-    mineX,
-    this.y + this.h - 10,
-    move.damage || 15,
-    this,
-    sprite,
-    frameIdx,
-    move.range || 60,
-    0,      // startDistance wordt niet meer gebruikt voor arming
-    move.friendlyFire || false,
-    extraImg,
-    mineLife,
-    move.teleportX || 0,
-    move.teleportY || 0,
-    move.chipDamage !== false
-);
-        mines.push(mine);
-        this.playSound('mine');
-        return true;
+            img = new Image();
+            img.src = move.attackImage;
+            this.projectileMijnImg = img;
+            this.projectileMijnTimer = 30;
+        }
     }
+    const offsetX = move.startDistance || 0;
+    const mineX = this.x + (this.facing === 1 ? this.w : 0) + this.facing * offsetX;
+    const mineLife = move.speed ? move.speed : 300;
+
+    const mine = new Mine(
+        mineX,
+        this.y + this.h - 10,
+        move.damage || 15,
+        this,
+        sprite,
+        row,
+        startFrame,
+        endFrame,
+        move.range || 60,
+        0,
+        move.friendlyFire || false,
+        extraImg,
+        mineLife,
+        move.teleportX || 0,
+        move.teleportY || 0,
+        move.chipDamage !== false,
+        5
+    );
+    mines.push(mine);
+    this.playSound('mine');
+    return true;
+}
 
     // ─── Normale aanval, sweep of grab ────────────
     this._currentMoveHeight = move.height || 'mid';
@@ -3350,7 +3431,7 @@ if (p2) {
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
-    const flatHeight = 50; // hoogte van liggend figuur
+    const flatHeight = 30; // hoogte van liggend figuur
     if (laneMode) {
         this.y = LANE_Y[this.lane] - flatHeight;
     } else {
@@ -3571,7 +3652,7 @@ if (move.generatesEnergy) {
                                     this.blockType = 'crouch';
                                 } else if (standBlock) {
                                     this.isBlocking = true;
-                                    if(this.onGround)  this.vx = 0;
+                                    if(this.onGround && project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block'; 
                                     this.blockType = 'stand';
                                 } else {
@@ -3690,7 +3771,7 @@ if (this.input.up && !this._prevUp) {
                                     this.blockType = 'crouch';
                                 } else if (standBlock) {
                                     this.isBlocking = true;
-                                    if(this.onGround)  this.vx = 0;
+                                    if(this.onGround &&   project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block';
                                     this.blockType = 'stand';
                                 } else {
@@ -5221,7 +5302,10 @@ function playSystemSound(type) {
 
             let gamepadIndex = -1;
 
-   function pollGamepad() {
+   // Bewaar de oorspronkelijke functie (als je hem later nog nodig hebt)
+const originalPollGamepad = window.pollGamepad;
+
+window.pollGamepad = function() {
     if (!navigator.getGamepads) return;
 
     const pads = navigator.getGamepads();
@@ -5230,22 +5314,28 @@ function playSystemSound(type) {
         if (p && p.connected) connected.push(p);
     }
 
-    // Reset if disconnected
+    // Reset disconnected
     if (p1GamepadIndex !== -1 && !connected.some(g => g.index === p1GamepadIndex)) p1GamepadIndex = -1;
     if (p2GamepadIndex !== -1 && !connected.some(g => g.index === p2GamepadIndex)) p2GamepadIndex = -1;
 
-    // Assign controllers
-    if (connected.length > 0 && p1GamepadIndex === -1) p1GamepadIndex = connected[0].index;
-    if (connected.length > 1 && p2GamepadIndex === -1) {
-        for (const g of connected) {
-            if (g.index !== p1GamepadIndex) {
-                p2GamepadIndex = g.index;
-                break;
-            }
-        }
+    // Lees instellingen
+    const useP1 = project.settings.useGamepadP1 !== false;
+    const useP2 = project.settings.useGamepadP2 !== false;
+
+    if (!useP1) p1GamepadIndex = -1;
+    if (!useP2) p2GamepadIndex = -1;
+
+    // Toewijzen (alleen als de speler gamepad mag gebruiken)
+    if (useP1 && p1GamepadIndex === -1) {
+        let chosen = connected.find(g => g.index !== p2GamepadIndex);
+        if (chosen) p1GamepadIndex = chosen.index;
+    }
+    if (useP2 && p2GamepadIndex === -1) {
+        let chosen = connected.find(g => g.index !== p1GamepadIndex);
+        if (chosen) p2GamepadIndex = chosen.index;
     }
 
-    // Status
+    // ─── Status weergeven (aangepast) ────────────────────────────
     let statusText = '🎮 ';
     let hasAny = false;
     if (p1GamepadIndex !== -1) {
@@ -5263,7 +5353,7 @@ function playSystemSound(type) {
     gamepadStatus.textContent = hasAny ? statusText : '🎮 No controller';
     gamepadStatus.classList.toggle('connected', hasAny);
 
-    // Remapping (safe)
+    // ─── Remapping (gamepad) ───────────────────────────────────────
     if (waitingForInput && waitingForInput.type === 'gamepad') {
         for (const gp of connected) {
             for (let i = 0; i < gp.buttons.length; i++) {
@@ -5271,7 +5361,7 @@ function playSystemSound(type) {
                     const { player, action } = waitingForInput;
                     if (!project.settings.controls[player].gamepad) project.settings.controls[player].gamepad = {};
                     project.settings.controls[player].gamepad[action] = { type: 'button', index: i };
-                    updateControlsUI();
+                    if (typeof updateControlsUI === 'function') updateControlsUI();
                     waitingForInput = null;
                     if (remapTimeout) clearTimeout(remapTimeout);
                     showToast(`✅ Button ${i} voor ${player} ${action}`, 'success');
@@ -5282,7 +5372,7 @@ function playSystemSound(type) {
         return;
     }
 
-    // Start button pause
+    // ─── Pause via Start ──────────────────────────────────────────
     let startPressed = false;
     for (const g of connected) {
         if (g.buttons[7]?.pressed || g.buttons[9]?.pressed || g.buttons[16]?.pressed) {
@@ -5293,15 +5383,14 @@ function playSystemSound(type) {
     if (startPressed && !gamepadStartPressed) togglePause();
     gamepadStartPressed = startPressed;
 
-   if (gamePaused) return;
+    if (gamePaused) return;
 
-    // Safe apply
+    // ─── Input toepassen (alleen voor spelers die gamepad gebruiken) ──
     const applyToPlayer = (fighter, map, gp) => {
         if (!fighter || !gp || !map) return;
 
         fighter.input.left = fighter.input.right = fighter.input.up = fighter.input.down = false;
 
-        // Configured inputs
         for (const action of ['left','right','up','down']) {
             const cfg = map[action];
             if (cfg?.type === 'axis') {
@@ -5313,13 +5402,11 @@ function playSystemSound(type) {
             }
         }
 
-        // D-Pad fallback
         if (gp.buttons[12]?.pressed) fighter.input.up = true;
         if (gp.buttons[13]?.pressed) fighter.input.down = true;
         if (gp.buttons[14]?.pressed) fighter.input.left = true;
         if (gp.buttons[15]?.pressed) fighter.input.right = true;
 
-        // Attacks
         for (let i = 1; i <= 6; i++) {
             const cfg = map['attack' + i];
             if (cfg?.type === 'button') {
@@ -5332,16 +5419,16 @@ function playSystemSound(type) {
         }
     };
 
-    if (p1GamepadIndex !== -1) {
+    // Alleen toepassen als de speler gamepad gebruikt en er een index is
+    if (p1GamepadIndex !== -1 && useP1) {
         const gp = connected.find(g => g.index === p1GamepadIndex);
         if (gp && p1) applyToPlayer(p1, project.settings.controls.p1?.gamepad || {}, gp);
     }
-    if (p2GamepadIndex !== -1 && (currentMode === 'pvp' || currentMode === 'training')) {
+    if (p2GamepadIndex !== -1 && useP2) {
         const gp = connected.find(g => g.index === p2GamepadIndex);
         if (gp && p2) applyToPlayer(p2, project.settings.controls.p2?.gamepad || {}, gp);
     }
-
-}
+};
 
 function updateTouchDpad() {
     if (!p1) return;
@@ -5533,11 +5620,13 @@ function setDirectionInput(fighter, dir, value) {
         return;
     }
     const charData = project.characters[p1.charId] || project.characters.fighter;
-    const moves = charData.moves || DEFAULT_MOVES;
+    const moves =  charData.moves || DEFAULT_MOVES;
     const activeButtons = charData.activeButtons || [true, true, true, true, true, true];
 
     // Alleen moves tonen waarvan de bijbehorende knop actief is
-    const visibleMoves = moves.filter((move, idx) => activeButtons[idx] !== false);
+    const visibleMoves =moves
+  .filter((move, idx) => activeButtons[idx] !== false)
+  .slice(0, 6);// moves.filter((move, idx) => activeButtons[idx] !== false);
 
     visibleMoves.forEach((move, idx) => {
         const btn = document.createElement('div');
@@ -5553,12 +5642,13 @@ function setDirectionInput(fighter, dir, value) {
             btn.classList.add('low-energy');
         }
 
-        btn.innerHTML = `
+       /* btn.innerHTML = `
             <span>${shortName} ${icon}</span>
             <span class="label">${move.damage || '?'}</span>
             ${move.command ? `<span class="cmd-label">${move.command.replace(/[+]/g, '')}</span>` : ''}
             ${required > 0 ? `<span style="font-size:7px;color:#8ab4ff;">${required}%</span>` : ''}
-        `;
+        `;*/
+		btn.innerHTML = ` <span>${shortName} ${icon}</span>   `;
 
       const triggerAttack = () => {
     if (!p1 || p1.health <= 0) return;
@@ -6255,6 +6345,20 @@ if (p1 && p2 && travelCubes.length > 0) {
                     needsReset = true;
                 }
             }
+			
+			        const tc = travelCubes.find(tc => 
+            (p1.x + p1.w > tc.x && p1.x < tc.x + tc.width && p1.y + p1.h > tc.y && p1.y < tc.y + tc.height) ||
+            (p2.x + p2.w > tc.x && p2.x < tc.x + tc.width && p2.y + p2.h > tc.y && p2.y < tc.y + tc.height)
+        );
+        if (tc && tc.aiDifficulty) {
+            project.settings.aiDifficulty = tc.aiDifficulty;
+            // De AI functie gebruikt project.settings.aiDifficulty, dus die wordt automatisch toegepast.
+            // We moeten de AI timers resetten om de nieuwe difficulty te gebruiken.
+            if (p1._aiTimer) p1._aiTimer = 0;
+            if (p2._aiTimer) p2._aiTimer = 0;
+        }
+
+
             // Als er geen reset was, doen we de standaard positie reset
             if (!needsReset) {
                 p1.x = project.settings.startX1 || 510;
@@ -7096,6 +7200,7 @@ function processProjectData(jsonString) {
                     ringOutRight: 1220,
 					    ringOutText: "RING OUT!",
     startFightText: "FIGHT!",
+	autoFreezeOnBlock: true, 
     roundWinText: "{winner} WINS!",
     roundDrawText: "DRAW!",
     matchWinText: "{winner} wins the match!", 
@@ -7124,7 +7229,9 @@ function processProjectData(jsonString) {
      healthBarHeight: 16,
     healthBarBorderRadius: 12,
     energyBarHeight: 10,
-    energyBarBorderRadius: 4 
+    energyBarBorderRadius: 4,
+	useGamepadP1:true,
+	useGamepadP2:true
 
         };
 project.publish = data.publish || {
@@ -7151,6 +7258,8 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.matchWinText) project.settings.matchWinText = "{winner} wins the match!";
         if (project.settings.startX1 === undefined) project.settings.startX1 = 510;
         if (project.settings.startX2 === undefined) project.settings.startX2 = 690;
+if (!project.settings.useGamepadP1) project.settings.useGamepadP1 = true;
+if (!project.settings.useGamepadP2) project.settings.useGamepadP2 = true;
 
         project.currentStageId = data.currentStageId || 'dojo';
         project.laneMode = data.laneMode || false;
@@ -7745,15 +7854,8 @@ document.querySelectorAll('.moves-btn').forEach(el => {
     const projWrap = row.querySelector('.projectile-img-wrap');
     const mineWrap = row.querySelector('.mine-img-wrap');
     const counterWrap = row.querySelector('.counter-wrap');
-    const frameFields = row.querySelectorAll('.frame-fields'); // <-- nieuw
+  
 
-    // Frame velden verbergen voor projectile/mine
-    const isProjectileOrMine = (type === 'projectile' || type === 'mine');
-    frameFields.forEach(el => {
-        el.style.display = isProjectileOrMine ? 'none' : 'flex';
-    });
-
-    // ... rest van de bestaande code (grab, projectile, mine, images, etc.)
     if (counterWrap) {
         counterWrap.style.display = (type === 'normal') ? 'flex' : 'none';
     }
@@ -7770,12 +7872,16 @@ document.querySelectorAll('.moves-btn').forEach(el => {
     projWrap.style.display = (type === 'projectile') ? 'flex' : 'none';
     mineWrap.style.display = (type === 'mine') ? 'flex' : 'none';
 	
-	  const speedLabel = row.querySelector('.speed-label');
-    if (speedLabel) {
-        if (type === 'projectile') speedLabel.textContent = 'Proj. speed';
-        else if (type === 'mine') speedLabel.textContent = 'Mine life (frames)';
-        else speedLabel.textContent = 'Speed';
-    }
+	        const spdInput = row.querySelector('.move-spd');
+        if (spdInput) {
+            const label = spdInput.closest('.form-group')?.querySelector('label');
+            if (label) {
+                if (type === 'projectile') label.textContent = 'Proj. speed';
+                else if (type === 'mine') label.textContent = 'Mine life (frames)';
+                else label.textContent = 'Speed';
+            }
+        }
+
 }
 
            function addMoveRow(container, idx, data, existingMoves = null) {
@@ -7810,7 +7916,7 @@ document.querySelectorAll('.moves-btn').forEach(el => {
             </div>
              <div class="form-group frame-fields"><label>Sprite row</label><input type="number" class="move-row" value="${data.row ?? 4}" /></div>
             <div class="form-group frame-fields"><label>Start frame</label><input type="number" class="move-start" value="${data.startFrame || 0}" /></div>
-            <div class="form-group frame-fields"><label>Eind frame</label><input type="number" class="move-end" value="${data.endFrame || 3}" /></div>
+            <div class="form-group frame-fields"><label>End frame</label><input type="number" class="move-end" value="${data.endFrame || 3}" /></div>
         </div>
         <div class="form-row-4">
             <div class="form-group"><label>Type</label>
@@ -7822,7 +7928,7 @@ document.querySelectorAll('.moves-btn').forEach(el => {
                     <option value="sweep" ${data.type === 'sweep' ? 'selected' : ''}>Sweep</option>
                 </select>
             </div>
-            <div class="form-group"><label>Hoogte</label>
+            <div class="form-group"><label>Height</label>
                 <select class="move-height">
                     <option value="low" ${data.height === 'low' ? 'selected' : ''}>Low</option>
                     <option value="mid" ${data.height === 'mid' || !data.height ? 'selected' : ''}>Middle</option>
@@ -8889,7 +8995,7 @@ function createNewCharacter() {
                 modalClose.onclick = () => modalOverlay.classList.remove('open');
             }
 
- function openStageForm(stageIndex) {
+function openStageForm(stageIndex) {
     const isNew = (stageIndex === -1 || stageIndex === undefined || stageIndex === null || !project.stages[stageIndex]);
     let stage;
     if (isNew) {
@@ -8901,7 +9007,7 @@ function createNewCharacter() {
             audioData: null,
             platforms: [],
             itemConfigs: [],
-            travelcubeConfigs: [],  // <-- nieuw
+            travelcubeConfigs: [],
             colorTheme: 'default',
             weather: 'none',
             hasSpringPlatform: false
@@ -8922,7 +9028,6 @@ function createNewCharacter() {
         };
     }
 
-    // Zorg dat travelcubeConfigs bestaat
     if (!stage.travelcubeConfigs) stage.travelcubeConfigs = [];
 
     const id = stage.id;
@@ -9021,45 +9126,52 @@ function createNewCharacter() {
 
         <h3 style="margin-top:16px;">🌀 Travelcubes (teleport)</h3>
         <p style="font-size:12px;color:#7a7a9a;">Set permanent teleporters. When touched both players gets teleported (and influenced).</p>
-       <div id="editStageTravelcubes">
-    ${(stage.travelcubeConfigs || []).map((cfg, i) => `
-        <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="number" class="tc-x" value="${cfg.x || 0}" placeholder="x" style="width:60px;" />
-            <input type="number" class="tc-y" value="${cfg.y || 0}" placeholder="y" style="width:60px;" />
-            <input type="number" class="tc-w" value="${cfg.width || 60}" placeholder="breedte" style="width:60px;" />
-            <input type="number" class="tc-h" value="${cfg.height || 60}" placeholder="hoogte" style="width:60px;" />
-            <select class="tc-target">
-                ${project.stages.map(s => `<option value="${s.id}" ${s.id === cfg.targetStageId ? 'selected' : ''}>${s.name}</option>`).join('')}
-            </select>
-            <select class="tc-mode" style="width:80px;">
-                <option value="">Mode</option>
-                <option value="arcade" ${cfg.mode === 'arcade' ? 'selected' : ''}>Arcade</option>
-                <option value="timeattack" ${cfg.mode === 'timeattack' ? 'selected' : ''}>Time</option>
-                <option value="survival" ${cfg.mode === 'survival' ? 'selected' : ''}>Survival</option>
-                <option value="pvai" ${cfg.mode === 'pvai' ? 'selected' : ''}>PvAI</option>
-                <option value="pvp" ${cfg.mode === 'pvp' ? 'selected' : ''}>PvP</option>
-                <option value="aivai" ${cfg.mode === 'aivai' ? 'selected' : ''}>AIvsAI</option>
-                <option value="training" ${cfg.mode === 'training' ? 'selected' : ''}>Training</option>
-            </select>
-            <select class="tc-charp1" style="width:80px;">
-                <option value="">P1 char</option>
-                ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP1 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
-            </select>
-            <select class="tc-charp2" style="width:80px;">
-                <option value="">P2 char</option>
-                ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP2 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
-            </select>
-            <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
-                <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${i}" style="width:80px;font-size:8px;" />
-                <button class="clear-file" data-field="tcImage_${i}" type="button">✕</button>
-            </div>
-            <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">
-                ${cfg.imageData ? '🖼️' : ''}
-            </span>
-            <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
+        <div id="editStageTravelcubes">
+            ${(stage.travelcubeConfigs || []).map((cfg, i) => `
+                <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="number" class="tc-x" value="${cfg.x || 0}" placeholder="x" style="width:60px;" />
+                    <input type="number" class="tc-y" value="${cfg.y || 0}" placeholder="y" style="width:60px;" />
+                    <input type="number" class="tc-w" value="${cfg.width || 60}" placeholder="breedte" style="width:60px;" />
+                    <input type="number" class="tc-h" value="${cfg.height || 60}" placeholder="hoogte" style="width:60px;" />
+                    <select class="tc-target">
+                        ${project.stages.map(s => `<option value="${s.id}" ${s.id === cfg.targetStageId ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    </select>
+                    <select class="tc-mode" style="width:100px;">
+                        <option value="">Mode</option>
+                        <option value="arcade" ${cfg.mode === 'arcade' ? 'selected' : ''}>Arcade</option>
+                        <option value="timeattack" ${cfg.mode === 'timeattack' ? 'selected' : ''}>Time Attack</option>
+                        <option value="survival" ${cfg.mode === 'survival' ? 'selected' : ''}>Survival</option>
+                        <option value="pvai" ${cfg.mode === 'pvai' ? 'selected' : ''}>PvAI</option>
+                        <option value="pvp" ${cfg.mode === 'pvp' ? 'selected' : ''}>PvP</option>
+                        <option value="aivai" ${cfg.mode === 'aivai' ? 'selected' : ''}>AIvsAI</option>
+                        <option value="training" ${cfg.mode === 'training' ? 'selected' : ''}>Training</option>
+                    </select>
+                    <select class="tc-charp1" style="width:80px;">
+                        <option value="">P1 char</option>
+                        ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP1 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
+                    </select>
+                    <select class="tc-charp2" style="width:80px;">
+                        <option value="">P2 char</option>
+                        ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP2 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
+                    </select>
+                    <select class="tc-ai" style="width:80px;">
+                        <option value="">AI difficulty</option>
+                        <option value="beginner" ${cfg.aiDifficulty === 'beginner' ? 'selected' : ''}>Beginner</option>
+                        <option value="easy" ${cfg.aiDifficulty === 'easy' ? 'selected' : ''}>Easy</option>
+                        <option value="normal" ${cfg.aiDifficulty === 'normal' ? 'selected' : ''}>Normal</option>
+                        <option value="hard" ${cfg.aiDifficulty === 'hard' ? 'selected' : ''}>Hard</option>
+                    </select>
+                    <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
+                        <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${i}" style="width:80px;font-size:8px;" />
+                        <button class="clear-file" data-field="tcImage_${i}" type="button">✕</button>
+                    </div>
+                    <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">
+                        ${cfg.imageData ? '🖼️' : ''}
+                    </span>
+                    <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
+                </div>
+            `).join('')}
         </div>
-    `).join('')}
-</div>
         <button class="btn" id="addEditStageTravelcube">➕ Add travelcube</button>
 
         <div class="btn-group" style="margin-top:16px;">
@@ -9098,7 +9210,7 @@ function createNewCharacter() {
         });
     }
 
-    // ─── Hulpfunctie voor clear-knoppen ──────────────────────
+    // ─── Clear-knoppen ──────────────────────────────────────────
     function setupClearFileListeners() {
         document.querySelectorAll('.clear-file').forEach(btn => {
             btn.removeEventListener('click', btn._listener);
@@ -9173,51 +9285,58 @@ function createNewCharacter() {
     });
 
     // ─── Travelcube toevoegen ──────────────────────────────────
-  document.getElementById('addEditStageTravelcube')?.addEventListener('click', function() {
-    const container = document.getElementById('editStageTravelcubes');
-    const idx = container.children.length;
-    const div = document.createElement('div');
-    div.className = 'stage-item';
-    div.style.cssText = 'background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
-    const stageOptions = project.stages.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    const charOptions = Object.keys(project.characters).map(id => `<option value="${id}">${project.characters[id].name}</option>`).join('');
-    div.innerHTML = `
-        <input type="number" class="tc-x" value="0" placeholder="x" style="width:60px;" />
-        <input type="number" class="tc-y" value="500" placeholder="y" style="width:60px;" />
-        <input type="number" class="tc-w" value="60" placeholder="breedte" style="width:60px;" />
-        <input type="number" class="tc-h" value="60" placeholder="hoogte" style="width:60px;" />
-        <select class="tc-target">${stageOptions}</select>
-        <select class="tc-mode" style="width:80px;">
-            <option value="">Mode</option>
-            <option value="arcade">Arcade</option>
-            <option value="timeattack">Time</option>
-            <option value="survival">Survival</option>
-            <option value="pvai">PvAI</option>
-            <option value="pvp">PvP</option>
-            <option value="aivai">AIvsAI</option>
-            <option value="training">Training</option>
-        </select>
-        <select class="tc-charp1" style="width:80px;">
-            <option value="">P1 char</option>
-            ${charOptions}
-        </select>
-        <select class="tc-charp2" style="width:80px;">
-            <option value="">P2 char</option>
-            ${charOptions}
-        </select>
-        <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
-            <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
-            <button class="clear-file" data-field="tcImage_${idx}" type="button">✕</button>
-        </div>
-        <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
-        <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
-    `;
-    container.appendChild(div);
-    setupClearFileListeners();
-    div.querySelector('.remove-tc').addEventListener('click', function() {
-        div.remove();
+    document.getElementById('addEditStageTravelcube')?.addEventListener('click', function() {
+        const container = document.getElementById('editStageTravelcubes');
+        const idx = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'stage-item';
+        div.style.cssText = 'background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+        const stageOptions = project.stages.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const charOptions = Object.keys(project.characters).map(id => `<option value="${id}">${project.characters[id].name}</option>`).join('');
+        div.innerHTML = `
+            <input type="number" class="tc-x" value="0" placeholder="x" style="width:60px;" />
+            <input type="number" class="tc-y" value="500" placeholder="y" style="width:60px;" />
+            <input type="number" class="tc-w" value="60" placeholder="breedte" style="width:60px;" />
+            <input type="number" class="tc-h" value="60" placeholder="hoogte" style="width:60px;" />
+            <select class="tc-target">${stageOptions}</select>
+            <select class="tc-mode" style="width:100px;">
+                <option value="">Mode</option>
+                <option value="arcade">Arcade</option>
+                <option value="timeattack">Time Attack</option>
+                <option value="survival">Survival</option>
+                <option value="pvai">PvAI</option>
+                <option value="pvp">PvP</option>
+                <option value="aivai">AIvsAI</option>
+                <option value="training">Training</option>
+            </select>
+            <select class="tc-charp1" style="width:80px;">
+                <option value="">P1 char</option>
+                ${charOptions}
+            </select>
+            <select class="tc-charp2" style="width:80px;">
+                <option value="">P2 char</option>
+                ${charOptions}
+            </select>
+            <select class="tc-ai" style="width:80px;">
+                <option value="">AI difficulty</option>
+                <option value="beginner">Beginner</option>
+                <option value="easy">Easy</option>
+                <option value="normal">Normal</option>
+                <option value="hard">Hard</option>
+            </select>
+            <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
+                <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
+                <button class="clear-file" data-field="tcImage_${idx}" type="button">✕</button>
+            </div>
+            <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
+            <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
+        `;
+        container.appendChild(div);
+        setupClearFileListeners();
+        div.querySelector('.remove-tc').addEventListener('click', function() {
+            div.remove();
+        });
     });
-});
 
     // ─── Opslaan ──────────────────────────────────────────────
     document.getElementById('saveEditStage')?.addEventListener('click', () => {
@@ -9288,28 +9407,29 @@ function createNewCharacter() {
             });
 
             // ─── Verzamel travelcubeConfigs ────────────────────
-       const travelcubeConfigs = [];
-travelcubeRows.forEach((row, i) => {
-    const x = parseFloat(row.querySelector('.tc-x').value) || 0;
-    const y = parseFloat(row.querySelector('.tc-y').value) || 0;
-    const width = parseFloat(row.querySelector('.tc-w').value) || 60;
-    const height = parseFloat(row.querySelector('.tc-h').value) || 60;
-    const targetStageId = row.querySelector('.tc-target').value;
-    const mode = row.querySelector('.tc-mode').value || undefined;
-    const charP1 = row.querySelector('.tc-charp1').value || undefined;
-    const charP2 = row.querySelector('.tc-charp2').value || undefined;
-    const field = 'tcImage_' + i;
-    let imageData = null;
-    if (removalFlags[field]) {
-        imageData = null;
-    } else if (newFileData[field]) {
-        imageData = newFileData[field];
-    } else {
-        const existing = (!isNew && stage.travelcubeConfigs && stage.travelcubeConfigs[i]) ? stage.travelcubeConfigs[i] : null;
-        imageData = existing ? existing.imageData : null;
-    }
-    travelcubeConfigs.push({ x, y, width, height, targetStageId, mode, charP1, charP2, imageData });
-});
+            const travelcubeConfigs = [];
+            travelcubeRows.forEach((row, i) => {
+                const x = parseFloat(row.querySelector('.tc-x').value) || 0;
+                const y = parseFloat(row.querySelector('.tc-y').value) || 0;
+                const width = parseFloat(row.querySelector('.tc-w').value) || 60;
+                const height = parseFloat(row.querySelector('.tc-h').value) || 60;
+                const targetStageId = row.querySelector('.tc-target').value;
+                const mode = row.querySelector('.tc-mode').value || undefined;
+                const charP1 = row.querySelector('.tc-charp1').value || undefined;
+                const charP2 = row.querySelector('.tc-charp2').value || undefined;
+                const aiDifficulty = row.querySelector('.tc-ai').value || undefined;  // <-- nieuwe waarde
+                const field = 'tcImage_' + i;
+                let imageData = null;
+                if (removalFlags[field]) {
+                    imageData = null;
+                } else if (newFileData[field]) {
+                    imageData = newFileData[field];
+                } else {
+                    const existing = (!isNew && stage.travelcubeConfigs && stage.travelcubeConfigs[i]) ? stage.travelcubeConfigs[i] : null;
+                    imageData = existing ? existing.imageData : null;
+                }
+                travelcubeConfigs.push({ x, y, width, height, targetStageId, mode, charP1, charP2, aiDifficulty, imageData });
+            });
 
             // ─── Bepaal imageData en audioData ────────────────
             let finalImageData = null;
@@ -9407,7 +9527,37 @@ function executeAllPlugins() {
         }
     });
 }
+// ─── HAMBURGER TOGGLE ──────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburger = document.getElementById('hamburgerBtn');
+    const topMenu = document.getElementById('topMenu');
 
+    if (hamburger && topMenu) {
+        // Laad de laatste status uit localStorage (optioneel)
+        const savedState = localStorage.getItem('topMenuHidden');
+        if (savedState === 'true') {
+            topMenu.classList.add('hidden');
+        }
+
+        hamburger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            topMenu.classList.toggle('hidden');
+
+            // Bewaar de toestand (optioneel)
+            const isHidden = topMenu.classList.contains('hidden');
+            localStorage.setItem('topMenuHidden', isHidden ? 'true' : 'false');
+        });
+
+        // Klik buiten de menu sluit hem niet (we willen dat de gebruiker zelf kiest)
+        // Maar als je het menu wilt sluiten bij klikken op de achtergrond, kun je dit toevoegen:
+        // document.addEventListener('click', function(e) {
+        //     if (!topMenu.contains(e.target) && !hamburger.contains(e.target) && !topMenu.classList.contains('hidden')) {
+        //         topMenu.classList.add('hidden');
+        //         localStorage.setItem('topMenuHidden', 'true');
+        //     }
+        // });
+    }
+});
 function getDefaultControls() {
     return {
         p1: {
@@ -9608,7 +9758,22 @@ function saveSettingsFromModal() {
         </div>
 
      
-		        <h3>🎮 Controls</h3>
+		        <h1>🎮 Controls</h1>
+				<h3>🎮 Controller choice</h3>
+<div class="form-row">
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>🎮 P1 uses gamepad</label>
+        <input type="checkbox" id="settingsP1Gamepad" ${settings.useGamepadP1 ? 'checked' : ''} />
+    </div>
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>🎮 P2 uses gamepad</label>
+        <input type="checkbox" id="settingsP2Gamepad" ${settings.useGamepadP2 ? 'checked' : ''} />
+    </div>
+</div>
+<p style="font-size:12px;color:#7a7a9a;">
+If both gamepads are turned on, P1 gets the first controller and P2 the second.
+    If a player does not use a gamepad, they use the keyboard (and the other player gets the gamepad, if available).
+</p>
         <div id="controlsContainer">
             ${generateControlsHTML()}
         </div>
@@ -9699,6 +9864,13 @@ function saveSettingsFromModal() {
         <input type="number" id="settingsVPPerWin" value="${settings.vpPerWin || 1}" min="1" />
     </div>
 </div>
+<h3>️</h3>
+
+<div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+    <label>❄️ Auto‑freeze on standing block</label>
+    <input type="checkbox" id="settingsAutoFreeze" ${settings.autoFreezeOnBlock ? 'checked' : ''} />
+</div>
+
 <h3>🚫 Ring‑out</h3>
 			<div class="form-row">
 
@@ -10008,6 +10180,7 @@ const startFightColor = document.getElementById('settingsStartFightColor').value
 const roundWinColor = document.getElementById('settingsRoundWinColor').value;
 const matchWinColor = document.getElementById('settingsMatchWinColor').value;
 const roundDrawColor = document.getElementById('settingsRoundDrawColor').value;
+const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
 
 // Visual effects
 const showBlock = document.getElementById('settingsShowBlock').checked;
@@ -10024,6 +10197,8 @@ const energyRadius = parseInt(document.getElementById('settingsEnergyRadius').va
  const showRingOut = document.getElementById('settingsShowRingOut').checked;
 const settingsisStatusTextAbovePlayer = document.getElementById('settingsisStatusTextAbovePlayer').checked;
 
+const useP1Gamepad = document.getElementById('settingsP1Gamepad').checked;
+const useP2Gamepad = document.getElementById('settingsP2Gamepad').checked;
 
 
     const victoryPoints = parseInt(document.getElementById('settingsVP').value) || 0;
@@ -10095,8 +10270,15 @@ project.settings.energyBarHeight = energyHeight;
 project.settings.energyBarBorderRadius = energyRadius;
  project.settings.showRingOutText = showRingOut;
   project.settings.isStatusTextAbovePlayer = settingsisStatusTextAbovePlayer;
+project.settings.autoFreezeOnBlock = autoFreeze;
 
- 
+ project.settings.useGamepadP1 = useP1Gamepad;
+project.settings.useGamepadP2 = useP2Gamepad;
+
+p1GamepadIndex = -1;
+p2GamepadIndex = -1;
+pollGamepad()
+
             // Geluiden
             if (settingsRemovalFlags.startFightSound) project.settings.startFightSound = null;
             else if (newAudioData.startFightSound !== undefined) project.settings.startFightSound = newAudioData.startFightSound;
