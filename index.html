@@ -5706,7 +5706,7 @@ function setDirectionInput(fighter, dir, value) {
             ${move.command ? `<span class="cmd-label">${move.command.replace(/[+]/g, '')}</span>` : ''}
             ${required > 0 ? `<span style="font-size:7px;color:#8ab4ff;">${required}%</span>` : ''}
         `;*/
-		btn.innerHTML = ` <span>${shortName} ${icon}</span>   `;
+		btn.innerHTML = ` <span>${shortName}</span>   `;// ${icon}</span>   `;
 
       const triggerAttack = () => {
     if (!p1 || p1.health <= 0) return;
