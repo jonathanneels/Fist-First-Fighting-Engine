@@ -1180,7 +1180,7 @@
             <option value="zoom1.0">🔍 Zoom 1.0</option>
             <option value="zoom1.25">🔍 Zoom 1.25</option>
             <option value="zoom1.5">🔍 Zoom 1.5</option>
-			            <option value="zoom2">🔍 Zoom 2.5</option>
+			            <option value="zoom2">🔍 Zoom 2.0</option>
             <option value="zoom2.5">🔍 Zoom 2.5</option>
 
         </select>
@@ -1247,6 +1247,8 @@
     <script>
         (() => {
             'use strict';
+
+const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
             const W = 1280,
                 H = 720;
@@ -2113,12 +2115,14 @@ function resetPositions() {
 }
 function awardVictoryPoints() {
     if (!project.settings.vpPerWin) return;
+    // Alleen toekennen in toegestane modi
+    if (!VP_ALLOWED_MODES.includes(currentMode)) return;
+
     const vp = (project.settings.victoryPoints || 0) + project.settings.vpPerWin;
     project.settings.victoryPoints = vp;
     localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
     showToast(`🏆 +${project.settings.vpPerWin} VP!`, 'success');
 }
-
             function handleRoundEnd(winner) {
                 if (matchOver) return;
                 if (winner === 'p1') {
@@ -3449,8 +3453,9 @@ if (p2) {
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
-    const flatHeight = 30; // hoogte van liggend figuur
-    if (laneMode) {
+    var flatHeight = 15
+	if(this.spriteImg){ flatHeight = 65;  }
+     if (laneMode) {
         this.y = LANE_Y[this.lane] - flatHeight;
     } else {
         this.y = GROUND_Y - flatHeight;
@@ -3914,7 +3919,7 @@ if (this.input.up && !this._prevUp) {
 					
 // ─── Beperk de maximale afstand tussen de twee vechters ───
 const viewWidth = W / camera.zoom; // zichtbare breedte in wereldpixels
-const MAX_DIST_FRACTION = 0.97;     // 97% van de viewport – pas aan naar wens
+const MAX_DIST_FRACTION = 0.95;     // 95% van de viewport – pas aan naar wens
 const MAX_DIST = viewWidth * MAX_DIST_FRACTION;
 
 const dx = p2.cx - p1.cx;
@@ -4541,7 +4546,8 @@ const cfg = this._cachedStateConfig;
             // ─── FALLBACK: GEOMETRISCHE VORMEN ─────────────
             ctx.save();
 			   if (this.state === 'swept' || this.state === 'ko') {
-        const flatH = 40 * camera.zoom;
+			   
+        const flatH = 20 * camera.zoom;
         const bodyW = w * 0.8;
         const bodyH = flatH * 0.6;
         const headR = 16 * camera.zoom;
@@ -6391,8 +6397,7 @@ var frameSaveTimer=0;
             function update() {
 				frameSaveTimer++;
 				
-	if(frameSaveTimer ==5 || frameSaveTimer==10  ){
-	// Travelcube teleport check
+	if(frameSaveTimer ==5 || frameSaveTimer==10  ){// Travelcube teleport check
 if (p1 && p2 && travelCubes.length > 0) {
     if (p1._teleportCooldown > 0) p1._teleportCooldown--;
     if (p2._teleportCooldown > 0) p2._teleportCooldown--;
@@ -6412,64 +6417,87 @@ if (p1 && p2 && travelCubes.length > 0) {
     if (activeTravelcube) {
         const targetId = activeTravelcube.targetStageId;
         const stage = project.stages.find(s => s.id === targetId);
-        if (stage) {
-            // Stage wisselen
-            setStage(targetId);
+        if (!stage) return;
 
-            let needsReset = false;
-            if (activeTravelcube.mode) {
-                setMode(activeTravelcube.mode);
-                if (activeTravelcube.charP1) project.selectedP1Char = activeTravelcube.charP1;
-                if (activeTravelcube.charP2) project.selectedP2Char = activeTravelcube.charP2;
+         const currentVP = project.settings.victoryPoints || 0;
+        if (stage.vpRequired > 0 && currentVP < stage.vpRequired) {
+            showToast(`🔒 Stage "${stage.name}" requires ${stage.vpRequired} VP.`, 'error');
+            return; // teleportatie afbreken
+        }
+
+         let p1Char = activeTravelcube.charP1;
+        let p2Char = activeTravelcube.charP2;
+        if (p1Char && project.characters[p1Char]) {
+            const vpReq = project.characters[p1Char].vpRequired || 0;
+            if (vpReq > 0 && currentVP < vpReq) {
+                showToast(`🔒 Character "${project.characters[p1Char].name}" requires ${vpReq} VP.`, 'error');
+                return;
+            }
+        }
+        if (p2Char && project.characters[p2Char]) {
+            const vpReq = project.characters[p2Char].vpRequired || 0;
+            if (vpReq > 0 && currentVP < vpReq) {
+                showToast(`🔒 Character "${project.characters[p2Char].name}" requires ${vpReq} VP.`, 'error');
+                return;
+            }
+        }
+
+         setStage(targetId);
+
+        let needsReset = false;
+        if (activeTravelcube.mode) {
+            setMode(activeTravelcube.mode);
+            if (activeTravelcube.charP1) project.selectedP1Char = activeTravelcube.charP1;
+            if (activeTravelcube.charP2) project.selectedP2Char = activeTravelcube.charP2;
+            fullReset();
+            needsReset = true;
+        } else {
+            if (activeTravelcube.charP1) project.selectedP1Char = activeTravelcube.charP1;
+            if (activeTravelcube.charP2) project.selectedP2Char = activeTravelcube.charP2;
+            if (activeTravelcube.charP1 || activeTravelcube.charP2) {
                 fullReset();
                 needsReset = true;
-            } else {
-                if (activeTravelcube.charP1) project.selectedP1Char = activeTravelcube.charP1;
-                if (activeTravelcube.charP2) project.selectedP2Char = activeTravelcube.charP2;
-                if (activeTravelcube.charP1 || activeTravelcube.charP2) {
-                    fullReset();
-                    needsReset = true;
-                }
             }
-
-            // AI difficulty overschrijven
-            if (activeTravelcube.aiDifficulty) {
-                project.settings.aiDifficulty = activeTravelcube.aiDifficulty;
-                if (p1._aiTimer) p1._aiTimer = 0;
-                if (p2._aiTimer) p2._aiTimer = 0;
-            }
-
-            // Als er geen volledige reset was, zet dan de startposities (standaard)
-            if (!needsReset) {
-                p1.x = project.settings.startX1 || 510;
-                p1.y = GROUND_Y - PLAYER_H;
-                p1.vx = 0; p1.vy = 0; p1.onGround = true;
-                p2.x = project.settings.startX2 || 690;
-                p2.y = GROUND_Y - PLAYER_H;
-                p2.vx = 0; p2.vy = 0; p2.onGround = true;
-                projectiles = [];
-                mines = [];
-            }
-
-            // ─── TELEPORT POSITIES TOEPASSEN ───
-            if (activeTravelcube.teleportX1 !== undefined && activeTravelcube.teleportY1 !== undefined) {
-                p1.x = activeTravelcube.teleportX1;
-                p1.y = activeTravelcube.teleportY1;
-                p1.vx = 0; p1.vy = 0;
-                p1.onGround = false;  // wordt in de volgende update weer goed gezet
-            }
-            if (activeTravelcube.teleportX2 !== undefined && activeTravelcube.teleportY2 !== undefined) {
-                p2.x = activeTravelcube.teleportX2;
-                p2.y = activeTravelcube.teleportY2;
-                p2.vx = 0; p2.vy = 0;
-                p2.onGround = false;
-            }
-
-            // Cooldown
-            p1._teleportCooldown = 30;
-            p2._teleportCooldown = 30;
-            showToast(`🌀 Teleported to ${stage.name}`, 'info');
         }
+
+        if (activeTravelcube.aiDifficulty) {
+            project.settings.aiDifficulty = activeTravelcube.aiDifficulty;
+            if (p1._aiTimer) p1._aiTimer = 0;
+            if (p2._aiTimer) p2._aiTimer = 0;
+        }
+
+        // Als er geen volledige reset was, zet dan de startposities (standaard)
+        if (!needsReset) {
+            p1.x = project.settings.startX1 || 510;
+            p2.x = project.settings.startX2 || 690;
+            const groundY = laneMode ? LANE_Y[1] - PLAYER_H : GROUND_Y - PLAYER_H;
+            p1.y = groundY;
+            p2.y = groundY;
+            p1.vx = 0; p1.vy = 0; p1.onGround = true;
+            p2.vx = 0; p2.vy = 0; p2.onGround = true;
+            projectiles = [];
+            mines = [];
+        }
+
+        // ─── TELEPORT POSITIES TOEPASSEN (alleen als ingevuld) ───
+        const groundY = laneMode ? LANE_Y[1] - PLAYER_H : GROUND_Y - PLAYER_H;
+        if (activeTravelcube.teleportX1 !== undefined) {
+            p1.x = activeTravelcube.teleportX1;
+            p1.y = (activeTravelcube.teleportY1 !== undefined) ? activeTravelcube.teleportY1 : groundY;
+            p1.vx = 0; p1.vy = 0;
+            p1.onGround = false;
+        }
+        if (activeTravelcube.teleportX2 !== undefined) {
+            p2.x = activeTravelcube.teleportX2;
+            p2.y = (activeTravelcube.teleportY2 !== undefined) ? activeTravelcube.teleportY2 : groundY;
+            p2.vx = 0; p2.vy = 0;
+            p2.onGround = false;
+        }
+
+        // Cooldown
+        p1._teleportCooldown = 30;
+        p2._teleportCooldown = 30;
+        showToast(`🌀 Teleported to ${stage.name}`, 'info');
     }
 }
 				
@@ -7319,6 +7347,8 @@ function processProjectData(jsonString) {
             if (!stage.audioData) stage.audioData = null;
             if (!stage.itemConfigs) stage.itemConfigs = [];
             if (!stage.travelcubeConfigs) stage.travelcubeConfigs = [];
+			if (!stage.vpRequired) stage.vpRequired = 0;
+
         }
 
         // --- Instellingen ---
@@ -7511,21 +7541,29 @@ function importProject(source) {
 }
 
  
-            function populateStageSelect() {
-                stageSelect.innerHTML = '';
-                const opt = document.createElement('option');
-                opt.value = "";
-                opt.textContent = "";
-                stageSelect.appendChild(opt);
-                project.stages.forEach(stage => {
-                    const opt = document.createElement('option');
-                    opt.value = stage.id;
-const isVideo = stage.imageData && stage.imageData.startsWith('data:video/');
-opt.textContent = stage.name + (stage.imageData ? (isVideo ? ' 🎬' : ' 🖼') : '') + (stage.hasSpringPlatform ? ' 🏗️' : '');
-                    if (stage.id === project.currentStageId) opt.selected = true;
-                    stageSelect.appendChild(opt);
-                });
-            }
+    function populateStageSelect() {
+    stageSelect.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = "";
+    opt.textContent = "";
+    stageSelect.appendChild(opt);
+
+    const currentVP = project.settings.victoryPoints || 0;
+
+    project.stages.forEach(stage => {
+        const opt = document.createElement('option');
+        opt.value = stage.id;
+        const vpReq = stage.vpRequired || 0;
+        const locked = vpReq > 0 && currentVP < vpReq;
+        const lockIcon = locked ? '🔒 ' : '';
+        const isVideo = stage.imageData && stage.imageData.startsWith('data:video/');
+        const mediaIcon = stage.imageData ? (isVideo ? ' 🎬' : ' 🖼') : '';
+        opt.textContent = lockIcon + stage.name + mediaIcon + (stage.hasSpringPlatform ? ' 🏗️' : '') + (vpReq > 0 ? ` (VP:${vpReq})` : '');
+        if (stage.id === project.currentStageId) opt.selected = true;
+        // Optioneel: disabled attribuut zetten, maar dan kunnen gebruikers hem niet selecteren (we doen het al in de change)
+        stageSelect.appendChild(opt);
+    });
+}
 
             let _newStageCache = { platforms: [] };
 
@@ -9084,17 +9122,21 @@ function createNewCharacter() {
                     <p style="color:#7a7a9a;font-size:13px;margin-bottom:10px;">Edit stages with background image, sound and platforms.</p>
                     <div id="stageList">`;
                 project.stages.forEach((stage, idx) => {
-                    html += `
-                        <div class="stage-item">
-                            <span class="stage-name">${stage.name}</span>
-                            <span class="stage-bg">${stage.imageData ? '🖼️' : '🎨'}</span>
-                            <span class="stage-audio">${stage.audioData ? '🔊' : '🔇'}</span>
-                            <span>${stage.hasSpringPlatform ? '🏗️' : ''}</span>
-                            <div>
-                                <button class="btn primary edit-stage" data-idx="${idx}">✏️</button>
-                                <button class="btn danger remove-stage" data-idx="${idx}">🗑</button>
-                            </div>
-                        </div>`;
+                   html += `
+    <div class="stage-item">
+        <span class="stage-name">${stage.name}</span>
+        <span class="stage-bg">${stage.imageData ? '🖼️' : '🎨'}</span>
+        <span class="stage-audio">${stage.audioData ? '🔊' : '🔇'}</span>
+        <span>${stage.hasSpringPlatform ? '🏗️' : ''}</span>
+        <span style="color:${(stage.vpRequired || 0) > 0 ? '#f1c40f' : '#6a6a8a'};">
+            VP: ${stage.vpRequired || 0}
+        </span>
+        <div>
+            <button class="btn primary edit-stage" data-idx="${idx}">✏️</button>
+            <button class="btn danger remove-stage" data-idx="${idx}">🗑</button>
+        </div>
+    </div>`;
+
                 });
                 html += `</div>
                     <div class="btn-group"><button class="btn primary" id="addStageBtn">➕ New stage</button><button hidden class="btn" id="closeStagesEditor">✕ Close</button></div>
@@ -9145,7 +9187,8 @@ function openStageForm(stageIndex) {
             travelcubeConfigs: [],
             colorTheme: 'default',
             weather: 'none',
-            hasSpringPlatform: false
+            hasSpringPlatform: false,
+    vpRequired: 0  
         };
     } else {
         stage = project.stages[stageIndex] || {
@@ -9176,6 +9219,10 @@ function openStageForm(stageIndex) {
     let html = `
         <h2>${isNew ? '➕ New stage' : '✏️ ' + stage.name}</h2>
         <div class="form-group"><label>Name</label><input type="text" id="editStageName" value="${stage.name}" /></div>
+		<div class="form-group">
+    <label>🏆 VP Required to unlock</label>
+    <input type="number" id="editStageVP" value="${stage.vpRequired || 0}" min="0" />
+</div>
         <div class="form-group"><label>Background (bg key)</label>
             <select id="editStageBg">${Object.keys(BG_COLORS).map(k => `<option value="${k}" ${stage.bg === k ? 'selected' : ''}>${k}</option>`).join('')}</select>
         </div>
@@ -9532,7 +9579,9 @@ function openStageForm(stageIndex) {
         isSaving = true;
 
         const name = document.getElementById('editStageName').value.trim() || 'New Stage';
-        const bg = document.getElementById('editStageBg').value || 'dojo';
+        const vpRequired = parseInt(document.getElementById('editStageVP').value) || 0;
+		
+		const bg = document.getElementById('editStageBg').value || 'dojo';
         const theme = document.getElementById('editStageTheme').value;
         const weather = document.getElementById('editStageWeather').value;
 
@@ -9658,7 +9707,8 @@ travelcubeConfigs.push({
                 itemConfigs: itemConfigs,
                 travelcubeConfigs: travelcubeConfigs,
                 colorTheme: theme,
-                weather: weather
+                weather: weather,
+				 vpRequired: vpRequired
             };
 
             if (isNew) {
@@ -10791,14 +10841,25 @@ document.addEventListener('keyup', (e) => {
         }
     }
 });
-            stageSelect.addEventListener('change', (e) => {
-                if (e.target.value != "") {
-                    const stageId = e.target.value;
-                    setStage(stageId);
-                    stageSelect.selectedIndex = 0;
-                    stageSelect[0].innerHTML = stageId;
-                }
-            });
+           stageSelect.addEventListener('change', (e) => {
+    const stageId = e.target.value;
+    if (!stageId) return;
+    const stage = project.stages.find(s => s.id === stageId);
+    if (!stage) return;
+
+    // ─── VP‑check ──────────────────────────────────────
+    const vpRequired = stage.vpRequired || 0;
+    const currentVP = project.settings.victoryPoints || 0;
+    if (vpRequired > 0 && currentVP < vpRequired) {
+        showToast(`🔒 Required ${vpRequired} VP to select this stage.`, 'error');
+        stageSelect.value = project.currentStageId; // terug naar vorige
+        return;
+    }
+
+    setStage(stageId);
+    stageSelect.selectedIndex = 0;
+    stageSelect[0].innerHTML = stageId;
+});
 
             modalClose.addEventListener('click', () => modalOverlay.classList.remove('open'));
             modalOverlay.addEventListener('click', (e) => {
