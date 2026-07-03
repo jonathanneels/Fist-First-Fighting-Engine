@@ -1185,6 +1185,9 @@
             <option value="zoom1.0">🔍 Zoom 1.0</option>
             <option value="zoom1.25">🔍 Zoom 1.25</option>
             <option value="zoom1.5">🔍 Zoom 1.5</option>
+			            <option value="zoom2">🔍 Zoom 2.5</option>
+            <option value="zoom2.5">🔍 Zoom 2.5</option>
+
         </select>
         <select id="utilitySelect">
             <option value=""></option>
@@ -1877,10 +1880,10 @@ ringOutOccurred = false;
                     }
                 }, 500);
 				resetFighterUI();
-				updatePlayerIcons();
-
-
+				updatePlayerIcons(); 
                 updateSinglePlayerHUD();
+				resetPositions();
+
             }
 
  function getRandomBossCharacter() {
@@ -1946,6 +1949,7 @@ ringOutOccurred = false;
     updateWinIndicators();
     startNextSinglePlayerMatch();
 					resetFighterUI();
+	resetPositions();
 
 }
 
@@ -2059,7 +2063,26 @@ function startNextSinglePlayerMatch() {
                 }
                 info.textContent = text;
             }
-
+function resetPositions() {
+    // Zet de vechters op de startposities
+    p1.x = project.settings.startX1 || 510;
+    p2.x = project.settings.startX2 || 690;
+    // Als laneMode aan staat, zet de lane op 1 (standaard)
+    if (laneMode) {
+        p1.lane = 1;
+        p2.lane = 1;
+        p1.y = LANE_Y[1] - p1.h;
+        p2.y = LANE_Y[1] - p2.h;
+    } else {
+        p1.y = GROUND_Y - p1.h;
+        p2.y = GROUND_Y - p2.h;
+    }
+    // Reset snelheid en val
+    p1.vx = 0; p1.vy = 0; p1.onGround = true;
+    p2.vx = 0; p2.vy = 0; p2.onGround = true;
+    // Update de camera direct
+    updateCamera();
+}
            function updateWinIndicators() {
     const winIndP1 = document.getElementById('winIndP1');
     const winIndP2 = document.getElementById('winIndP2');
@@ -3893,15 +3916,38 @@ if (this.input.up && !this._prevUp) {
                     this.y += this.vy;
                     this.onGround = false;
 					
-					if (this.state !== 'hit' && this.state !== 'ko') {
+					
+// ─── Beperk de maximale afstand tussen de twee vechters ───
+const viewWidth = W / camera.zoom; // zichtbare breedte in wereldpixels
+const MAX_DIST_FRACTION = 0.97;     // 97% van de viewport – pas aan naar wens
+const MAX_DIST = viewWidth * MAX_DIST_FRACTION;
+
+const dx = p2.cx - p1.cx;
+const dist = Math.abs(dx);
+if (dist > MAX_DIST) {
+    const overshoot = dist - MAX_DIST;
+    const move = overshoot / 2;
+    // Schuif beide vechters naar elkaar toe (symmetrisch)
+    if (dx > 0) {
+        p1.x += move;
+        p2.x -= move;
+    } else {
+        p1.x -= move;
+        p2.x += move;
+    }
+}
+
+// ─── Behoud de oorspronkelijke limietlogica (alleen als ring‑out uit staat) ───
 if (!project.settings.ringOutEnabled) {
     const leftBound = camera.offsetX;
     const rightBound = camera.offsetX + W / camera.zoom;
-    if (this.x < leftBound) this.x = leftBound;
-    if (this.x + this.w > rightBound) this.x = rightBound - this.w;
+    // P1
+    if (p1.x < leftBound) p1.x = leftBound;
+    if (p1.x + p1.w > rightBound) p1.x = rightBound - p1.w;
+    // P2
+    if (p2.x < leftBound) p2.x = leftBound;
+    if (p2.x + p2.w > rightBound) p2.x = rightBound - p2.w;
 }
-}
-
 
                     if (!laneMode) {
                         if (this.y >= GROUND_Y - this.h) {
@@ -4169,7 +4215,7 @@ if (this.statusTimer > 0) {
 
 		}
 		else {
-	    const x = this.playerIdx === 0 ? 80 : W - 80;
+	    const x = this.playerIdx === 0 ? 110 : W - 110;
     const y = H / 2.1;
     ctx.fillText(this.statusMessage, x, y);
 
@@ -4183,39 +4229,52 @@ if (this.statusTimer > 0) {
 
  // ─── Toon huidige input (P1, training) ────────────────────────
 if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showMoveNamesInTraining) {
+    // Sla de huidige transformatie op
     ctx.save();
+    // Reset de transformatie naar identiteit (geen schaal/translatie)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // Stel de tekststijlen in op een vaste grootte (in schermpixels)
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.font = `bold ${14 * camera.zoom}px monospace`;
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 10;
-
-    const startX = 20 * camera.zoom;
-    let y = 120 * camera.zoom;
-    const lineHeight = 20 * camera.zoom;
-
-    // ─── Richtingen (live) ──────────────────────────────────────
+    ctx.font = 'bold 14px monospace';
+    
+    // Bepaal een vaste positie linksboven (bijv. 20, 20)
+    const x = 20;
+    let y = 120;
+    const lineHeight = 20;
+    
+    // Teken een zwarte achtergrond (kader)
+    const padding = 8;
+    const maxWidth = 240; // geschatte breedte
+    const totalHeight = 12 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+     ctx.fillRect(x - padding, y - padding, maxWidth, totalHeight);
+     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - padding, y - padding, maxWidth, totalHeight);
+    
+    // Tekstkleur
     ctx.fillStyle = '#ffdd44';
-    ctx.fillText('Current Input (P1):', startX, y);
+    ctx.fillText('Current Input (P1):', x, y);
     y += lineHeight;
+    
     const dirs = ['up', 'down', 'left', 'right'];
     for (const dir of dirs) {
         const status = this.input[dir] ? 'true' : 'false';
         ctx.fillStyle = this.input[dir] ? '#8affd0' : '#ff6a6a';
-        ctx.fillText(`  ${dir}: ${status}`, startX, y);
+        ctx.fillText(`  ${dir}: ${status}`, x, y);
         y += lineHeight;
     }
-
-    // ─── Aanvalsknoppen (via recente history) ──────────────────
+    
     y += lineHeight * 0.5;
     ctx.fillStyle = '#ffdd44';
-    ctx.fillText('Attacks (recently pressed):', startX, y);
+    ctx.fillText('Attacks (recently pressed):', x, y);
     y += lineHeight;
-
+    
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const attackStatus = [false, false, false, false, false, false];
-
-    // Doorloop history en markeer knoppen die < 2 seconden geleden zijn ingedrukt
     for (let i = 0; i < this._history.length; i++) {
         const entry = this._history[i];
         if (/^[1-6]$/.test(entry)) {
@@ -4226,17 +4285,16 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
             }
         }
     }
-
     for (let i = 0; i < 6; i++) {
         const status = attackStatus[i] ? 'true' : 'false';
         ctx.fillStyle = attackStatus[i] ? '#8affd0' : '#ff6a6a';
-        ctx.fillText(`  attack${i+1}: ${status}`, startX, y);
+        ctx.fillText(`  attack${i+1}: ${status}`, x, y);
         y += lineHeight;
     }
-
+    
+    // Herstel de oorspronkelijke transformatie
     ctx.restore();
 }
-
 	
 	// ─── COUNTER SHIELD ──────────────────────────────
  if (project.settings.showCounterShield  &&this.counterActive) {
@@ -4766,7 +4824,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
 
 		}
 		else {
-					    const x = this.playerIdx === 1 ? 80 : W - 80;
+					    const x = this.playerIdx === 1 ? 110 : W - 110;
     const y = H / 2.1;
     ctx.fillText(`${this.comboCount} COMBO!`, x, y);
 
@@ -6803,7 +6861,7 @@ if (_atkBtnUiTimer >= 10) {
                     ctx.textBaseline = 'middle';
                     ctx.shadowColor = 'rgba(255,50,50,0.3)';
                     // ctx.shadowBlur = 30;
-                    ctx.fillText(project.settings.ringOutText, W / 2, H / 2 - 80);
+ctx.fillText(project.settings.ringOutText, W / 2, H / 2 - 80 * camera.zoom);
                     ctx.restore();
                 }
 
@@ -6888,7 +6946,7 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(255,200,50,0.3)';
     // ctx.shadowBlur = 30;
-    ctx.fillText(msg, W / 2, H / 2 + 4);
+ctx.fillText(msg, W / 2, H / 2 + 4 * camera.zoom);
     ctx.restore();
 } else if (winner && !roundActive && currentMode !== 'training') {
     ctx.save();
@@ -6937,7 +6995,7 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     ctx.fillStyle = project.settings.startFightColor || '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     // ctx.shadowBlur = 30;
-    ctx.fillText(seconds.toString(), W / 2, H / 2 - 40);
+ctx.fillText(seconds.toString(), W / 2, H / 2 - 40 * camera.zoom);
     ctx.restore();
 } else if (fightDisplayTimer > 0) {
     // Toon "FIGHT!"
@@ -6948,7 +7006,7 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     ctx.fillStyle = project.settings.startFightColor || '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     // ctx.shadowBlur = 30;
-    ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2 - 40);
+ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2 - 40 * camera.zoom);
     ctx.restore();
     // Verlaag fightDisplayTimer
     fightDisplayTimer--;
@@ -7007,12 +7065,12 @@ function resetFighterUI() {
 				startFightTimer = 180;
 				startFightSoundPlayed = false;
 resetFighterUI();
-
 applyBarStyles();
 updatePlayerIcons();
 
 p1.reset(project.settings.startX1 || 510, 1);
 p2.reset(project.settings.startX2 || 690, -1);
+resetPositions()
 
  
                  const introP1 = getRandomText(p1.introText);
@@ -7073,7 +7131,7 @@ updatePlayerIcons();
                 const c2 = project.selectedP2Char || 'fighter';
 p1 = new Fighter(c1, project.settings.startX1 || 510, 1, 0);
 p2 = new Fighter(c2, project.settings.startX2 || 690, -1, 1);
-
+resetPositions()
                 winner = null;
                 roundActive = true;
 
@@ -9801,22 +9859,30 @@ function saveSettingsFromModal() {
 
     const html = `
         <h2>⚙️ Settings</h2>
-        <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+		        <div class="form-row-2">
+<h3>General</h3>
+        <div class="form-group"  >
             <label>🔊 Audio</label>
             <input type="checkbox" id="settingsAudio" ${settings.audioEnabled ? 'checked' : ''} />
-        </div>
+             <label>📋Training mode - Show moves</label> 
+     <input type="checkbox" id="settingsShowMoveNames" ${settings.showMoveNamesInTraining ? 'checked' : ''} />
+</div>
+</div>
+
+
+
         <div class="form-row">
             <div class="form-group">
-                <label>🔄 Round counter</label>
+                <h3>🔄 Round counter</h3>
                 <input type="number" id="settingsRoundCount" value="${settings.roundCount}" min="1" max="10" />
             </div>
             <div class="form-group">
-                <label>⏱️ Timer (seconds)</label>
+                <h3>⏱️ Timer (seconds)</h3>
                 <input type="number" id="settingsTimer" value="${settings.timerSeconds}" min="10" max="999" step="5" />
             </div>
         </div>
         <div class="form-group">
-            <label>🧠 AI difficulty</label>
+            <h3>🧠 AI difficulty</h3>
             <select id="settingsAIDifficulty">
 			                <option value="beginner" ${settings.aiDifficulty === 'easy' ? 'selected' : ''}>Beginner</option>
                 <option value="easy" ${settings.aiDifficulty === 'easy' ? 'selected' : ''}>Easy</option>
@@ -9824,10 +9890,8 @@ function saveSettingsFromModal() {
                 <option value="hard" ${settings.aiDifficulty === 'hard' ? 'selected' : ''}>Hard</option>
             </select>
         </div>
-
      
-		        <h1>🎮 Controls</h1>
-				<h3>🎮 Controller choice</h3>
+ 				<h3>🎮 Controls</h3>
 <div class="form-row">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
         <label>🎮 P1 uses gamepad</label>
@@ -10249,6 +10313,7 @@ const roundWinColor = document.getElementById('settingsRoundWinColor').value;
 const matchWinColor = document.getElementById('settingsMatchWinColor').value;
 const roundDrawColor = document.getElementById('settingsRoundDrawColor').value;
 const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
+const showMoveNames = document.getElementById('settingsShowMoveNames').checked;
 
 // Visual effects
 const showBlock = document.getElementById('settingsShowBlock').checked;
@@ -10339,6 +10404,7 @@ project.settings.energyBarBorderRadius = energyRadius;
  project.settings.showRingOutText = showRingOut;
   project.settings.isStatusTextAbovePlayer = settingsisStatusTextAbovePlayer;
 project.settings.autoFreezeOnBlock = autoFreeze;
+project.settings.showMoveNamesInTraining = showMoveNames;
 
  project.settings.useGamepadP1 = useP1Gamepad;
 project.settings.useGamepadP2 = useP2Gamepad;
