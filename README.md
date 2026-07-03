@@ -22,7 +22,7 @@ Ready to build the next generation of fighting games? Fork the repo, open the en
 
 Note:
 At the bottom of this project page, you’ll find documentation to help you get started, including tips on plugin creation. I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process: https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757
-Codes  and guides can also be found here: https://github.com/jonathanneels/Fist-First-Fighting-Engine​
+Codes  and guides can also be found here: https://jonathanneels.itch.io/fist-first-fighting-engine 
 
 
 Note 2: 
