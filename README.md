@@ -11,16 +11,21 @@ Simple, Fast & Efficient: Forget about long, tedious tutorials. Create your own 
 Custom Plugins: Your game, your rules. The engine supports custom JavaScript plugins. Easily inject your own code and logic to tailor the engine to your vision without breaking the core architecture.
 Cross-Platform by Design: Built to run on desktop, tablet, and mobile. Full support for keyboard, touchscreens (including an on-screen D-pad), and seamless Gamepad API integration.
 Modern Features: Packed with modes like Arcade, Time Attack, Survival, PvAI, PvP, and AI vs. AI. Includes advanced systems for dynamic weather, "travelcubes," projectiles (and in a future release stable network multiplayer).
+Made by a fighting game fanatic: recoveries, super jumps, cancels, dashes, and counter-grabs. All the things that make fighting games special are packed into this project​
 Cool things: set weather and camera filters for each stages and set a movie as background, for each character you can set the victory points condition for unlock (no dlc, just playing the game), set characters as boss in the arcade/time attack modes, make a smash bros brawler, a close-up fighter, a ring out fighter or a multi-stage fighter (thanks to the teleporter cube). It is very mobile friendly, so low-end devices can join the fun. There is a lane-switch mode (like Fatal Fury games).  So much freedom!
 Open-Source & "The Creator's Clause" (License)
 Fist First Fighting Engine is open-source and built to inspire the community. You are free to use, modify, and build your dream game. However, there are two unique and strict requirements for commercial use:
 
-Attribution is Mandatory: If you monetize a game running on this engine, the original creator must be clearly and respectfully credited and pay the modest "commercial royalty".
+Attribution is Mandatory: If you monetize a game running on this engine, the original creator (Jonathan Neels) must be clearly and respectfully credited and pay the modest "commercial royalty".
 The "VIP Invite" Clause: Should your game skyrocket in popularity and become a massive commercial success, that’s fantastic! However, I expect a personal invitation to your official launch party, tournament, or press event—including paid travel and accommodation. Deal?
 Ready to build the next generation of fighting games? Fork the repo, open the engine, and throw that first punch!
 
 Note:
 At the bottom of this project page, you’ll find documentation to help you get started, including tips on plugin creation. I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process: https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757
+Codes  and guides can also be found here: https://github.com/jonathanneels/Fist-First-Fighting-Engine​
+
 
 Note 2: 
 95% of the code was written by me. I used Claude and DeepSeek here and there to speed up and refine the development process. For me, this project isn't about the money; it’s about providing an accessible and fun way for people to create their own fighting games. RPGmaker was a huge inspiration for me!
+
+​
