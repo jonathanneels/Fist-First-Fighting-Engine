@@ -9467,9 +9467,13 @@ function openStageForm(stageIndex) {
     const charOptions = Object.keys(project.characters).map(id => `<option value="${id}">${project.characters[id].name}</option>`).join('');
     div.innerHTML = `
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+		<label style="font-size:10px;color:#7a7a9a;">telep. x</label>
             <input type="number" class="tc-x" value="0" placeholder="x" style="width:60px;" />
+					<label style="font-size:10px;color:#7a7a9a;">telep. y</label>
             <input type="number" class="tc-y" value="500" placeholder="y" style="width:60px;" />
+					<label style="font-size:10px;color:#7a7a9a;">size x</label>
             <input type="number" class="tc-w" value="60" placeholder="breedte" style="width:60px;" />
+								<label style="font-size:10px;color:#7a7a9a;">size y</label>
             <input type="number" class="tc-h" value="60" placeholder="hoogte" style="width:60px;" />
             <select class="tc-target">${stageOptions}</select>
             <select class="tc-mode" style="width:100px;">
@@ -9498,13 +9502,13 @@ function openStageForm(stageIndex) {
                 <option value="hard">Hard</option>
             </select><br>
             <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
-             <label style="font-size:10px;color:#7a7a9a;">P1 X</label>
+             <label style="font-size:10px;color:#7a7a9a;">P1 spawn x</label>
             <input type="number" class="tc-tx1" value="" placeholder="start" style="width:55px;" />
-            <label style="font-size:10px;color:#7a7a9a;">Y</label>
+            <label style="font-size:10px;color:#7a7a9a;">P1 spawn y</label>
             <input type="number" class="tc-ty1" value="" placeholder="start" style="width:55px;" />
-            <label style="font-size:10px;color:#7a7a9a;">P2 X</label>
+            <label style="font-size:10px;color:#7a7a9a;">P2 spawn x</label>
             <input type="number" class="tc-tx2" value="" placeholder="start" style="width:55px;" />
-            <label style="font-size:10px;color:#7a7a9a;">Y</label>
+            <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
             <input type="number" class="tc-ty2" value="" placeholder="start" style="width:55px;" />
 			            <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                 <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
