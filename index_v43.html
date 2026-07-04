@@ -1482,8 +1482,8 @@ let travelCubes = [];
     roundDrawText: "DRAW!",
     matchWinText: "{winner} wins the match!", 
 	isStatusTextAbovePlayer:false,
-		 startX1 : 510,    
- startX2 :690,  
+		 startX1 : 470,    
+ startX2 :740,  
      victoryPoints: 0,         
     vpPerWin: 1,
     healthColorP1: '#b1c40f',      // primaire kleur P1 (groen/geel)
@@ -2052,7 +2052,7 @@ function startNextSinglePlayerMatch() {
                 if (singlePlayer.mode === 'arcade') {
                     text = `Victories: ${singlePlayer.wins}/${singlePlayer.maxRounds}`;
                 } else if (singlePlayer.mode === 'timeattack') {
-                    const elapsed = ((performance.now() - singlePlayer.startTime) / 1000).toFixed(1);
+                    const elapsed = parseInt(((performance.now() - singlePlayer.startTime) / 1000).toFixed(1));// mobile slower, hide it like this
                     text = ` Victories: ${singlePlayer.wins}/${singlePlayer.maxRounds} | ${elapsed}s`;
                 } else if (singlePlayer.mode === 'survival') {
                     text = `Survival round: ${singlePlayer.wins + 1} | Kills: ${singlePlayer.kills}`;
@@ -2061,8 +2061,8 @@ function startNextSinglePlayerMatch() {
             }
 function resetPositions() {
     // Zet de vechters op de startposities
-    p1.x = project.settings.startX1 || 510;
-    p2.x = project.settings.startX2 || 690;
+    p1.x = project.settings.startX1 || 470;
+    p2.x = project.settings.startX2 || 740;
     // Als laneMode aan staat, zet de lane op 1 (standaard)
     if (laneMode) {
         p1.lane = 1;
@@ -5260,8 +5260,8 @@ function drawHeadgear(ctx, type, x, y, radius, facing, lightColor, darkColor, ca
 }           
  // ─── INIT FUNCTIES ────────────────────────────────────
             function initFighters() {
-p1 = new Fighter(project.selectedP1Char, project.settings.startX1 || 510, 1, 0);
-p2 = new Fighter(project.selectedP2Char, project.settings.startX2 || 690, -1, 1);
+p1 = new Fighter(project.selectedP1Char, project.settings.startX1 || 470, 1, 0);
+p2 = new Fighter(project.selectedP2Char, project.settings.startX2 || 740, -1, 1);
                 p1.spriteImg = spriteImages[p1.charId] || null;
                 p2.spriteImg = spriteImages[p2.charId] || null;
             }
@@ -6467,8 +6467,8 @@ if (p1 && p2 && travelCubes.length > 0) {
 
         // Als er geen volledige reset was, zet dan de startposities (standaard)
         if (!needsReset) {
-            p1.x = project.settings.startX1 || 510;
-            p2.x = project.settings.startX2 || 690;
+            p1.x = project.settings.startX1 || 470;
+            p2.x = project.settings.startX2 || 740;
             const groundY = laneMode ? LANE_Y[1] - PLAYER_H : GROUND_Y - PLAYER_H;
             p1.y = groundY;
             p2.y = groundY;
@@ -7116,8 +7116,8 @@ resetFighterUI();
 applyBarStyles();
 updatePlayerIcons();
 
-p1.reset(project.settings.startX1 || 510, 1);
-p2.reset(project.settings.startX2 || 690, -1);
+p1.reset(project.settings.startX1 || 470, 1);
+p2.reset(project.settings.startX2 || 740, -1);
 resetPositions()
 
  
@@ -7177,8 +7177,8 @@ updatePlayerIcons();
                 mines = [];
                 const c1 = project.selectedP1Char || 'fighter';
                 const c2 = project.selectedP2Char || 'fighter';
-p1 = new Fighter(c1, project.settings.startX1 || 510, 1, 0);
-p2 = new Fighter(c2, project.settings.startX2 || 690, -1, 1);
+p1 = new Fighter(c1, project.settings.startX1 || 470, 1, 0);
+p2 = new Fighter(c2, project.settings.startX2 || 740, -1, 1);
 resetPositions()
                 winner = null;
                 roundActive = true;
@@ -7378,8 +7378,8 @@ function processProjectData(jsonString) {
     roundDrawText: "DRAW!",
     matchWinText: "{winner} wins the match!", 
 	isStatusTextAbovePlayer:false,
-		 startX1 : 510,    
- startX2 :690,
+		 startX1 : 470,    
+ startX2 :740,
      victoryPoints: 0,         
     vpPerWin: 1,
     healthColorP1: '#b1c40f',      // primaire kleur P1 (groen/geel)
@@ -7429,8 +7429,8 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.roundWinText) project.settings.roundWinText = "{winner} WINS!";
         if (!project.settings.roundDrawText) project.settings.roundDrawText = "DRAW!";
         if (!project.settings.matchWinText) project.settings.matchWinText = "{winner} wins the match!";
-        if (project.settings.startX1 === undefined) project.settings.startX1 = 510;
-        if (project.settings.startX2 === undefined) project.settings.startX2 = 690;
+        if (project.settings.startX1 === undefined) project.settings.startX1 = 470;
+        if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
 if (!project.settings.useGamepadP1) project.settings.useGamepadP1 = true;
 if (!project.settings.useGamepadP2) project.settings.useGamepadP2 = true;
 if (project.settings.showMoveNamesInTraining === undefined) {
@@ -10160,11 +10160,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <div class="form-row">
     <div class="form-group">
         <label>Start X P1</label>
-        <input type="number" id="settingsStartX1" value="${settings.startX1 || 510}" />
+        <input type="number" id="settingsStartX1" value="${settings.startX1 || 470}" />
     </div>
     <div class="form-group">
         <label>Start X P2</label>
-        <input type="number" id="settingsStartX2" value="${settings.startX2 || 690}" />
+        <input type="number" id="settingsStartX2" value="${settings.startX2 || 740}" />
     </div>
 </div>
    <h3>📝 Texts</h3>
@@ -10429,8 +10429,8 @@ renderPlugins();
         const roundWinText = document.getElementById('settingsRoundWinText').value;
         const roundDrawText = document.getElementById('settingsRoundDrawText').value;
         const matchWinText = document.getElementById('settingsMatchWinText').value;
-const startX1 = parseInt(document.getElementById('settingsStartX1').value) || 510;
-const startX2 = parseInt(document.getElementById('settingsStartX2').value) || 690;
+const startX1 = parseInt(document.getElementById('settingsStartX1').value) || 470;
+const startX2 = parseInt(document.getElementById('settingsStartX2').value) || 740;
 const healthColorP1 = document.getElementById('settingsHealthP1').value;
 const healthColorP2 = document.getElementById('settingsHealthP2').value;
 const healthBadColor = document.getElementById('settingsHealthBad').value;
