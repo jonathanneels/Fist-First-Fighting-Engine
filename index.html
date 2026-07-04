@@ -1130,8 +1130,7 @@
         <div class="hud-timer" id="timerDisplay">99</div>
         <div id="singlePlayerInfo" style="position:absolute; top:8%; left:50%; transform:translateX(-50%); color:#fff; font-size:clamp(14px,2vh,20px); text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:4px 16px; border-radius:8px;"></div>
 
-        <!-- ─── ENERGIEBALKEN ─── -->
-<div class="energy-bars">
+ <div class="energy-bars">
     <div class="energy-wrap" id="energyWrapP1">
          <div class="energy-track">
             <div class="energy-bar" id="energyP1" style="width:0%;"></div>
@@ -2732,6 +2731,7 @@ function applyBarStyles() {
     document.querySelectorAll('.energy-bar').forEach(bar => {
         bar.style.borderRadius = energyRadius + 'px';
     });
+	
 }
             // ─── FIGHTER CLASS ────────────────────────────────────
             class Fighter {
@@ -3442,13 +3442,14 @@ this.statusTimer = 30;
                    if (this.hasEnergy && this.energy < this.maxEnergy) {
     this.energy = Math.min(this.maxEnergy, this.energy + this.energyChargeRate);
 }
+ 
  const wrap1 = document.getElementById('energyWrapP1');
 const wrap2 = document.getElementById('energyWrapP2');
 if (p1) {
-    wrap1.style.display = p1.hasEnergy ? 'flex' : 'none';
+    wrap1.style.visibility = p1.hasEnergy ? 'visible' : 'hidden';
 }
 if (p2) {
-    wrap2.style.display = p2.hasEnergy ? 'flex' : 'none';
+    wrap2.style.visibility = p2.hasEnergy ? 'visible' : 'hidden';
 }
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
@@ -4203,7 +4204,7 @@ if (this.statusTimer > 0) {
     ctx.fillStyle = color;
     ctx.shadowColor = 'rgba(255,255,255,0.3)';
     // ctx.shadowBlur = 20;
-    ctx.font = `bold ${26 * camera.zoom}px "Segoe UI", system-ui, sans-serif`;
+    ctx.font = `bold ${26  }px "Segoe UI", system-ui, sans-serif`;
     ctx.textAlign = 'center';
 	
     const textY = (this.y - camera.offsetY) * camera.zoom - 60 * camera.zoom;
@@ -4215,7 +4216,7 @@ if (this.statusTimer > 0) {
 
 		}
 		else {
-	    const x = this.playerIdx === 0 ? 110 : W - 110;
+	    const x = this.playerIdx === 0 ? 90 : W - 90;
     const y = H / 2.1;
     ctx.fillText(this.statusMessage, x, y);
 
@@ -4803,8 +4804,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.font = `${16 * camera.zoom}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(138,255,208,0.4)';
-        // ctx.shadowBlur = 12;
-        ctx.fillText('⤊', sx + w / 2, sy - 10 * camera.zoom);
+         ctx.fillText('⤊', sx + w / 2, sy - 10 * camera.zoom);
         ctx.restore();
     }
 
@@ -4815,8 +4815,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.save();
         ctx.fillStyle = '#ffdd44';
         ctx.shadowColor = 'rgba(255,200,50,0.4)';
-        // ctx.shadowBlur = 20;
-        ctx.font = `bold ${28 * camera.zoom}px "Segoe UI", system-ui, sans-serif`;
+         ctx.font = `bold ${28  }px "Segoe UI", system-ui, sans-serif`;
         ctx.textAlign = 'center';
 		
 		if(project.settings.isStatusTextAbovePlayer)
@@ -4825,8 +4824,8 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
 
 		}
 		else {
-					    const x = this.playerIdx === 1 ? 110 : W - 110;
-    const y = H / 2.1;
+					    const x = this.playerIdx === 1 ? 90 : W - 90;
+    const y = H / 2.5;
     ctx.fillText(`${this.comboCount} COMBO!`, x, y);
 
 		
@@ -7086,6 +7085,18 @@ function resetFighterUI() {
     // Status en combo (optioneel, maar hier ook handig)
     if (p1) { p1.statusMessage = ''; p1.statusTimer = 0; p1.comboCount = 0; p1.comboTimer = 0; }
     if (p2) { p2.statusMessage = ''; p2.statusTimer = 0; p2.comboCount = 0; p2.comboTimer = 0; }
+	
+	               
+ const wrap1 = document.getElementById('energyWrapP1');
+const wrap2 = document.getElementById('energyWrapP2');
+if (p1) {
+    wrap1.style.visibility = p1.hasEnergy ? 'visible' : 'hidden';
+}
+if (p2) {
+    wrap2.style.visibility = p2.hasEnergy ? 'visible' : 'hidden';
+}
+	  
+
 }
             function gameLoop() {
                 pollGamepad();
@@ -7220,8 +7231,8 @@ resetPositions()
                 p2Wins = 0;
                 matchOver = false;
                 updateWinIndicators();
-                // Energiebalken resetten (worden via update al op 0 gezet)
-            }
+				resetFighterUI();
+             }
 
             let toastTimeout = null;
 
