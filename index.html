@@ -1484,6 +1484,8 @@ let travelCubes = [];
 	isStatusTextAbovePlayer:false,
 		 startX1 : 470,    
  startX2 :740,  
+     cameraOffsetX: 0,
+    cameraOffsetY: 0, 
      victoryPoints: 0,         
     vpPerWin: 1,
     healthColorP1: '#b1c40f',      // primaire kleur P1 (groen/geel)
@@ -3920,7 +3922,7 @@ if (this.input.up && !this._prevUp) {
 					
 // ─── Beperk de maximale afstand tussen de twee vechters ───
 const viewWidth = W / camera.zoom; // zichtbare breedte in wereldpixels
-const MAX_DIST_FRACTION = 0.95;     // 95% van de viewport – pas aan naar wens
+const MAX_DIST_FRACTION = 0.94;     // 94% van de viewport – pas aan naar wens
 const MAX_DIST = viewWidth * MAX_DIST_FRACTION;
 
 const dx = p2.cx - p1.cx;
@@ -5839,15 +5841,19 @@ function rebuildTouchAttacks() {
 
     updateTouchDpad();
 }
-            function updateCamera() {
-                if (!p1 || !p2) return;
-                const centerX = (p1.cx + p2.cx) / 2;
-                const centerY = (p1.cy + p2.cy) / 2;
-                camera.offsetX = centerX - W / (2 * camera.zoom);
-                camera.offsetY = centerY - H / (2 * camera.zoom);
-                camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
-                camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
-            }
+           function updateCamera() {
+    if (!p1 || !p2) return;
+    const centerX = (p1.cx + p2.cx) / 2;
+    const centerY = (p1.cy + p2.cy) / 2;
+    // Voeg de offset toe (in wereldcoördinaten)
+    const offsetX = project.settings.cameraOffsetX || 0;
+    const offsetY = project.settings.cameraOffsetY || 0;
+    camera.offsetX = (centerX + offsetX) - W / (2 * camera.zoom);
+    camera.offsetY = (centerY + offsetY) - H / (2 * camera.zoom);
+    // Begrenzing (optioneel)
+    camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
+    camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
+}
 
 function drawDefaultTravelcube(ctx, x, y, w, h) {
     ctx.save();
@@ -6838,30 +6844,28 @@ if (_atkBtnUiTimer >= 10) {
                 ctx.translate(-camera.offsetX * camera.zoom, -camera.offsetY * camera.zoom);
                 ctx.scale(camera.zoom, camera.zoom);
 
-                if (project.settings.ringOutEnabled) {
-                    var left = project.settings.ringOutLeft ?? 60;
-                    left -= left - 30;
-                    var right = project.settings.ringOutRight ?? 1220;
-                    right = right + 30;
-                    const borderWidth = 30;
-                    const alpha = 0.25;
+         /*   if (project.settings.ringOutEnabled) {
+    var leftBorder = (project.settings.ringOutLeft ?? 60) - 30;
+    var rightBorder = (project.settings.ringOutRight ?? 1220) + 30;
+    const borderWidth = 30;
+    const alpha = 0.25;
 
-                    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-                    ctx.fillRect(left - borderWidth, 0, borderWidth, H);
-                    ctx.fillRect(right, 0, borderWidth, H);
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    ctx.fillRect(leftBorder - borderWidth, 0, borderWidth, H);
+    ctx.fillRect(rightBorder, 0, borderWidth, H);
 
-                    ctx.strokeStyle = 'rgba(255,50,50,0.8)';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([10, 8]);
-                    ctx.beginPath();
-                    ctx.moveTo(left, 0);
-                    ctx.lineTo(left, H);
-                    ctx.moveTo(right, 0);
-                    ctx.lineTo(right, H);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-					ctx.restore();
-                }
+    ctx.strokeStyle = 'rgba(255,50,50,0.8)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath();
+    ctx.moveTo(leftBorder, 0);
+    ctx.lineTo(leftBorder, H);
+    ctx.moveTo(rightBorder, 0);
+    ctx.lineTo(rightBorder, H);
+    ctx.stroke();
+    ctx.setLineDash([]);}*/
+    ctx.restore();
+
 
                 for (const proj of projectiles) {
                     proj.draw(ctx, camera);
@@ -7431,6 +7435,9 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.matchWinText) project.settings.matchWinText = "{winner} wins the match!";
         if (project.settings.startX1 === undefined) project.settings.startX1 = 470;
         if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
+		   if (project.settings.cameraOffsetX === undefined)  project.settings.cameraOffsetX = data.settings.cameraOffsetX ?? 0;
+   if (project.settings.cameraOffsetY === undefined)  project.settings.cameraOffsetY = data.settings.cameraOffsetY ?? 0;
+
 if (!project.settings.useGamepadP1) project.settings.useGamepadP1 = true;
 if (!project.settings.useGamepadP2) project.settings.useGamepadP2 = true;
 if (project.settings.showMoveNamesInTraining === undefined) {
@@ -9943,6 +9950,8 @@ function saveSettingsFromModal() {
     const roundWinText = document.getElementById('settingsRoundWinText').value;
     const roundDrawText = document.getElementById('settingsRoundDrawText').value;
     const matchWinText = document.getElementById('settingsMatchWinText').value;
+const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX').value) || 0;
+const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) || 0;
 
     // Audio bestanden lezen (zoals in de bestaande code)
     // ... (houd de bestaande code voor audio‑upload)
@@ -9960,6 +9969,9 @@ function saveSettingsFromModal() {
     project.settings.roundWinText = roundWinText;
     project.settings.roundDrawText = roundDrawText;
     project.settings.matchWinText = matchWinText;
+	project.settings.cameraOffsetX = cameraOffsetX;
+project.settings.cameraOffsetY = cameraOffsetY;
+
     // Plugins worden elders opgeslagen (in de plugin‑logica)
 
     // Sla ook op in localStorage
@@ -10133,7 +10145,17 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <label>❄️ Auto‑freeze on standing block</label>
     <input type="checkbox" id="settingsAutoFreeze" ${settings.autoFreezeOnBlock ? 'checked' : ''} />
 </div>
-
+<h3>📷 Camera offset</h3>
+<div class="form-row">
+    <div class="form-group">
+        <label>Offset X</label>
+        <input type="number" id="settingsCameraOffsetX" value="${settings.cameraOffsetX ?? 0}" step="1" />
+    </div>
+    <div class="form-group">
+        <label>Offset Y</label>
+        <input type="number" id="settingsCameraOffsetY" value="${settings.cameraOffsetY ?? 0}" step="1" />
+    </div>
+</div>
 <h3>🚫 Ring‑out</h3>
 			<div class="form-row">
 
