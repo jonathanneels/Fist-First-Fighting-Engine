@@ -11017,7 +11017,8 @@ function openPublishModal() {
     const charSubItems = [
         { id: 'newCharacter', label: '➕ New character' },
         { id: 'edit', label: '✏️ Edit' },
-        { id: 'moves', label: '📋 Moves' }
+        { id: 'moves', label: '📋 Moves' },
+		    { id: 'delete', label: '🗑 Delete' }
     ];
     const stageSubItems = [
         { id: 'newStage', label: '➕ New stage' },
@@ -11319,6 +11320,7 @@ function openPublishModal() {
         '  if (!cfg.charActions || !cfg.charActions.includes("newCharacter")) { hideCss += "#addCharBtn{display:none !important;}"; }' +
         '  if (!cfg.charActions || !cfg.charActions.includes("edit")) { hideCss += ".edit-char{display:none !important;}"; }' +
         '  if (!cfg.charActions || !cfg.charActions.includes("moves")) { hideCss += ".moves-btn{display:none !important;}"; }' +
+		'if (!cfg.charActions || !cfg.charActions.includes("delete")) {    hideCss += ".delete-char{display:none !important;}";}'+
         '  if (!cfg.stageActions || !cfg.stageActions.includes("newStage")) { hideCss += "#addStageBtn{display:none !important;}"; }' +
         '  if (!cfg.stageActions || !cfg.stageActions.includes("edit")) { hideCss += ".edit-stage{display:none !important;}"; }' +
         '  if (!cfg.stageActions || !cfg.stageActions.includes("delete")) { hideCss += ".remove-stage{display:none !important;}"; }' +
