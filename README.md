@@ -5,7 +5,6 @@ The 21st-Century Cross-Platform M.U.G.E.N Alternative
 Welcome to the Fist First Fighting Engine. Are you dreaming of creating your own fighting game but don't want to deal with bloated software, complex installations, or legacy platforms? Look no further.
 
 Play the demo COmboLAde here: https://jonathanneels.itch.io/combolade
-
 It is a great way to see some of the possibilities the engine provides. 
 
 Fist First is a lightning-fast, web-native 2D fighting engine designed for accessibility, speed, and pure creative freedom. Whether you are playing on a PC with a gamepad or on a smartphone via touch controls, your game runs everywhere. Directly in the browser.
