@@ -23,12 +23,15 @@ Attribution is Mandatory: If you monetize a game running on this engine, the ori
 The "VIP Invite" Clause: Should your game skyrocket in popularity and become a massive commercial success, that’s fantastic! However, I expect a personal invitation to your official launch party, tournament, or press event—including paid travel and accommodation. Deal?
 Ready to build the next generation of fighting games? Fork the repo, open the engine, and throw that first punch!
 
-Note:
+Note: 
+Video as a background is not supported on Firefox at this moment. Best performance is on a chromium based browser.
+
+Note 2:
 At the bottom of this project page, you’ll find documentation to help you get started, including tips on plugin creation. I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process: https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757
 Codes  and guides can also be found here: https://jonathanneels.itch.io/fist-first-fighting-engine 
 
 
-Note 2: 
+Note 3: 
 95% of the code was written by me. I used Claude and DeepSeek here and there to speed up and refine the development process. For me, this project isn't about the money; it’s about providing an accessible and fun way for people to create their own fighting games. RPGmaker was a huge inspiration for me!
 
 ​
