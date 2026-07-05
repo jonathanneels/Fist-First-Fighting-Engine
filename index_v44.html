@@ -5286,6 +5286,11 @@ p2 = new Fighter(project.selectedP2Char, project.settings.startX2 || 740, -1, 1)
                 if (data) loadSpriteForChar(id, data);
             }
 
+for (const [id, char] of Object.entries(project.characters)) {
+    if (char.bloodImage) loadBloodImage(id, char.bloodImage);
+    if (char.hitEffectImage) loadHitEffectImage(id, char.hitEffectImage);
+}
+
             function initAudio() {
                 try { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* */ }
             }
