@@ -24,7 +24,7 @@ The "VIP Invite" Clause: Should your game skyrocket in popularity and become a m
 Ready to build the next generation of fighting games? Fork the repo, open the engine, and throw that first punch!
 
 Note: 
-Video as a background is not supported on Firefox at this moment. Best performance is on a chromium based browser.
+Best performance is on a chromium based browser.
 
 Note 2:
 At the bottom of this project page, you’ll find documentation to help you get started, including tips on plugin creation. I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process: https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757
