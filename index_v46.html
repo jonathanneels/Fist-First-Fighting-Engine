@@ -1180,9 +1180,9 @@
             <option value="timeattack">Time Attack</option>
             <option value="survival">Survival</option>
             <option value="pvai">PvAI</option>
-            <option value="pvp" selected>👥 PvP</option>
+            <option value="pvp" >PvP</option>
             <option value="aivai">AIvsAI</option>
-            <option value="training">Training</option>
+            <option value="training" selected>Training</option>
 			            <option value="network">Network (not ready yet!)</option>
 
         </select>
@@ -8448,7 +8448,7 @@ let newMoveImages = {};
             <div class="form-group"><label>Arm length</label><input type="number" id="editCharArm" value="${char.armLength || 30}" /></div>
             <div class="form-group"><label>Torso height</label><input type="number" id="editCharTorso" value="${char.torsoHeight || 50}" /></div>
             <div class="form-group"><label>Leg length</label><input type="number" id="editCharLeg" value="${char.legLength || 28}" /></div>
-            <div class="form-group"><label>🧢 Headgear</label>
+            <div class="form-group"><label>Headgear</label>
                 <select id="editCharHeadgear">
                     ${HEADGEAR_TYPES.map(h => `<option value="${h}" ${char.headgear === h ? 'selected' : ''}>${h}</option>`).join('')}
                 </select>
@@ -10321,7 +10321,23 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <div class="form-group"><label>Match Win</label><input type="color" id="settingsMatchWinColor" value="${settings.matchWinColor || '#ffdd44'}" /></div>
     <div class="form-group"><label>Draw</label><input type="color" id="settingsRoundDrawColor" value="${settings.roundDrawColor || '#ffdd44'}" /></div>
 </div>
-
+<h3>🗺️ Adventure Progress</h3>
+<div class="form-row">
+    <div class="form-group">
+        <label>Current Stage</label>
+        <select id="settingsAdventureStage">
+            <option value="">(none)</option>
+            ${project.stages.map(s => `<option value="${s.id}" ${settings.adventureCurrentStageId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Player Character</label>
+        <select id="settingsAdventureChar">
+            <option value="">(none)</option>
+            ${Object.keys(project.characters).map(id => `<option value="${id}" ${settings.adventurePlayerChar === id ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
+        </select>
+    </div>
+</div>
 <h3>🏆Victory Points</h3>
 <div class="form-row">
     <div class="form-group">
@@ -10333,10 +10349,10 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsVPPerWin" value="${settings.vpPerWin || 1}" min="1" />
     </div>
 </div>
-<h3>️</h3>
+ <h3>❄️Auto‑freeze</h3>
 
 <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-    <label>❄️ Auto‑freeze on standing block</label>
+    <label>Freeze position when standing block</label>
     <input type="checkbox" id="settingsAutoFreeze" ${settings.autoFreezeOnBlock ? 'checked' : ''} />
 </div>
 <h3>📷 Camera offset</h3>
@@ -10661,6 +10677,8 @@ const matchWinColor = document.getElementById('settingsMatchWinColor').value;
 const roundDrawColor = document.getElementById('settingsRoundDrawColor').value;
 const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
 const showMoveNames = document.getElementById('settingsShowMoveNames').checked;
+const adventureStage = document.getElementById('settingsAdventureStage').value || '';
+const adventureChar = document.getElementById('settingsAdventureChar').value || '';
 
 // Visual effects
 const showBlock = document.getElementById('settingsShowBlock').checked;
@@ -10752,6 +10770,8 @@ project.settings.energyBarBorderRadius = energyRadius;
   project.settings.isStatusTextAbovePlayer = settingsisStatusTextAbovePlayer;
 project.settings.autoFreezeOnBlock = autoFreeze;
 project.settings.showMoveNamesInTraining = showMoveNames;
+project.settings.adventureCurrentStageId = adventureStage;
+project.settings.adventurePlayerChar = adventureChar;
 
  project.settings.useGamepadP1 = useP1Gamepad;
 project.settings.useGamepadP2 = useP2Gamepad;
