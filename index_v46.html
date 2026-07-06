@@ -4443,10 +4443,13 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
     }
 
     // ─── TEKEN DE VEchter ──────────────────────────────────────
-	ctx.save();
-if (this.playerIdx === 1 && p1 && p2 && p1.charId === p2.charId) {
-    ctx.filter = 'brightness(50%)'; 
+	if (this.playerIdx === 1 && p1 && p2 && p1.charId === p2.charId) {
+	if(ctx.filter=="none"){ ctx.filter =  'brightness(50%)';}
+	else{
+    ctx.filter = ctx.filter +' brightness(50%)'; }
 }
+
+	ctx.save();
     const spriteImg = spriteImages[this.charId];
     const fw = this.spriteFrameWidth || 64;
     const fh = this.spriteFrameHeight || 64;
