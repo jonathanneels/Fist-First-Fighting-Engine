@@ -1175,15 +1175,15 @@
         </div>
         <select id="modeSelect">
             <option value=""></option>
-			<option value="adventure">🗺️ Adventure</option>
-            <option value="arcade">🎮 Arcade (8 matches)</option>
-            <option value="timeattack">⏱️ Time Attack</option>
-            <option value="survival">♾️ Survival</option>
-            <option value="pvai">🤖 PvAI</option>
+			<option value="adventure">Adventure</option>
+            <option value="arcade"> Arcade (8 matches)</option>
+            <option value="timeattack">Time Attack</option>
+            <option value="survival">Survival</option>
+            <option value="pvai">PvAI</option>
             <option value="pvp" selected>👥 PvP</option>
-            <option value="aivai">🧠 AIvsAI</option>
-            <option value="training">🏋️ Training</option>
-			            <option value="network">🖧 Network (not ready yet!)</option>
+            <option value="aivai">AIvsAI</option>
+            <option value="training">Training</option>
+			            <option value="network">Network (not ready yet!)</option>
 
         </select>
         <span style="display:flex;gap:2px;align-items:center;">
@@ -1486,7 +1486,8 @@ let travelCubes = [];
     ui: ['pauseBtn','modeSelect','stageSelect', 'hamburgerBtn'],
     settingsActions: [],
     charActions: ['moves'],
-    stageActions: []
+    stageActions: [],
+			launchMode : 'training'
     },   settings: {showMoveNamesInTraining:true,
                     audioEnabled: true,
                     roundCount: 3,
@@ -6311,11 +6312,11 @@ function isAdventureSolo() {
     const stage = project.stages.find(s => s.id === project.currentStageId);
     return stage ? stage.soloAdventure === true : false;
 }
-            function setMode(mode) {
+            function setMode(mode, isDoPauseCheck) {
                 currentMode = mode;
                 modeSelect.value = mode;
                 if (timerInterval) clearInterval(timerInterval);
-                if (gamePaused) togglePause();
+                if (gamePaused || isDoPauseCheck) { togglePause();}
 
 if (mode === 'network') {
       
@@ -9406,7 +9407,7 @@ function openStageForm(stageIndex) {
     <label>🏆 VP Required to unlock</label>
     <input type="number" id="editStageVP" value="${stage.vpRequired || 0}" min="0" />
 </div>
-        <div class="form-group"><label>Background (bg key)</label>
+        <div class="form-group"><label>Background</label>
             <select id="editStageBg">${Object.keys(BG_COLORS).map(k => `<option value="${k}" ${stage.bg === k ? 'selected' : ''}>${k}</option>`).join('')}</select>
         </div>
         <div class="form-group">
@@ -9474,8 +9475,11 @@ function openStageForm(stageIndex) {
                         <option value="bomb" ${cfg.type === 'bomb' ? 'selected' : ''}>💣 Bomb</option>
                         <option value="health" ${cfg.type === 'health' ? 'selected' : ''}>❤️ Health</option>
                     </select>
+					  <label style="font-size:10px;color:#7a7a9a;">size x</label> 
                     <input type="number" class="item-w" value="${cfg.width || 40}" placeholder="breedte" style="width:60px;" />
+					  <label style="font-size:10px;color:#7a7a9a;">size y</label> 
                     <input type="number" class="item-h" value="${cfg.height || 40}" placeholder="hoogte" style="width:60px;" />
+					  <label style="font-size:10px;color:#7a7a9a;">Set custom img</label> 
                     <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                         <input type="file" class="item-img" accept="image/*" data-field="itemImage_${i}" style="width:80px;font-size:8px;" />
                         <button class="clear-file" data-field="itemImage_${i}" type="button">✕</button>
@@ -9501,15 +9505,21 @@ function openStageForm(stageIndex) {
         return `
         <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+		  <label style="font-size:10px;color:#7a7a9a;">telep. x</label> 
                 <input type="number" class="tc-x" value="${cfg.x || 0}" placeholder="x" style="width:60px;" />
+						  <label style="font-size:10px;color:#7a7a9a;">telep. y</label> 
                 <input type="number" class="tc-y" value="${cfg.y || 0}" placeholder="y" style="width:60px;" />
+						  <label style="font-size:10px;color:#7a7a9a;">size x</label> 
                 <input type="number" class="tc-w" value="${cfg.width || 60}" placeholder="breedte" style="width:60px;" />
+						  <label style="font-size:10px;color:#7a7a9a;">size y</label> 
                 <input type="number" class="tc-h" value="${cfg.height || 60}" placeholder="hoogte" style="width:60px;" />
-                <select class="tc-target">
+                  <label style="font-size:10px;color:#7a7a9a;">To</label> 
+				<select class="tc-target">
                     ${project.stages.map(s => `<option value="${s.id}" ${s.id === cfg.targetStageId ? 'selected' : ''}>${s.name}</option>`).join('')}
                 </select>
+				                <label style="font-size:10px;color:#7a7a9a;">Set mode</label>
                 <select class="tc-mode" style="width:100px;">
-                    <option value="">Mode</option>
+                    <option value="">-</option>
                     <option value="arcade" ${cfg.mode === 'arcade' ? 'selected' : ''}>Arcade</option>
                     <option value="timeattack" ${cfg.mode === 'timeattack' ? 'selected' : ''}>Time Attack</option>
                     <option value="survival" ${cfg.mode === 'survival' ? 'selected' : ''}>Survival</option>
@@ -9517,30 +9527,34 @@ function openStageForm(stageIndex) {
                     <option value="pvp" ${cfg.mode === 'pvp' ? 'selected' : ''}>PvP</option>
                     <option value="aivai" ${cfg.mode === 'aivai' ? 'selected' : ''}>AIvsAI</option>
                     <option value="training" ${cfg.mode === 'training' ? 'selected' : ''}>Training</option>
-                </select>
+                    <option value="adventure" ${cfg.mode === 'adventure' ? 'selected' : ''}>Adventure</option>
+			  </select>
+			                  <label style="font-size:10px;color:#7a7a9a;">Set char P1</label> 
                 <select class="tc-charp1" style="width:80px;">
-                    <option value="">P1 char</option>
+                    <option value="">-</option>
                     ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP1 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
                 </select>
+				   <label style="font-size:10px;color:#7a7a9a;">Set char P2</label> 
                 <select class="tc-charp2" style="width:80px;">
-                    <option value="">P2 char</option>
+                    <option value="">-</option>
                     ${Object.keys(project.characters).map(id => `<option value="${id}" ${id === cfg.charP2 ? 'selected' : ''}>${project.characters[id].name}</option>`).join('')}
                 </select>
+				    <label style="font-size:10px;color:#7a7a9a;">Set AI difficulty</label> 
                 <select class="tc-ai" style="width:80px;">
-                    <option value="">AI difficulty</option>
+                    <option value="">-</option>
                     <option value="beginner" ${cfg.aiDifficulty === 'beginner' ? 'selected' : ''}>Beginner</option>
                     <option value="easy" ${cfg.aiDifficulty === 'easy' ? 'selected' : ''}>Easy</option>
                     <option value="normal" ${cfg.aiDifficulty === 'normal' ? 'selected' : ''}>Normal</option>
                     <option value="hard" ${cfg.aiDifficulty === 'hard' ? 'selected' : ''}>Hard</option>
                 </select>
 				 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#0a0a16;padding:4px 6px;border-radius:6px;">
-                <label style="font-size:10px;color:#7a7a9a;">P1 X</label>
+                <label style="font-size:10px;color:#7a7a9a;">P1 spawn x</label>
                 <input type="number" class="tc-tx1" value="${tx1}" placeholder="start" style="width:55px;" />
-                <label style="font-size:10px;color:#7a7a9a;">Y</label>
+                <label style="font-size:10px;color:#7a7a9a;">P1 spawn y</label>
                 <input type="number" class="tc-ty1" value="${ty1}" placeholder="start" style="width:55px;" />
-                <label style="font-size:10px;color:#7a7a9a;">P2 X</label>
+                <label style="font-size:10px;color:#7a7a9a;">P2 spawn x</label>
                 <input type="number" class="tc-tx2" value="${tx2}" placeholder="start" style="width:55px;" />
-                <label style="font-size:10px;color:#7a7a9a;">Y</label>
+                <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
                 <input type="number" class="tc-ty2" value="${ty2}" placeholder="start" style="width:55px;" />
             </div>
                 <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">
@@ -9670,8 +9684,11 @@ function openStageForm(stageIndex) {
                 <option value="bomb">💣 Bomb</option>
                 <option value="health">❤️ Health</option>
             </select>
+			  <label style="font-size:10px;color:#7a7a9a;">size x</label> 
             <input type="number" class="item-w" value="40" placeholder="breedte" style="width:60px;" />
+			  <label style="font-size:10px;color:#7a7a9a;">size y</label> 
             <input type="number" class="item-h" value="40" placeholder="hoogte" style="width:60px;" />
+			  <label style="font-size:10px;color:#7a7a9a;">Set custom img.</label> 
             <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                 <input type="file" class="item-img" accept="image/*" data-field="itemImage_${idx}" style="width:80px;font-size:8px;" />
                 <button class="clear-file" data-field="itemImage_${idx}" type="button">✕</button>
@@ -9705,9 +9722,11 @@ function openStageForm(stageIndex) {
             <input type="number" class="tc-w" value="60" placeholder="breedte" style="width:60px;" />
 								<label style="font-size:10px;color:#7a7a9a;">size y</label>
             <input type="number" class="tc-h" value="60" placeholder="hoogte" style="width:60px;" />
-            <select class="tc-target">${stageOptions}</select>
+            			<label style="font-size:10px;color:#7a7a9a;">To</label>
+			<select class="tc-target">${stageOptions}</select>
+			<label style="font-size:10px;color:#7a7a9a;">Set mode</label>
             <select class="tc-mode" style="width:100px;">
-                <option value="">Mode</option>
+                <option value="">-</option>
                 <option value="arcade">Arcade</option>
                 <option value="timeattack">Time Attack</option>
                 <option value="survival">Survival</option>
@@ -9715,17 +9734,22 @@ function openStageForm(stageIndex) {
                 <option value="pvp">PvP</option>
                 <option value="aivai">AIvsAI</option>
                 <option value="training">Training</option>
+				  <option value="adventure">Adventure</option>
             </select>
+		 <label style="font-size:10px;color:#7a7a9a;">Set char P1</label>
             <select class="tc-charp1" style="width:80px;">
-                <option value="">P1 char</option>
+                <option value="">-</option>
                 ${charOptions}
             </select>
+					 <label style="font-size:10px;color:#7a7a9a;">Set char P2</label>
             <select class="tc-charp2" style="width:80px;">
-                <option value="">P2 char</option>
+                <option value="">-</option>
                 ${charOptions}
             </select>
+		 <label style="font-size:10px;color:#7a7a9a;">Set AI difficulty</label>
+
             <select class="tc-ai" style="width:80px;">
-                <option value="">AI difficulty</option>
+                <option value="">-</option>
                 <option value="beginner">Beginner</option>
                 <option value="easy">Easy</option>
                 <option value="normal">Normal</option>
@@ -11100,7 +11124,15 @@ document.addEventListener('keyup', (e) => {
             camera.zoom = project.cameraZoom || 1.0;
             updateActionSelectZoom();
 
-            setMode('training');
+ if(window.project && window.project.publish.launchMode){
+ gamePaused=false;
+  setMode(window.project.publish.launchMode,true); 
+  
+ }
+else{            setMode('training');
+
+}
+
             gameLoop();
 
             if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -11167,6 +11199,7 @@ function openPublishModal() {
     for (let opt of modeSel.options) {
         if (opt.value !== '') modeOptions.push({ value: opt.value, text: opt.textContent });
     }
+	
     const actionOptions = [];
     const actSel = document.getElementById('actionSelect');
     for (let opt of actSel.options) {
@@ -11226,6 +11259,12 @@ function openPublishModal() {
         <div class="form-group"><label>🖼️ Favicon (img)</label><input type="file" id="publishFavicon" accept="image/*" />${faviconPreview}</div>
         <div class="form-group"><label>🎬 Intro video (MP4/WEBM)</label><input type="file" id="publishVideo" accept="video/*" />${videoPreview}</div>
         <div class="form-group"><label>🖼️ Watermerk (rechtsonder, afbeelding)</label><input type="file" id="publishWatermark" accept="image/*" />${watermarkPreview}</div>
+<div class="form-group">
+    <label>🚀 Launch game mode</label>
+    <select id="publishLaunchMode">
+        ${modeOptions.map(m => `<option value="${m.value}" ${config.launchMode === m.value ? 'selected' : ''}>${m.text}</option>`).join('')}
+    </select>
+</div>
 
         <h3 style="margin-top:16px;">🎮 Visible gamemodes</h3>
         <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#0f0f1e;border-radius:6px;">
@@ -11283,6 +11322,7 @@ function openPublishModal() {
         const faviconInput = document.getElementById('publishFavicon');
         const videoInput = document.getElementById('publishVideo');
         const watermarkInput = document.getElementById('publishWatermark');
+const launchMode = document.getElementById('publishLaunchMode').value || 'training';
 
         // Verzamel geselecteerde waarden
         const selectedModes = [];
@@ -11329,8 +11369,10 @@ function openPublishModal() {
             title: title,
             faviconData: faviconData,
             videoData: videoData,
-            watermarkData: watermarkData
+            watermarkData: watermarkData,
+			launchMode : launchMode
         };
+		
         // Bewaren in localStorage (voorzichtig met grote base64-data)
         try {
             localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
@@ -11538,8 +11580,7 @@ if (videoData) {
 }
 
 
-    // Filterscript (onveranderd)
-    var filterScript = '<script>' +
+     var filterScript = '<script>' +
         'document.addEventListener("DOMContentLoaded", function() {' +
         '  var cfg = (window.project && window.project.publish) ? window.project.publish : { modes:[], actions:[], utilities:[], ui:[], settingsActions:[], charActions:[], stageActions:[] };' +
         '  var hideCss = "";' +
