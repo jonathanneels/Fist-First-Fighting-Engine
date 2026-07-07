@@ -11776,7 +11776,7 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
     if (!project.publish.ui.includes('hamburgerBtn')) {
         html = html.replace(/<div[^>]*id="hamburgerBtn"[^>]*>/, '<div id="hamburgerBtn" style="display:none !important;">');
     }
-	else if (project.publish.ui.includes('hamburgerBtn')) {
+	else if (project.publish.ui.includes('hamburgerBtn') && project.publish.ui.includes('hamburgerBtn')) {
     var topMenuRegex = /<div[^>]*id="topMenu"[^>]*>/;
     var match = html.match(topMenuRegex);
     if (match) {
