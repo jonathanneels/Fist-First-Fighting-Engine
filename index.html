@@ -1428,19 +1428,26 @@ let travelCubes = [];
 
             const DEFAULT_STAGES = [
                 { id: 'dojo', name: 'Dojo', bg: 'dojo', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null},
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'street', name: 'Street', bg: 'street', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null },
+                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null ,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'arena', name: 'Arena', bg: 'arena', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null},
+                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'sunset', name: 'Sunset', bg: 'sunset', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null},
+                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'cyber', name: 'Cyber', bg: 'cyber', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null },
+                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null ,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'jungle', name: 'Jungle', bg: 'jungle', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null },
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,    platformColor: '#66ccff',    platformImage: null,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
                 { id: 'lava', name: 'Lava', bg: 'lava', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null   },
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,    platformColor: '#66ccff',    platformImage: null ,
+					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2},
             ];
 
             const canvas = document.getElementById('gameCanvas');
@@ -1473,6 +1480,14 @@ let travelCubes = [];
             let currentMode = 'training';
             let laneMode = false;
             let camera = { zoom: 1.0, offsetX: 0, offsetY: 0 };
+
+const FONT_LIST = [
+    'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Verdana',
+    'Tahoma', 'Courier New', 'Impact', 'Comic Sans MS', 'Trebuchet MS',
+    'Lucida Sans Unicode', 'Segoe UI', 'Roboto', 'Open Sans', 'Lato',
+    'Montserrat', 'Poppins', 'Oswald', 'Raleway', 'Merriweather',
+    'Playfair Display', 'Ubuntu', 'Nunito', 'Quicksand', 'Work Sans'
+];
 
             let project = {
                 characters: { fighter: { ...DEFAULT_CHARACTER, id: 'fighter' } },
@@ -1520,11 +1535,7 @@ let travelCubes = [];
     timerColor: '#ffffff',
     introOutroColor: '#ffffff',
     ringOutColor: '#ff4444',
-    startFightColor: '#ffffff',
-    roundWinColor: '#ffdd44',
-    matchWinColor: '#ffdd44',
-    roundDrawColor: '#ffdd44',
- showRingOutText: true,
+  showRingOutText: true,
     showBlockEffect: true,
     showCounterShield: true,
     showRecoverFlash: true,
@@ -1534,9 +1545,17 @@ let travelCubes = [];
     energyBarHeight: 10,
     energyBarBorderRadius: 4, 
 	useGamepadP1:true,
-	useGamepadP2:true
-
-                },
+	useGamepadP2:true,
+countdownFont: 'Arial',
+countdownColor: '#ffffff',
+winFont: 'Arial',
+winColor: '#ffdd44',
+comboFont: 'Arial',
+comboColor: '#ffdd44',
+statusFont: 'Arial',
+statusColor: '#ffdd44',
+introOutroFont: 'Arial',
+                 },
                 stages: DEFAULT_STAGES.map(s => ({ ...s })),
                 currentStageId: 'dojo',
                 laneMode: false,
@@ -1810,7 +1829,11 @@ function drawWeather(ctx, camera) {
          function showIntroOutroText(player, text, isIntro) {
     const el = player === 1 ? document.getElementById('textP1') : document.getElementById('textP2');
     if (!el) return;
-    el.style.color = project.settings.introOutroColor || '#ffffff';
+    const color = project.settings.introOutroColor || '#ffffff';
+    const font = project.settings.introOutroFont ||   "'Segoe UI', system-ui, sans-serif";
+    el.style.color = color;
+    el.style.fontFamily = font;
+    // ook eventueel font-size aanpassen?
     if (introOutroTimeout) clearTimeout(introOutroTimeout);
     el.textContent = text.replace(/\\n/g, '\n');
     el.style.opacity = '1';
@@ -4012,26 +4035,55 @@ if (!project.settings.ringOutEnabled) {
                          }
                     }
 
-                if (!laneMode && !this.onGround) {
-    for (const p of springPlatforms) {
-        // Sla het platform over dat we willen negeren
-        if (this._ignorePlatform !== null && p === this._ignorePlatform) continue;
+                if (!laneMode && !this.onGround) {// ─── In update() ────────────────────────────────────────────
+const stage = project.stages.find(s => s.id === project.currentStageId);
+const marginL = stage?.platformMarginLeft ?? 3;
+const marginR = stage?.platformMarginRight ?? 3;
+// yOff wordt hier NIET gebruikt voor fysica!
 
-        const feetY = this.y + this.h;
-        const prevFeetY = feetY - this.vy;
-        if (this.vy >= 0 &&
-            this.x + this.w > p.x && this.x < p.x + p.w &&
-            feetY >= p.y && prevFeetY <= p.y + 5) {
-            this.y = p.y - this.h;
-            this.vy = 0;
-            this.onGround = true;
+let onPlatform = false;
+for (const p of springPlatforms) {
+    if (this._ignorePlatform !== null && p === this._ignorePlatform) continue;
+
+    const feetY = this.y + this.h;
+    const prevFeetY = feetY - this.vy;
+    const isOver = (this.x + this.w > p.x + marginL && this.x < p.x + p.w - marginR);
+    const landing = (this.vy >= 0 && feetY >= p.y && prevFeetY <= p.y + 5);
+
+    if (isOver && landing) {
+        this.y = p.y - this.h;          // ← GEEN offset
+        this.vy = 0;
+        this.onGround = true;
+        this.groundY = p.y;
+        this.jumpCount = 0;
+        this._ignorePlatform = null;
+        if (this.state === 'jump') this.state = 'idle';
+        onPlatform = true;
+        break;
+    } else if (isOver && this.onGround) {
+        const expectedY = p.y - this.h;  // ← GEEN offset
+        if (Math.abs(this.y - expectedY) > 0.5) {
+            this.y = expectedY;
             this.groundY = p.y;
-            this.jumpCount = 0;
-            this._ignorePlatform = null; // we zijn op een ander platform geland
-            if (this.state === 'jump') this.state = 'idle';
-            break;
         }
+        if (this.x + this.w - marginL < p.x || this.x + marginR > p.x + p.w) {
+            this.onGround = false;
+            this.groundY = GROUND_Y;
+        }
+        onPlatform = true;
+        break;
     }
+}
+if (!onPlatform && this.onGround) {
+    if (this.y + this.h >= GROUND_Y - 1) {
+        this.y = GROUND_Y - this.h;
+        this.groundY = GROUND_Y;
+    } else {
+        this.onGround = false;
+        this.groundY = GROUND_Y;
+    }
+}
+ 
 }
 
                 // ─── Dubbele down om door platform te vallen ──────────────────
@@ -4238,8 +4290,17 @@ while (this._history.length > 0 && now - this._historyTimes[0] > 500) {
         camera.zoom = 1;
     }
 
+let visualOffsetWorld = 0;
+if (this.onGround && this.groundY !== GROUND_Y) {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+    const yOff = stage?.platformYOffset ?? 0;
+
+    // Clamp: de sprite mag niet onder de grond komen
+    const maxOffset = this.groundY - this.y; // maximale visuele daling (tot grondniveau)
+    visualOffsetWorld = Math.min(yOff, maxOffset); // niet lager dan de grond
+}
     const sx = (this.x - camera.offsetX) * camera.zoom;
-    const sy = (this.y - camera.offsetY) * camera.zoom;
+    const sy = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom;
     const f = this.facing;
     let w = this.w * camera.zoom;
     let h = this.h * camera.zoom;
@@ -4247,8 +4308,8 @@ while (this._history.length > 0 && now - this._historyTimes[0] > 500) {
    let scaleY = 1;
 let offsetY = 0;
 if (this.state === 'crouch' || this.state === 'block_crouch') {
-    scaleY = 0.85;
-    offsetY = this.h * 0.3 * camera.zoom;
+    scaleY = 0.90;
+    offsetY = this.h * 0.15;//3 * camera.zoom;
 } else if (this.state === 'swept' || this.state === 'ko') {
      scaleY = 1;
     offsetY = 0;
@@ -4257,36 +4318,28 @@ if (this.state === 'crouch' || this.state === 'block_crouch') {
 	// ─── Status message ──────────────────────────────────
 if (this.statusTimer > 0) {
     ctx.save();
-	ctx.filter =  "none"
-    let color = '#ffdd44'; // default goud
+	ctx.filter='none';
+    ctx.textAlign = 'center';
+    const font = project.settings.statusFont ||  "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold ${26}px ${font}`;
+    let color = project.settings.statusColor || '#ffdd44'; // atm color is hidden
+    // Pas kleur aan per type (optioneel)
     if (this.statusMessage === 'HIT!') color = '#ff4444';
     else if (this.statusMessage === 'BLOCK!') color = '#44aaff';
     else if (this.statusMessage === 'COUNTER!') color = '#ffaa00';
     else if (this.statusMessage === 'RECOVER!') color = '#44ff88';
     ctx.fillStyle = color;
     ctx.shadowColor = 'rgba(255,255,255,0.3)';
-    // ctx.shadowBlur = 20;
-    ctx.font = `bold ${26  }px "Segoe UI", system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-	
-    const textY = (this.y - camera.offsetY) * camera.zoom - 60 * camera.zoom;
-	
-	
-	if(project.settings.isStatusTextAbovePlayer)
-		{
-     ctx.fillText(this.statusMessage, (this.cx - camera.offsetX) * camera.zoom, textY);
-
-		}
-		else {
-	    const x = this.playerIdx === 0 ? 90 : W - 90;
-    const y = H / 2.1;
-    ctx.fillText(this.statusMessage, x, y);
-
-		
-		}
-
+        const textY = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom - 60 * camera.zoom;
+    if (project.settings.isStatusTextAbovePlayer) {
+        ctx.fillText(this.statusMessage, (this.cx - camera.offsetX) * camera.zoom, textY);
+    } else {
+        const x = this.playerIdx === 0 ? 90 : W - 90;
+        const y = H / 2.1;
+        ctx.fillText(this.statusMessage, x, y);
+    }
     ctx.restore();
-	if(this.statusTimer)	this.statusTimer-=1;
+    if (this.statusTimer) this.statusTimer -= 1;
 }
 
 
@@ -4364,7 +4417,7 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     ctx.save();
     const alpha = 0.3 + 0.7 * (this.counterTimer / 90);
     const cx = (this.cx - camera.offsetX) * camera.zoom;
-    const cy = (this.cy - camera.offsetY) * camera.zoom;
+        const cy = (this.cy + visualOffsetWorld - camera.offsetY) * camera.zoom;
     const baseRadius = 60 * camera.zoom;
     let color;
     let shape;
@@ -4422,7 +4475,7 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     // ─── BLOED DEELTJES ──────────────────────────────────────
     for (const p of this.bloodParticles) {
         const px = (p.x - camera.offsetX) * camera.zoom;
-        const py = (p.y - camera.offsetY) * camera.zoom;
+        const py = (p.y + visualOffsetWorld - camera.offsetY) * camera.zoom;
         const alpha = p.life / p.maxLife;
         ctx.globalAlpha = alpha;
         if (p.image) {
@@ -4442,7 +4495,7 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
 
  
     // ─── SCHADUW ──────────────────────────────────────────────
-let shadowY = this.groundY + 4;
+    let shadowY = this.groundY + 4 + visualOffsetWorld;
 const shadowWorldX = this.cx;
 let shadowOffsetX = 0;
 
@@ -4877,30 +4930,21 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
 
     // ─── COMBO TEKST ──────────────────────────────────────────
     if (project.settings.showComboText && this.comboCount > 1 && this.comboTimer > 0) {
-        ctx.save();
-		ctx.filter =  "none"
-        ctx.fillStyle = '#ffdd44';
-        ctx.shadowColor = 'rgba(255,200,50,0.4)';
-         ctx.font = `bold ${28  }px "Segoe UI", system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-		
-		if(project.settings.isStatusTextAbovePlayer)
-		{
-		        ctx.fillText(`${this.comboCount} COMBO!`, sx + w / 2, drawY - 30 * camera.zoom);
-
-		}
-		else {
-					    const x = this.playerIdx === 1 ? 90 : W - 90;
-    const y = H / 2.5;
-    ctx.fillText(`${this.comboCount} COMBO!`, x, y);
-
-		
-		}
-		
-
-
-
-        ctx.restore();
+    ctx.save();
+	ctx.filter='none';
+    ctx.textAlign = 'center';
+    const font = project.settings.comboFont ||  "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold ${28}px ${font}`;
+    ctx.fillStyle = project.settings.comboColor || '#ffdd44';
+    ctx.shadowColor = 'rgba(255,200,50,0.4)';
+    if (project.settings.isStatusTextAbovePlayer) {
+        ctx.fillText(`${this.comboCount} COMBO!`, sx + w / 2, drawY - 30 * camera.zoom);
+    } else {
+        const x = this.playerIdx === 1 ? 90 : W - 90;
+        const y = H / 2.5;
+        ctx.fillText(`${this.comboCount} COMBO!`, x, y);
+    }
+    ctx.restore();
     }
 
     
@@ -5551,7 +5595,7 @@ window.pollGamepad = function() {
                     if (typeof updateControlsUI === 'function') updateControlsUI();
                     waitingForInput = null;
                     if (remapTimeout) clearTimeout(remapTimeout);
-                    showToast(`✅ Button ${i} voor ${player} ${action}`, 'success');
+                    showToast(`✅ Button ${i} for ${player} ${action}`, 'success');
                     return;
                 }
             }
@@ -6047,17 +6091,36 @@ ctx.stroke();
                     ctx.fillRect(W / 2 - 1, GROUND_Y, 2, 40);
                 }
 
-                for (const p of springPlatforms) {
-                    ctx.fillStyle = 'rgba(100,200,255,0.3)';
-                    ctx.fillRect(p.x, p.y, p.w, p.h);
-                    ctx.strokeStyle = 'rgba(100,200,255,0.8)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(p.x, p.y, p.w, p.h);
-                    ctx.fillStyle = 'rgba(100,200,255,0.5)';
-                    ctx.font = '20px sans-serif';
-                    ctx.textAlign = 'center';
-                 }
-				
+for (const p of springPlatforms) {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+    const color = stage?.platformColor || '#66ccff';
+    const imgData = stage?.platformImage || null;
+
+    if (imgData) {
+        if (!p._img) {
+            p._img = new Image();
+            p._img.src = imgData;
+            p._imgLoaded = false;
+            p._img.onload = () => { p._imgLoaded = true; };
+            p._img.onerror = () => { p._imgLoaded = false; };
+        }
+        if (p._imgLoaded && p._img.complete && p._img.naturalWidth > 0) {
+            ctx.drawImage(p._img, p.x, p.y, p.w, p.h);
+        } else {
+            ctx.fillStyle = color + '66';
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(p.x, p.y, p.w, p.h);
+        }
+    } else {
+        ctx.fillStyle = color + '66';
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+    }
+}
 
 for (const tc of travelCubes) {
     const sx = (tc.x - camera.offsetX) * camera.zoom;
@@ -7114,20 +7177,16 @@ if (_atkBtnUiTimer >= 10) {
                 }}
 
                 if (project.settings.showRingOutText &&ringOutOccurred && winner) {
-                    ctx.save();
-					ctx.filter = "none"
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-                    // ctx.shadowBlur = 30;
-                    // ctx.shadowBlur = 0;
-                     ctx.fillStyle = project.settings.ringOutColor || '#ff4444'; 
-                    ctx.font = 'bold 48px "Segoe UI", system-ui, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.shadowColor = 'rgba(255,50,50,0.3)';
-                    // ctx.shadowBlur = 30;
-ctx.fillText(project.settings.ringOutText, W / 2, H / 2 - 80 * camera.zoom);
-                    ctx.restore();
+    ctx.save();
+	ctx.filter='none';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const font = project.settings.winFont ||   "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 48px ${font}`;
+    ctx.fillStyle = project.settings.ringOutColor || '#ff4444';
+    ctx.shadowColor = 'rgba(255,50,50,0.3)';
+    ctx.fillText(project.settings.ringOutText, W / 2, H / 2 - 80 * camera.zoom);
+    ctx.restore();
                 }
 
                 for (const item of activeFallingItems) {
@@ -7196,22 +7255,16 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
             ? project.settings.matchWinText.replace(/{winner}/g, 'P2') 
             : project.settings.roundDrawText);
     
-    // Kies kleur op basis van winner
-    let color;
-    if (winner === 'p1' || winner === 'p2') {
-        color = project.settings.matchWinColor || '#ffdd44';
-    } else {
-        color = project.settings.roundDrawColor || '#ffdd44';
-    }
-    
-    // ctx.shadowBlur = 0;
-    ctx.fillStyle = color;
-    ctx.font = 'bold 48px "Segoe UI", system-ui, sans-serif';
+   
+    ctx.save();
+	ctx.filter='none';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const font = project.settings.winFont ||   "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 48px ${font}`;
+    ctx.fillStyle = project.settings.winColor || '#ffdd44';
     ctx.shadowColor = 'rgba(255,200,50,0.3)';
-    // ctx.shadowBlur = 30;
-ctx.fillText(msg, W / 2, H / 2 + 4 * camera.zoom);
+    ctx.fillText(msg, W / 2, H / 2 + 4 * camera.zoom);
     ctx.restore();
 } else if (winner && !roundActive && currentMode !== 'training') {
     ctx.save();
@@ -7232,21 +7285,16 @@ ctx.fillText(msg, W / 2, H / 2 + 4 * camera.zoom);
             ? project.settings.roundWinText.replace(/{winner}/g, 'P2') 
             : project.settings.roundDrawText);
     
-    // Kies kleur op basis van winner
-    let color;
-    if (winner === 'p1' || winner === 'p2') {
-        color = project.settings.roundWinColor || '#ffdd44';
-    } else {
-        color = project.settings.roundDrawColor || '#ffdd44';
-    }
     
-    // ctx.shadowBlur = 0;
-    ctx.fillStyle = color;
-    ctx.font = 'bold 48px "Segoe UI", system-ui, sans-serif';
+    
+    ctx.save();
+	ctx.filter='none';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const font = project.settings.winFont ||  "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 48px ${font}`;
+    ctx.fillStyle = project.settings.winColor || '#ffdd44';
     ctx.shadowColor = 'rgba(255,200,50,0.3)';
-    // ctx.shadowBlur = 30;
     ctx.fillText(msg, W / 2, H / 2 + 4);
     ctx.restore();
 }                
@@ -7254,26 +7302,26 @@ ctx.fillText(msg, W / 2, H / 2 + 4 * camera.zoom);
 	if (startFightTimer > 0 &&!isSoloLevel) {
     const seconds = Math.ceil(startFightTimer / 60);
     ctx.save();
-	ctx.filter = "none"
+	ctx.filter='none';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 80px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = project.settings.startFightColor || '#ffffff';
+    const font = project.settings.countdownFont ||   "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 80px ${font}`;
+    ctx.fillStyle = project.settings.countdownColor || '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    // ctx.shadowBlur = 30;
-ctx.fillText(seconds.toString(), W / 2, H / 2.5 - 40 );//* camera.zoom);
+    ctx.fillText(seconds.toString(), W / 2, H / 2.5 - 40);
     ctx.restore();
 } else if (fightDisplayTimer > 0 &&!isSoloLevel) {
     // Toon "FIGHT!"
     ctx.save();
-	ctx.filter = "none"
-     ctx.textAlign = 'center';
+	ctx.filter='none';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 80px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = project.settings.startFightColor || '#ffffff';
+    const font = project.settings.countdownFont ||  "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 80px ${font}`;
+    ctx.fillStyle = project.settings.countdownColor || '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    // ctx.shadowBlur = 30;
-ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2.5 - 40 );//* camera.zoom);
+    ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2.5 - 40);
     ctx.restore();
     // Verlaag fightDisplayTimer
     fightDisplayTimer--;
@@ -7281,14 +7329,7 @@ ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2.5 - 40 );
 // Ring Out
 ctx.fillStyle = project.settings.ringOutColor || '#ff4444';
 // Start Fight
-ctx.fillStyle = project.settings.startFightColor || '#ffffff';
-// Round Win
-ctx.fillStyle = project.settings.roundWinColor || '#ffdd44';
-// Match Win
-ctx.fillStyle = project.settings.matchWinColor || '#ffdd44';
-// Draw
-ctx.fillStyle = project.settings.roundDrawColor || '#ffdd44';
-            }
+             }
 
 function resetFighterUI() {
     // Health
@@ -7591,6 +7632,10 @@ function processProjectData(jsonString) {
 			if (!stage.vpRequired) stage.vpRequired = 0;
 			if (!stage.soloAdventure) stage.soloAdventure = false;
 			if (!stage.nextStageId) stage.nextStageId = null;
+     if (stage.platformMarginLeft === undefined) stage.platformMarginLeft = 3;
+    if (stage.platformMarginRight === undefined) stage.platformMarginRight = 3;
+    if (stage.platformYOffset === undefined) stage.platformYOffset = 2;
+ 
 
         }
 
@@ -7624,11 +7669,7 @@ function processProjectData(jsonString) {
     timerColor: '#ffffff',
     introOutroColor: '#ffffff',
     ringOutColor: '#ff4444',
-    startFightColor: '#ffffff',
-    roundWinColor: '#ffdd44',
-    matchWinColor: '#ffdd44',
-    roundDrawColor: '#ffdd44',
- showRingOutText: true,
+  showRingOutText: true,
     showBlockEffect: true,
     showCounterShield: true,
     showRecoverFlash: true,
@@ -7638,8 +7679,17 @@ function processProjectData(jsonString) {
     energyBarHeight: 10,
     energyBarBorderRadius: 4,
 	useGamepadP1:true,
-	useGamepadP2:true
-
+	useGamepadP2:true,
+	countdownFont: 'Arial',
+countdownColor: '#ffffff',
+winFont: 'Arial',
+winColor: '#ffdd44',
+comboFont: 'Arial',
+comboColor: '#ffdd44',
+statusFont: 'Arial',
+statusColor: '#ffdd44',
+introOutroFont: 'Arial',
+ 
         };
 project.publish = data.publish || {
     modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
@@ -7816,44 +7866,100 @@ function importProject(source) {
     });
 }
 
-            let _newStageCache = { platforms: [] };
 
             function generatePlatforms(count) {
-                if (count <= 0) return [];
-                const minY = 200;
-                const maxY = GROUND_Y - 80;
-                const minDist = 80;
-                const platforms = [];
-                let yValues = [];
-                if (count === 1) {
-                    const mid = (minY + maxY) / 2;
-                    yValues.push(mid + (Math.random() - 0.5) * (maxY - minY) * 0.3);
-                } else {
-                    const step = (maxY - minY) / (count + 1);
-                    for (let i = 0; i < count; i++) {
-                        let y = minY + (i + 1) * step + (Math.random() - 0.5) * step * 0.6;
-                        y = Math.max(minY, Math.min(maxY, y));
-                        yValues.push(y);
-                    }
-                    yValues.sort((a, b) => a - b);
-                    for (let i = 1; i < yValues.length; i++) {
-                        if (yValues[i] - yValues[i - 1] < minDist) {
-                            yValues[i] = yValues[i - 1] + minDist;
-                            if (yValues[i] > maxY) {
-                                yValues[i] = maxY;
-                            }
-                        }
-                    }
-                    yValues = yValues.map(y => Math.max(minY, Math.min(maxY, y)));
+    if (count <= 0) return [];
+    const minY = 200;
+    const maxY = GROUND_Y - 80;
+    const minDist = 80;
+    const platforms = [];
+    let yValues = [];
+
+    // Genereer y‑waarden met minimale afstand (zoals voorheen)
+    if (count === 1) {
+        const mid = (minY + maxY) / 2;
+        yValues.push(mid + (Math.random() - 0.5) * (maxY - minY) * 0.3);
+    } else {
+        const step = (maxY - minY) / (count + 1);
+        for (let i = 0; i < count; i++) {
+            let y = minY + (i + 1) * step + (Math.random() - 0.5) * step * 0.6;
+            y = Math.max(minY, Math.min(maxY, y));
+            yValues.push(y);
+        }
+        yValues.sort((a, b) => a - b);
+        for (let i = 1; i < yValues.length; i++) {
+            if (yValues[i] - yValues[i - 1] < minDist) {
+                yValues[i] = yValues[i - 1] + minDist;
+                if (yValues[i] > maxY) {
+                    yValues[i] = maxY;
                 }
-                for (let i = 0; i < count; i++) {
-                    const w = 80 + Math.floor(Math.random() *  250);//120);
-                    const x = 30 + Math.floor(Math.random() * (W - w - 60));
-                    const y = yValues[i] || (minY + (maxY - minY) * (i + 1) / (count + 1));
-                    platforms.push({ x, y, w, h: 12 });
-                }
-                return platforms;
             }
+        }
+        yValues = yValues.map(y => Math.max(minY, Math.min(maxY, y)));
+    }
+
+    // Helper om overlapping van twee rechthoeken te detecteren
+    function rectsOverlap(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x &&
+               a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    for (let i = 0; i < count; i++) {
+        const y = yValues[i] || (minY + (maxY - minY) * (i + 1) / (count + 1));
+        let w = 80 + Math.floor(Math.random() * 250);
+        let found = false;
+        let attempts = 0;
+        let x = 30 + Math.floor(Math.random() * (W - w - 60));
+
+        // Probeer maximaal 100 keer een niet‑overlappende x te vinden
+        while (attempts < 100) {
+            let overlap = false;
+            for (const p of platforms) {
+                if (rectsOverlap({ x, y, w, h: 12 }, p)) {
+                    overlap = true;
+                    break;
+                }
+            }
+            if (!overlap) {
+                found = true;
+                break;
+            }
+            x = 30 + Math.floor(Math.random() * (W - w - 60));
+            attempts++;
+        }
+
+        // Als geen x gevonden, probeer de y iets te verschuiven
+        if (!found) {
+            let yShift = y;
+            let shiftAttempts = 0;
+            while (shiftAttempts < 20) {
+                yShift = y + (shiftAttempts + 1) * 10;
+                if (yShift > maxY) break;
+                let overlap = false;
+                for (const p of platforms) {
+                    if (rectsOverlap({ x, y: yShift, w, h: 12 }, p)) {
+                        overlap = true;
+                        break;
+                    }
+                }
+                if (!overlap) {
+                    platforms.push({ x, y: yShift, w, h: 12 });
+                    found = true;
+                    break;
+                }
+                shiftAttempts++;
+            }
+            // Fallback: als alles mislukt, plaats het platform toch (zeer zeldzaam)
+            if (!found) {
+                platforms.push({ x, y, w, h: 12 });
+            }
+        } else {
+            platforms.push({ x, y, w, h: 12 });
+        }
+    }
+    return platforms;
+}
+            let _newStageCache = { platforms: [] };
 
             function randomizePlatforms(stage, isNew) {
                 if (!stage) return [];
@@ -7921,6 +8027,10 @@ function importProject(source) {
     fallingItemSpawnTimer = FALLING_ITEM_SPAWN_INTERVAL;
 
     initWeather(stage);
+	
+    stageSelect.selectedIndex = 0;
+    stageSelect[0].innerHTML = stage.name;
+	
 }
 
           let gameOverModalOpen = false;
@@ -9466,7 +9576,12 @@ function openStageForm(stageIndex) {
             weather: 'none',
             hasSpringPlatform: false,
     vpRequired: 0 ,
-	soloAdventure: false , nextStageId: null
+	soloAdventure: false , nextStageId: null,
+	    platformColor: '#66ccff',
+    platformImage: null,
+    platformMarginLeft,
+    platformMarginRight,
+    platformYOffset
 
         };
     } else {
@@ -9482,7 +9597,12 @@ function openStageForm(stageIndex) {
             colorTheme: 'default',
             weather: 'none',
             hasSpringPlatform: false,
-	soloAdventure: false, nextStageId: null
+	soloAdventure: false, nextStageId: null,
+		    platformColor: '#66ccff',
+    platformImage: null,
+    platformMarginLeft,
+    platformMarginRight,
+    platformYOffset
 
         };
     }
@@ -9569,6 +9689,41 @@ function openStageForm(stageIndex) {
                 </select>
             </div>
         </div>
+		<h3>🏗️ Platforms</h3>
+<div class="form-row">
+    <div class="form-group">
+        <label>Color</label>
+        <input type="color" id="editStagePlatformColor" value="${stage.platformColor || '#66ccff'}" />
+    </div>
+    <div class="form-group">
+        <label>Image</label>
+        <div class="file-input-wrap">
+            <input type="file" id="editStagePlatformImage" accept="image/*" />
+            <button class="clear-file" data-field="platformImage" data-input="editStagePlatformImage" type="button">✕</button>
+        </div>
+        <div id="platformImagePreview" style="margin-top:4px;">
+            ${stage.platformImage ? `<img src="${stage.platformImage}" style="max-height:40px;border:1px solid #2a2a4a;border-radius:4px;" />` : ''}
+        </div>
+        <span id="platformImageStatus" style="font-size:10px;color:#5a5a8a;">
+            ${stage.platformImage ? '🖼️' : 'No image'}
+        </span>
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Left margin</label>
+        <input type="number" id="editPlatformMarginLeft" value="${stage.platformMarginLeft ?? 3}" step="1" />
+    </div>
+    <div class="form-group">
+        <label>Right margin</label>
+        <input type="number" id="editPlatformMarginRight" value="${stage.platformMarginRight ?? 3}" step="1" />
+    </div>
+    <div class="form-group">
+        <label>Y offset</label>
+        <input type="number" id="editPlatformYOffset" value="${stage.platformYOffset ?? 2}" step="0.5" />
+    </div>
+</div>
+
         <div style="margin:10px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="btn primary" id="randomizeStagePlatforms">🎲 Random platforms</button>
             <span style="color:#7a7a9a;font-size:12px;">
@@ -9898,6 +10053,11 @@ function openStageForm(stageIndex) {
         const vpRequired = parseInt(document.getElementById('editStageVP').value) || 0;
 		const soloAdventure = document.getElementById('editStageSoloAdventure').checked;
 const nextStageId = document.getElementById('editStageNext').value || null;
+const platformColor = document.getElementById('editStagePlatformColor').value;
+
+const platformMarginLeft = parseFloat(document.getElementById('editPlatformMarginLeft').value) ?? 3;
+const platformMarginRight = parseFloat(document.getElementById('editPlatformMarginRight').value) ?? 3;
+const platformYOffset = parseFloat(document.getElementById('editPlatformYOffset').value) ?? 2;
 
 		const bg = document.getElementById('editStageBg').value || 'dojo';
         const theme = document.getElementById('editStageTheme').value;
@@ -9926,7 +10086,11 @@ const nextStageId = document.getElementById('editStageNext').value || null;
         if (imageInput) readFileIfSelected('imageData', imageInput);
         const audioInput = document.getElementById('editStageAudio');
         if (audioInput) readFileIfSelected('audioData', audioInput);
-
+		
+					
+const platformImageInput = document.getElementById('editStagePlatformImage');
+if (platformImageInput) readFileIfSelected('platformImage', platformImageInput);
+ 
         itemRows.forEach((row, i) => {
             const field = 'itemImage_' + i;
             const input = row.querySelector('.item-img');
@@ -10013,6 +10177,13 @@ travelcubeConfigs.push({
                 finalAudioData = stage.audioData;
             }
 
+let platformImage = stage.platformImage; 
+if (removalFlags.platformImage) {
+    platformImage = null;
+} else if (newFileData.platformImage) {
+    platformImage = newFileData.platformImage;
+}
+
             // ─── Bouw stage object ─────────────────────────────
             const stageData = {
                 id: id,
@@ -10027,7 +10198,12 @@ travelcubeConfigs.push({
                 colorTheme: theme,
                 weather: weather,
 				 vpRequired: vpRequired,
-				     soloAdventure: soloAdventure ,   nextStageId: nextStageId
+				     soloAdventure: soloAdventure ,   nextStageId: nextStageId,
+    platformColor: platformColor,
+    platformImage: platformImage,
+	platformMarginLeft:    platformMarginLeft,
+   platformMarginRight: platformMarginRight,
+ platformYOffset:   platformYOffset
 
 
             };
@@ -10046,6 +10222,7 @@ travelcubeConfigs.push({
                 const mediaEl = hiddenMediaContainer.querySelector(`[data-stage="${id}"]`);
                 if (mediaEl) mediaEl.remove();
             }
+
 
             if (finalAudioData && project.currentStageId === id) {
                 stopStageAudio();
@@ -10421,16 +10598,9 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <div class="form-group"><label>Timer</label><input type="color" id="settingsTimerColor" value="${settings.timerColor || '#ffffff'}" /></div>
 </div>
 <div class="form-row-3">
-    <div class="form-group"><label>Intro/Outro</label><input type="color" id="settingsIntroOutroColor" value="${settings.introOutroColor || '#ffffff'}" /></div>
-    <div class="form-group"><label>Ring Out</label><input type="color" id="settingsRingOutColor" value="${settings.ringOutColor || '#ff4444'}" /></div>
-    <div class="form-group"><label>Start Fight</label><input type="color" id="settingsStartFightColor" value="${settings.startFightColor || '#ffffff'}" /></div>
-</div>
-<div class="form-row-3">
-    <div class="form-group"><label>Round Win</label><input type="color" id="settingsRoundWinColor" value="${settings.roundWinColor || '#ffdd44'}" /></div>
-    <div class="form-group"><label>Match Win</label><input type="color" id="settingsMatchWinColor" value="${settings.matchWinColor || '#ffdd44'}" /></div>
-    <div class="form-group"><label>Draw</label><input type="color" id="settingsRoundDrawColor" value="${settings.roundDrawColor || '#ffdd44'}" /></div>
-</div>
-<h3>🗺️ Adventure Progress</h3>
+     <div class="form-group"><label>Ring Out</label><input type="color" id="settingsRingOutColor" value="${settings.ringOutColor || '#ff4444'}" /></div>
+ </div>
+ <h3>🗺️ Adventure Progress</h3>
 <div class="form-row">
     <div class="form-group">
         <label>Current Stage</label>
@@ -10508,12 +10678,64 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsStartX2" value="${settings.startX2 || 740}" />
     </div>
 </div>
-   <h3>📝 Texts</h3>
+   <h3>📝 Text</h3>
         <div class="form-group"><label>Ring Out text</label><input type="text" id="settingsRingOutText" value="${settings.ringOutText || ''}" /></div>
         <div class="form-group"><label>Start Fight text</label><input type="text" id="settingsStartFightText" value="${settings.startFightText || ''}" /></div>
         <div class="form-group"><label>Round win text (use {winner})</label><input type="text" id="settingsRoundWinText" value="${settings.roundWinText || ''}" /></div>
         <div class="form-group"><label>Round draw text</label><input type="text" id="settingsRoundDrawText" value="${settings.roundDrawText || ''}" /></div>
         <div class="form-group"><label>Match win text (use {winner})</label><input type="text" id="settingsMatchWinText" value="${settings.matchWinText || ''}" /></div>
+<h3>🔤 Typography</h3>
+<div class="form-row">
+    <div class="form-group">
+        <label>Countdown font</label>
+        <select id="settingsCountdownFont">${FONT_LIST.map(f => `<option value="${f}" ${settings.countdownFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+        <label>Countdown color</label>
+        <input type="color" id="settingsCountdownColor" value="${settings.countdownColor || '#ffffff'}" />
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Win text font</label>
+        <select id="settingsWinFont">${FONT_LIST.map(f => `<option value="${f}" ${settings.winFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+        <label>Win text color</label>
+        <input type="color" id="settingsWinColor" value="${settings.winColor || '#ffdd44'}" />
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Combo text font</label>
+        <select id="settingsComboFont">${FONT_LIST.map(f => `<option value="${f}" ${settings.comboFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+        <label>Combo text color</label>
+        <input type="color" id="settingsComboColor" value="${settings.comboColor || '#ffdd44'}" />
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Intro/Outro text font</label>
+        <select id="settingsIntroOutroFont">${FONT_LIST.map(f => `<option value="${f}" ${settings.introOutroFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+        <label>Intro/Outro color</label>
+        <input type="color" id="settingsIntroOutroColor" value="${settings.introOutroColor || '#ffffff'}" />
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Status text font</label>
+        <select id="settingsStatusFont">${FONT_LIST.map(f => `<option value="${f}" ${settings.statusFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+        <label hidden>Status text color</label>
+        <input hidden type="color" id="settingsStatusColor" value="${settings.statusColor || '#ffdd44'}" />
+    </div>
+</div>
 
         <h3>🔊 System sounds</h3>
         <div class="form-group">
@@ -10571,7 +10793,8 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 
     modalBody.innerHTML = html;
     modalOverlay.classList.add('open');
-
+	
+ 
 document.getElementById('resetAllDataBtn')?.addEventListener('click', function() {
     if (confirm('⚠️ Sure you want to remove your data? It is permanent!')) {
 	
@@ -10778,16 +11001,23 @@ const healthBadColor = document.getElementById('settingsHealthBad').value;
 const energyColor = document.getElementById('settingsEnergyColor').value;
 const energyFullColor = document.getElementById('settingsEnergyFull').value;
 const timerColor = document.getElementById('settingsTimerColor').value;
-const introOutroColor = document.getElementById('settingsIntroOutroColor').value;
-const ringOutColor = document.getElementById('settingsRingOutColor').value;
-const startFightColor = document.getElementById('settingsStartFightColor').value;
-const roundWinColor = document.getElementById('settingsRoundWinColor').value;
-const matchWinColor = document.getElementById('settingsMatchWinColor').value;
-const roundDrawColor = document.getElementById('settingsRoundDrawColor').value;
-const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
+ const ringOutColor = document.getElementById('settingsRingOutColor').value;
+ const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
 const showMoveNames = document.getElementById('settingsShowMoveNames').checked;
 const adventureStage = document.getElementById('settingsAdventureStage').value || '';
 const adventureChar = document.getElementById('settingsAdventureChar').value || '';
+
+const countdownFont = document.getElementById('settingsCountdownFont').value;
+const winFont = document.getElementById('settingsWinFont').value;
+const comboFont = document.getElementById('settingsComboFont').value;
+const statusFont = document.getElementById('settingsStatusFont').value;
+const introOutroFont = document.getElementById('settingsIntroOutroFont').value;
+
+ const countdownColor = document.getElementById('settingsCountdownColor').value;
+const winColor = document.getElementById('settingsWinColor').value;
+const comboColor = document.getElementById('settingsComboColor').value;
+const statusColor = document.getElementById('settingsStatusColor').value;
+const introOutroColor = document.getElementById('settingsIntroOutroColor').value;
 
 // Visual effects
 const showBlock = document.getElementById('settingsShowBlock').checked;
@@ -10863,11 +11093,7 @@ project.settings.energyFullColor = energyFullColor;
 project.settings.timerColor = timerColor;
 project.settings.introOutroColor = introOutroColor;
 project.settings.ringOutColor = ringOutColor;
-project.settings.startFightColor = startFightColor;
-project.settings.roundWinColor = roundWinColor;
-project.settings.matchWinColor = matchWinColor;
-project.settings.roundDrawColor = roundDrawColor;
-project.settings.showBlockEffect = showBlock;
+ project.settings.showBlockEffect = showBlock;
 project.settings.showCounterShield = showCounter;
 project.settings.showRecoverFlash = showRecover;
 project.settings.showComboText = showCombo;
@@ -10881,6 +11107,16 @@ project.settings.autoFreezeOnBlock = autoFreeze;
 project.settings.showMoveNamesInTraining = showMoveNames;
 project.settings.adventureCurrentStageId = adventureStage;
 project.settings.adventurePlayerChar = adventureChar;
+project.settings.countdownColor = countdownColor;
+project.settings.winColor = winColor;
+project.settings.comboColor = comboColor;
+project.settings.statusColor = statusColor;
+project.settings.introOutroColor = introOutroColor;
+ project.settings.countdownFont = countdownFont;
+project.settings.winFont = winFont;
+project.settings.comboFont = comboFont;
+project.settings.statusFont = statusFont;
+project.settings.introOutroFont = introOutroFont;
 
  project.settings.useGamepadP1 = useP1Gamepad;
 project.settings.useGamepadP2 = useP2Gamepad;
@@ -11213,10 +11449,9 @@ document.addEventListener('keyup', (e) => {
     }
 
     setStage(stageId);
-    stageSelect.selectedIndex = 0;
-    stageSelect[0].innerHTML = stageId;
-					fullReset()
+						fullReset() 
 
+ 
 });
 
             modalClose.addEventListener('click', () => modalOverlay.classList.remove('open'));
