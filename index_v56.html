@@ -1296,6 +1296,10 @@ let p2GamepadIndex = -1;
 let waitingForInput = null; // { player: 'p1'|'p2', action: string, type: 'keyboard'|'gamepad' }
 let remapTimeout = null;
 
+let fps = 0;
+let frameCount = 0;
+let lastFpsTime = performance.now();
+
 let weatherParticles = [];
 let weatherState = { type: 'none', intensity: 1 };
  
@@ -1337,25 +1341,25 @@ smiley: { full: '☺', empty: '☹' }
 const DEFAULT_AI_PARAMS = {
     beginner: {
         attackChance: 0.25, blockChance: 0.12, counterChance: 0.05,
-        superJumpChance: 0.13, recoverChance: 0.08, moveThreshold: 350,
-        idleChance: 0.55, specialChance: 0.05, fleeChance: 0.05,
+        superJumpChance: 0.65, recoverChance: 0.08, moveThreshold: 350,
+        idleChance: 0.25, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
         attackChance: 0.3, blockChance: 0.4, counterChance: 0.3,
-        superJumpChance: 0.14, recoverChance: 0.2, moveThreshold: 250,
-        idleChance: 0.35, specialChance: 0.2, fleeChance: 0.04,
+        superJumpChance: 0.55, recoverChance: 0.2, moveThreshold: 250,
+        idleChance: 0.15, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
         attackChance: 0.4, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.21, recoverChance: 0.5, moveThreshold: 250,
+        superJumpChance: 0.50, recoverChance: 0.5, moveThreshold: 250,
         idleChance: 0.05, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
         attackChance: 0.5, blockChance: 0.6, counterChance: 0.7,
-        superJumpChance: 0.515, recoverChance: 0.8, moveThreshold: 250,
+        superJumpChance: 0.45, recoverChance: 0.8, moveThreshold: 250,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
@@ -4481,14 +4485,17 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     // Teken een zwarte achtergrond (kader)
     const padding = 8;
     const maxWidth = 240; // geschatte breedte
-    const totalHeight = 12 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
+    const totalHeight = 13 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
      ctx.fillRect(x - padding, y - padding, maxWidth, totalHeight);
      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1;
     ctx.strokeRect(x - padding, y - padding, maxWidth, totalHeight);
-    
+ctx.fillStyle = '#8affd0';
+ctx.fillText(`FPS: ${fps}`, x, y);
+    	y += lineHeight;
+
     // Tekstkleur
     ctx.fillStyle = '#ffdd44';
     ctx.fillText('Current Input (P1):', x, y);
@@ -4525,6 +4532,8 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
         ctx.fillText(`  attack${i+1}: ${status}`, x, y);
         y += lineHeight;
     }
+	
+
     
     // Herstel de oorspronkelijke transformatie
     ctx.restore();
@@ -6387,29 +6396,57 @@ function aiPerformAttack(fighter, moveList) {
         laneSwitchChance: 0.05
     };
 	
-	
+///////////////////////////Experimental platformer handler////////////////////////////////////////////////////////////// 
+ if (opponent.onGround  && opponent.groundY === GROUND_Y && fighter.groundY !== GROUND_Y) {
+         const chance =0.3;// params.dropThroughChance || 0.3;
+        if (Math.random() < chance) {
+            // Start de drop-down sequentie
+            if (!fighter._dropDownFrames || fighter._dropDownFrames <= 0) {
+                fighter._dropDownFrames = 3; // drie frames down ingedrukt houden
+            }
+        }
+ }
+ if (fighter._dropDownFrames && fighter._dropDownFrames > 0) {
+    fighter.input.down = true;
+    fighter.input.up = false;
+    fighter.input.left = false;
+    fighter.input.right = false;
+    fighter.input.forward = false;
+    fighter.input.back = false;
+    fighter._dropDownFrames--;
+    // Alle andere AI‑acties overslaan
+    return;
+}
  
 
-    // ─── TEGENSTANDER HOGER  ──────────────────────────
+
+    // ─── TEGENSTANDER HOGER  (platform) ──────────────────────────
     const heightDiff = fighter.y - opponent.y;
-    if (heightDiff > 5 && fighter._aiJumpCooldown  == 0  && Math.random() < params.superJumpChance) {
+ if (fighter.onGround  && fighter.groundY === GROUND_Y && opponent.groundY !== GROUND_Y && fighter._aiJumpCooldown==0) {
 	
 	
-        if (heightDiff > 10) fighter._aiForceSuperJump = true;
+        if (heightDiff > 20) fighter._aiForceSuperJump = true;// lower for certainty?
         var jumpPower = fighter._aiForceSuperJump ? (fighter.superJumpPower || -18) : -12;
-		
-		if(fighter.doubleJump)
+ 		if(fighter.doubleJump)
 		{
 		jumpPower = fighter.superJumpPower +( fighter.superJumpPower*0.6);//9); => happens direct, would be too crazy
 		}
- 		
-        fighter.input.up = true;
+
+       // fighter.input.up = true;
         if (opponent.cx > fighter.cx) fighter.input.right = true;
         else fighter.input.left = true;
-        fighter.input.forward = true;
+       // fighter.input.forward = true;
         fighter.vy = jumpPower;
         fighter.onGround = false;
         fighter._aiJumpCooldown = 100;
+        return;
+    }
+	
+ ////////////////////////////////////////////////////////////////////////////////////////////////
+
+	 // ─── SUPER JUMP (random) ──────────────────────────────────────────
+    if (fighter.onGround && !opponent.onGround && dist < 300 && Math.random() < params.superJumpChance) {
+        fighter._aiTimer = 15;
         return;
     }
 
@@ -7597,9 +7634,21 @@ if (p2) {
 
 }
             function gameLoop() {
+			 
                 pollGamepad();
+				
+    if (currentMode === 'training') {							
+						frameCount++;
+const now = performance.now();
+if (now - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+}
+}
                 if (!gamePaused) {
                     update();
+		
                 }
                 render();
                 requestAnimationFrame(gameLoop);
@@ -11198,7 +11247,9 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
             <div class="form-group"><label>fleeChance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="fleeChance" value="${p.fleeChance ?? 0.03}" /></div>
             <div class="form-group"><label>oppFlinchAttackChance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="oppFlinchAttackChance" value="${p.oppFlinchAttackChance ?? 0.8}" /></div>
             <div class="form-group"><label>jumpChanceFar</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="jumpChanceFar" value="${p.jumpChanceFar ?? 0.03}" /></div>
-        </div>`;
+             <div class="form-group"><label>superjumpChance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="superJumpChance" value="${p.superJumpChance ?? 0.2}" /></div>
+ 
+		</div>`;
     }).join('')}
 </div>
 	
