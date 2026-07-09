@@ -108,7 +108,7 @@
             position: absolute;
             left: 0;
             top: 0;
-            margin-top: 35px;
+            margin-top: 4vh;
             margin-left: 15px;
             color: white;
         }
@@ -116,10 +116,11 @@
             position: absolute;
             right: 0;
             top: 0;
-            margin-top: 35px;
+            margin-top: 4vh;
             margin-right: 15px;
             color: white;
         }
+		
         #healthP1 {
             position: absolute;
             right: 0;
@@ -1341,25 +1342,25 @@ smiley: { full: '☺', empty: '☹' }
 const DEFAULT_AI_PARAMS = {
     beginner: {
         attackChance: 0.25, blockChance: 0.12, counterChance: 0.05,
-        superJumpChance: 0.65, recoverChance: 0.08, moveThreshold: 350,
-        idleChance: 0.25, specialChance: 0.05, fleeChance: 0.05,
+        superJumpChance: 0.50, recoverChance: 0.08, moveThreshold: 350,
+        idleChance: 0.19, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
         attackChance: 0.3, blockChance: 0.4, counterChance: 0.3,
-        superJumpChance: 0.55, recoverChance: 0.2, moveThreshold: 250,
-        idleChance: 0.15, specialChance: 0.2, fleeChance: 0.04,
+        superJumpChance: 0.45, recoverChance: 0.2, moveThreshold: 250,
+        idleChance: 0.12, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
         attackChance: 0.4, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.50, recoverChance: 0.5, moveThreshold: 250,
+        superJumpChance: 0.40, recoverChance: 0.5, moveThreshold: 250,
         idleChance: 0.05, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
         attackChance: 0.5, blockChance: 0.6, counterChance: 0.7,
-        superJumpChance: 0.45, recoverChance: 0.8, moveThreshold: 250,
+        superJumpChance: 0.35, recoverChance: 0.8, moveThreshold: 250,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
@@ -1632,17 +1633,7 @@ aiParams: DEFAULT_AI_PARAMS
 }
 }
 
-// Onthouden publish-instellingen (aangevinkte items, titel, logo, introfilm) terugladen => import req.
-/*try {
-    const savedPublish = localStorage.getItem('fighting_publish_config');
-    if (savedPublish) {
-        const parsedPublish = JSON.parse(savedPublish);
-        project.publish = Object.assign({}, project.publish, parsedPublish);
-    }
-} catch (e) {
-    console.warn("Publish-config laden mislukt, standaardwaarden gebruikt", e);
-}*/
-
+ 
 // Ensure controls always exist
 if (!project.settings.controls || typeof project.settings.controls !== 'object') {
     project.settings.controls = getDefaultControls();
@@ -1667,6 +1658,21 @@ if (!project.settings.controls || typeof project.settings.controls !== 'object')
     }
 }
 
+if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object') {
+    project.settings.aiParams = JSON.parse(JSON.stringify(DEFAULT_AI_PARAMS));
+} else {
+    for (const diff in DEFAULT_AI_PARAMS) {
+        if (!project.settings.aiParams[diff]) {
+            project.settings.aiParams[diff] = { ...DEFAULT_AI_PARAMS[diff] };
+        } else {
+            for (const key in DEFAULT_AI_PARAMS[diff]) {
+                if (project.settings.aiParams[diff][key] === undefined) {
+                    project.settings.aiParams[diff][key] = DEFAULT_AI_PARAMS[diff][key];
+                }
+            }
+        }
+    }
+}
 
 
             let p1 = null,
@@ -4479,13 +4485,13 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     
     // Bepaal een vaste positie linksboven (bijv. 20, 20)
     const x = 20;
-    let y = 120;
-    const lineHeight = 20;
+    let y = 155;
+    const lineHeight = 17;
     
     // Teken een zwarte achtergrond (kader)
     const padding = 8;
-    const maxWidth = 240; // geschatte breedte
-    const totalHeight = 13 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
+    const maxWidth = 230; // geschatte breedte
+    const totalHeight = 12.5 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
      ctx.fillRect(x - padding, y - padding, maxWidth, totalHeight);
@@ -4509,7 +4515,7 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         y += lineHeight;
     }
     
-    y += lineHeight * 0.5;
+  //  y += lineHeight * 0.5;
     ctx.fillStyle = '#ffdd44';
     ctx.fillText('Attacks (recently pressed):', x, y);
     y += lineHeight;
@@ -6352,8 +6358,8 @@ function aiPerformAttack(fighter, moveList) {
  if (fighter._aiJumpCooldown > 0) {
         fighter._aiJumpCooldown--;
      }
-    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 15;
-    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 10;
+    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 10;
+    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 8;
     if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 5;
     if (diffKey == 'hard' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 2;
 
@@ -6998,7 +7004,7 @@ var frameSaveTimer=0;
                     return;
                 }
             }
-
+	
             // ─── Teleport uitvoeren ──────────────────────────
             setStage(targetId);
 
@@ -7054,6 +7060,15 @@ var frameSaveTimer=0;
             // Cooldown
             p1._teleportCooldown = 30;
             p2._teleportCooldown = 30;
+			
+					
+			if (activeTravelcube.damageP1) {
+    p1.takeDamage(activeTravelcube.damageP1, p1.facing, false);
+}
+if (activeTravelcube.damageP2) {
+    p2.takeDamage(activeTravelcube.damageP2, p2.facing, false);
+}
+
             showToast(`🌀 Teleported to ${stage.name}`, 'info');
         }
     }
@@ -8002,7 +8017,21 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
 		        if (project.settings.adventureCurrentStageId  === undefined) project.settings.adventureCurrentStageId  = '';
         if (project.settings.adventurePlayerChar  === undefined) project.settings.adventurePlayerChar  = '';
-if (!project.settings.aiParams) project.settings.aiParams = DEFAULT_AI_PARAMS;
+ if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object') {
+    project.settings.aiParams = JSON.parse(JSON.stringify(DEFAULT_AI_PARAMS));
+} else {
+    for (const diff in DEFAULT_AI_PARAMS) {
+        if (!project.settings.aiParams[diff]) {
+            project.settings.aiParams[diff] = { ...DEFAULT_AI_PARAMS[diff] };
+        } else {
+            for (const key in DEFAULT_AI_PARAMS[diff]) {
+                if (project.settings.aiParams[diff][key] === undefined) {
+                    project.settings.aiParams[diff][key] = DEFAULT_AI_PARAMS[diff][key];
+                }
+            }
+        }
+    }
+}
 
         if (project.settings.screenFilter  === undefined) project.settings.screenFilter  = 'none';
 applyScreenFilter(project.settings.screenFilter);
@@ -10205,6 +10234,11 @@ function createNewCharacter() {
                             <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
                             <input type="number" class="tc-ty2" value="${ty2}" placeholder="start" style="width:55px;" />
                         </div>
+						<label style="font-size:10px;color:#7a7a9a;">Damaging P1</label>
+<input type="number" class="tc-dmg1" value="${cfg.damageP1 || 0}" step="1" style="width:55px;" />
+<label style="font-size:10px;color:#7a7a9a;">Damaging P2</label>
+<input type="number" class="tc-dmg2" value="${cfg.damageP2 || 0}" step="1" style="width:55px;" />
+
                         <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">
                             ${cfg.imageData ? '🖼️' : ''}
                         </span>
@@ -10373,6 +10407,10 @@ modalBody.addEventListener('click', function(e) {
                     <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
                     <input type="number" class="tc-ty2" value="" placeholder="start" style="width:55px;" />
                 </div>
+ <label style="font-size:10px;color:#7a7a9a;">Damaging P1</label>
+<input type="number" class="tc-dmg1" value="0" step="1" style="width:55px;" />
+<label style="font-size:10px;color:#7a7a9a;">Damaging P2</label>
+<input type="number" class="tc-dmg2" value="0" step="1" style="width:55px;" />
                 <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
                 <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                     <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
@@ -10528,6 +10566,9 @@ const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item'
                 const teleportY1 = parseFloat(row.querySelector('.tc-ty1').value) || undefined;
                 const teleportX2 = parseFloat(row.querySelector('.tc-tx2').value) || undefined;
                 const teleportY2 = parseFloat(row.querySelector('.tc-ty2').value) || undefined;
+				const damageP1 = parseFloat(row.querySelector('.tc-dmg1').value) || 0;
+const damageP2 = parseFloat(row.querySelector('.tc-dmg2').value) || 0;
+
                 const field = 'tcImage_' + i;
                 let imageData = null;
                 if (removalFlags[field]) {
@@ -10540,7 +10581,8 @@ const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item'
                 }
                 travelcubeConfigs.push({
                     x, y, width, height, targetStageId, mode, charP1, charP2, aiDifficulty, imageData,
-                    teleportX1, teleportY1, teleportX2, teleportY2
+                    teleportX1, teleportY1, teleportX2, teleportY2,
+    damageP1, damageP2 
                 });
             });
 			
