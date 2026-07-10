@@ -1,5 +1,5 @@
 
-Fist First Fighting Engine
+<b>Fist First Fighting Engine</b>
 The 21st-Century Cross-Platform M.U.G.E.N Alternative
 <img style="position:absolute; right:0; top:0; margin-top:25px;" width="254" height="254" alt="transparent_logo" src="https://github.com/user-attachments/assets/08103747-a9db-4da0-90c5-4b3082aa9615" />
 
@@ -37,12 +37,14 @@ Note 3:
 
 
 Screenshots: 
+<br>
 <img width="382" height="187" alt="tiny_movie" src="https://github.com/user-attachments/assets/5b023267-48b2-456c-949d-b40b9424a9d7" />
 <img width="1905" height="915" alt="Schermafbeelding 2026-07-02 131618" src="https://github.com/user-attachments/assets/2b9d6e3e-9b77-4912-9d21-17134a59f58c" />
 ​<img width="1904" height="924" alt="Schermafbeelding 2026-07-02 131731" src="https://github.com/user-attachments/assets/d6ba01da-d6a5-4c7f-94fd-c02195faf81a" />
 <img width="1911" height="930" alt="Schermafbeelding 2026-07-02 132214" src="https://github.com/user-attachments/assets/5237c8ab-f131-4a8e-926d-a29996fc8a66" />
-<img width="826" height="714" alt="Schermafbeelding 2026-07-02 135248" src="https://github.com/user-attachments/assets/36b9d41f-e2cb-4c1b-afc5-f3a47fcbf75a" />
 <img width="879" height="402" alt="Schermafbeelding 2026-07-02 135754" src="https://github.com/user-attachments/assets/6cfde87a-379d-433c-979d-0fd520f166ff" />
+
+<img width="826" height="714" alt="Schermafbeelding 2026-07-02 135248" src="https://github.com/user-attachments/assets/36b9d41f-e2cb-4c1b-afc5-f3a47fcbf75a" />
 <img width="808" height="833" alt="Schermafbeelding 2026-07-02 135300" src="https://github.com/user-attachments/assets/69c0ce2b-b64b-4e01-aa99-68aa26db3895" />
 <img width="789" height="712" alt="Schermafbeelding 2026-07-02 135322" src="https://github.com/user-attachments/assets/dc988c81-ff52-4126-a10f-fff82526cf0e" />
 <img width="807" height="835" alt="Schermafbeelding 2026-07-02 135830" src="https://github.com/user-attachments/assets/19bb10f3-4e09-42bf-8dc7-e30359074406" />
