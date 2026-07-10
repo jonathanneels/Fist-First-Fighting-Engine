@@ -1569,26 +1569,26 @@ smiley: { full: '☺', empty: '☹' }
 };
 const DEFAULT_AI_PARAMS = {
     beginner: {
-        attackChance: 0.25, blockChance: 0.12, counterChance: 0.05,
-        superJumpChance: 0.45, recoverChance: 0.08, moveThreshold: 350,
-        idleChance: 0.19, specialChance: 0.05, fleeChance: 0.05,
+        attackChance: 0.3, blockChance: 0.12, counterChance: 0.05,
+        superJumpChance: 0.35, recoverChance: 0.08, moveThreshold: 350,
+        idleChance: 0.15, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
-        attackChance: 0.3, blockChance: 0.4, counterChance: 0.3,
-        superJumpChance: 0.40, recoverChance: 0.2, moveThreshold: 250,
-        idleChance: 0.12, specialChance: 0.2, fleeChance: 0.04,
+        attackChance: 0.4, blockChance: 0.4, counterChance: 0.3,
+        superJumpChance: 0.20, recoverChance: 0.2, moveThreshold: 250,
+        idleChance: 0.10, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
-        attackChance: 0.4, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.35, recoverChance: 0.5, moveThreshold: 250,
-        idleChance: 0.05, specialChance: 0.3, fleeChance: 0.03,
+        attackChance: 0.5, blockChance: 0.4, counterChance: 0.5,
+        superJumpChance: 0.15, recoverChance: 0.5, moveThreshold: 250,
+        idleChance: 0.04, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
-        attackChance: 0.5, blockChance: 0.6, counterChance: 0.7,
-        superJumpChance: 0.30, recoverChance: 0.8, moveThreshold: 250,
+        attackChance: 0.6, blockChance: 0.6, counterChance: 0.7,
+        superJumpChance: 0.10, recoverChance: 0.8, moveThreshold: 250,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
@@ -6694,10 +6694,9 @@ var timeToJumpTONextLane=0;
 }
  
 
-
-    // ─── TEGENSTANDER HOGER  (platform) ──────────────────────────
+     // ─── TEGENSTANDER HOGER  (platform) ──────────────────────────
     const heightDiff = fighter.y - opponent.y;
- if (fighter.onGround  && fighter.groundY === GROUND_Y && opponent.groundY !== GROUND_Y && fighter._aiJumpCooldown==0) {
+ if (fighter.onGround  && fighter.groundY === GROUND_Y && opponent.groundY !== GROUND_Y && fighter._aiJumpCooldown==0  ) {
 	
 	
         if (heightDiff > 20) fighter._aiForceSuperJump = true;// lower for certainty?
@@ -6721,7 +6720,7 @@ var timeToJumpTONextLane=0;
 
 	 // ─── SUPER JUMP (random) ──────────────────────────────────────────
     if (fighter.onGround && !opponent.onGround && dist < 300 && Math.random() < params.superJumpChance) {
-        fighter._aiTimer = 15;
+        fighter._aiTimer = 55;  
         return;
     }
 
