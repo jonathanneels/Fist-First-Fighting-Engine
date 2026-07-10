@@ -1303,9 +1303,7 @@ let lastFpsTime = performance.now();
 // ─── Netwerk synchronisatie ──────────────────────────────
 
 // serializeFighter en deserializeFighter met charId
-// ─── Netwerk serialisatie ──────────────────────────────
-// ─── Compacte netwerk serialisatie ──────────────────
-
+ 
 function serializeFighterCompact(fighter) {
     if (!fighter) return null;
     return {
@@ -1321,6 +1319,7 @@ function serializeFighterCompact(fighter) {
         cc: fighter.comboCount,
         ct: fighter.comboTimer,
         bt: fighter.blockTimer,
+		c: fighter.charId
         // alleen als nodig: charId wordt apart gestuurd
     };
 }
@@ -1328,9 +1327,7 @@ function serializeFighterCompact(fighter) {
 function deserializeFighterCompact(fighter, data) {
     if (!fighter || !data) return;
     
-    // Bewaar oude health om visuele effecten te kunnen triggeren op de client
-    const oldHealth = fighter.health;
-
+ 
     fighter.x = data.x;
     fighter.y = data.y;
     fighter.vx = data.vx || 0;
@@ -1338,7 +1335,7 @@ function deserializeFighterCompact(fighter, data) {
     fighter.health = data.h;
     fighter.energy = data.e || 0;
     fighter.facing = data.f;
-    
+    fighter.charId = data.c;
     // Reset de animatie alléén als de state of aanval daadwerkelijk verandert.
     if (fighter.state !== data.s || fighter.attackIdx !== data.at) {
         fighter.state = data.s || 'idle';
@@ -1360,18 +1357,9 @@ function deserializeFighterCompact(fighter, data) {
     fighter.comboTimer = data.ct || 0;
     fighter.blockTimer = data.bt || 0;
 
-    // --- FIX VOOR EFFECTEN OP DE CLIENT ---
-    // Omdat de client geen actieve collision-checks doet, triggeren we hier de visuele effecten
-    if (data.h < oldHealth) {
-        // Bloed of Hit-effect inschakelen als de health is gedaald ten opzichte van het vorige pakket
-        fighter.isHitVisualActive = true; 
-        
-        // Mocht je een globale particles/bloed functie hebben, roep die hier aan:
-        // bv: spawnBloodParticles(fighter.x, fighter.y);
-    }
-
+   
     // Als de timers op 0 staan in de binnengekomen data, dwingen we het effect lokaal ook direct te stoppen
-    if (fighter.hitTimer === 0) fighter.isHitVisualActive = false;
+ //   if (fighter.hitTimer === 0) fighter.isHitVisualActive = false;
     if (fighter.comboTimer === 0 && fighter.comboCount > 0) {
         fighter.comboCount = 0; // Ruimt rondslingerende combo-tellers op
     }
@@ -1416,7 +1404,6 @@ function deserializeGameStateCompact(data) {
     const prevRoundActive = roundActive;
     const prevMatchOver = matchOver;
 
-    // Hergebruik de bestaande fighters in plaats van nieuwe aan te maken
     if (data.p1 && data.p1id) {
         if (!p1 || p1.charId !== data.p1id) {
             p1 = new Fighter(data.p1id, data.p1.x, data.p1.f, 0);
@@ -1424,7 +1411,6 @@ function deserializeGameStateCompact(data) {
         }
         deserializeFighterCompact(p1, data.p1);
     }
-    
     if (data.p2 && data.p2id) {
         if (!p2 || p2.charId !== data.p2id) {
             p2 = new Fighter(data.p2id, data.p2.x, data.p2.f, 1);
@@ -1432,6 +1418,8 @@ function deserializeGameStateCompact(data) {
         }
         deserializeFighterCompact(p2, data.p2);
     }
+
+ 
 
     // Projectielen soepel overnemen
     projectiles = data.proj.map(pd => {
@@ -1582,25 +1570,25 @@ smiley: { full: '☺', empty: '☹' }
 const DEFAULT_AI_PARAMS = {
     beginner: {
         attackChance: 0.25, blockChance: 0.12, counterChance: 0.05,
-        superJumpChance: 0.50, recoverChance: 0.08, moveThreshold: 350,
+        superJumpChance: 0.45, recoverChance: 0.08, moveThreshold: 350,
         idleChance: 0.19, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
         attackChance: 0.3, blockChance: 0.4, counterChance: 0.3,
-        superJumpChance: 0.45, recoverChance: 0.2, moveThreshold: 250,
+        superJumpChance: 0.40, recoverChance: 0.2, moveThreshold: 250,
         idleChance: 0.12, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
         attackChance: 0.4, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.40, recoverChance: 0.5, moveThreshold: 250,
+        superJumpChance: 0.35, recoverChance: 0.5, moveThreshold: 250,
         idleChance: 0.05, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
         attackChance: 0.5, blockChance: 0.6, counterChance: 0.7,
-        superJumpChance: 0.35, recoverChance: 0.8, moveThreshold: 250,
+        superJumpChance: 0.30, recoverChance: 0.8, moveThreshold: 250,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
@@ -1715,25 +1703,25 @@ let travelCubes = [];
 let textCubes=[];
             const DEFAULT_STAGES = [
                 { id: 'dojo', name: 'Dojo', bg: 'dojo', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null, gameOverStageId: null,   platformColor: '#66ccff',    platformImage: null,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'street', name: 'Street', bg: 'street', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null ,
+                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'arena', name: 'Arena', bg: 'arena', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'sunset', name: 'Sunset', bg: 'sunset', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null,
+                    itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'cyber', name: 'Cyber', bg: 'cyber', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,    platformColor: '#66ccff',    platformImage: null ,
+                    itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'jungle', name: 'Jungle', bg: 'jungle', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,    platformColor: '#66ccff',    platformImage: null,
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
                 { id: 'lava', name: 'Lava', bg: 'lava', audioData: null, imageData: null, hasSpringPlatform: false,
-                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,    platformColor: '#66ccff',    platformImage: null ,
+                    itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,gameOverStageId: null,    platformColor: '#66ccff',    platformImage: null ,
 					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: []},
             ];
 
@@ -2535,7 +2523,7 @@ function awardVictoryPoints() {
     showToast(`🏆 +${project.settings.vpPerWin} VP!`, 'success');
 }
             function handleRoundEnd(winner) {
-                if (matchOver) return;
+                 if (matchOver) return;
                 if (winner === 'p1') {
                     p1Wins++;
                 } else if (winner === 'p2') {
@@ -2554,13 +2542,18 @@ function awardVictoryPoints() {
     matchEndSoundPlayed = true;
 }
    if (currentMode === 'adventure' && winner === 'p1') {
-        const stage = project.stages.find(s => s.id === project.currentStageId);
+         const stage = project.stages.find(s => s.id === project.currentStageId);
         if (stage && stage.nextStageId) {
-setTimeout(() => {            handleAdventureAdvance(winner);
- }, 1000);
- return;
+         handleAdventureAdvance(stage.nextStageId);
+  return;
         }
+    } else if (currentMode === 'adventure' && winner !== 'p1') {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+    if (stage && stage.gameOverStageId) {
+      handleAdventureGameOver(stage.gameOverStageId);  
+        return;
     }
+}
 	
                     setTimeout(() => {
                         fullReset();
@@ -6599,6 +6592,8 @@ function aiPerformAttack(fighter, moveList) {
     if (idx === -1) return false;
     return fighter.startAttack(idx);
 }
+
+var timeToJumpTONextLane=0;
  function updateAIFor(fighter, opponent, isAIvsAI) {
     if (fighter.health <= 0 || opponent.health <= 0) {
         fighter.input.up = false;
@@ -6620,16 +6615,21 @@ function aiPerformAttack(fighter, moveList) {
     fighter.input.forward = false;
     fighter.input.back = false;
 
+ 
     if (fighter._aiActionCooldown > 0) {
         fighter._aiActionCooldown--;
         return;
     }
+	
+	   if (fighter.timeToJumpTONextLane > 0) {
+        fighter.timeToJumpTONextLane--;
+     }
  if (fighter._aiJumpCooldown > 0) {
         fighter._aiJumpCooldown--;
      }
-    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 10;
-    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 8;
-    if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 5;
+    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 8;
+    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 6;
+    if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 4;
     if (diffKey == 'hard' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 2;
 
     // Super jump timer
@@ -6826,6 +6826,24 @@ function aiPerformAttack(fighter, moveList) {
 
     // ─── AFSTAND → BEWEGEN / VLUCHTEN ──────────────────────────
     if (dist > params.moveThreshold) {
+	
+	    const rangedMoves = fighter.moves.filter(m => 
+        (m.type === 'projectile' || m.type === 'mine') && 
+        m.command && m.command.trim() !== '' &&
+        (fighter.hasEnergy ? (parseInt(m.energyRequired) || 0) <= fighter.energy : true)
+    );
+    if (rangedMoves.length > 0 && Math.random() < 0.3) { // 30% kans om te schieten
+        // Kies een willekeurige ranged move
+        const move = rangedMoves[Math.floor(Math.random() * rangedMoves.length)];
+        const idx = fighter.moves.indexOf(move);
+        if (idx !== -1 && fighter.startAttack(idx)) {
+            // Schot gelukt, zet cooldown
+            fighter._aiActionCooldown = 20; // wacht even na schot
+            return; // skip de rest van de AI-logica
+        }
+    }
+
+
         if (dir > 0) fighter.input.right = true;
         else fighter.input.left = true;
         fighter.input.forward = true;
@@ -6894,10 +6912,46 @@ function aiPerformAttack(fighter, moveList) {
     if (laneMode) {
         if (fighter.lane !== opponent.lane) {
             const delta = opponent.lane - fighter.lane;
+if(delta == 1)
+			{
+					    fighter.input.down = true;
+					    fighter.input.up = false;
+
+			}
+			else  if(delta == -1)
+{
+        fighter.vy = -12;
+
+					    fighter.input.up = true;
+					    fighter.input.down = false;
+
+			}
             fighter.switchLane(delta);
-        } else if (Math.random() < params.laneSwitchChance) {
+			
+			timeToJumpTONextLane=80;
+			return;			
+			
+        } else if (Math.random() < params.laneSwitchChance && timeToJumpTONextLane==0) {
+
             const delta = Math.random() < 0.5 ? 1 : -1;
+			if(delta == 1)
+			{
+					    fighter.input.down = true;
+					    fighter.input.up = false;
+
+			}
+			else  if(delta == -1)
+{
+        fighter.vy = -12;
+
+					    fighter.input.up = true;
+					    fighter.input.down = false;
+
+			}
             fighter.switchLane(delta);
+			
+			timeToJumpTONextLane=80;
+			return;
         }
     }
 }
@@ -6965,7 +7019,7 @@ if (mode === 'network') {
     singlePlayer.active = false;
     document.getElementById('singlePlayerInfo').style.display = 'none';
     // timer wordt later door de stage bepaald
-    gameTimer = 0; // wordt niet gebruikt
+  //  gameTimer = 0; // wordt niet gebruikt
  
     timerDisplay.textContent = '∞'; // of verborgen
     if (timerInterval) clearInterval(timerInterval);
@@ -6983,7 +7037,7 @@ if (mode === 'network') {
         }
     }
 
-    fullReset();
+  //  fullReset();
 
 }
 
@@ -7135,40 +7189,34 @@ function saveAdventureProgress() {
         localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
     } catch (e) {}
 }
-function handleAdventureAdvance(winner) {
-    if (currentMode !== 'adventure') return;
-    if (winner !== 'p1') return;  
 
-    const stage = project.stages.find(s => s.id === project.currentStageId);
-    if (!stage || !stage.nextStageId) return;
-
-    // 1. Nieuwe stage laden
-    setStage(stage.nextStageId);
-
-     fullReset();
-    saveAdventureProgress();
-
-     winner = null;
-    roundActive = true;
-    matchOver = false;
-
-    // 4. Timer herstarten (als niet training)
-    if (currentMode !== 'training') {
-        gameTimer = project.settings.timerSeconds || 99;
-        timerDisplay.textContent = gameTimer;
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (roundActive && gameTimer > 0) {
-                gameTimer -= 0.5;
-                if (gameTimer < 0) gameTimer = 0;
-                timerDisplay.textContent = Math.ceil(gameTimer);
-            }
-        }, 500);
+function handleAdventureGameOver(targetStageId) {
+    const stage = project.stages.find(s => s.id === targetStageId);
+    if (!stage) {
+        showToast('❌ Game Over stage not found, resetting.', 'error');
+        fullReset();
+        return;
     }
+  setTimeout(() => {
+  setStage(targetStageId);        fullReset();
 
-    // 5. Eventueel een melding tonen
-   // showToast(`🌀 Next level: ${stage.name} → ${project.stages.find(s => s.id === stage.nextStageId)?.name || '?'}`, 'success');
-}
+     saveAdventureProgress();}, 2000);
+
+ }
+function handleAdventureAdvance(targetStageId) {
+    const stage = project.stages.find(s => s.id === targetStageId);
+    if (!stage) {
+        showToast('❌ Next stage not found, resetting.', 'error');
+        fullReset();
+         return;
+    }
+  setTimeout(() => {
+  setStage(targetStageId);        fullReset();
+
+     saveAdventureProgress();}, 2000);
+
+ }
+
 // ─── Random helpers voor travelcubes ──────────────────────────
 
 function getRandomStage(vp) {
@@ -7987,6 +8035,7 @@ updateHUDVisibility()
 
             function fullReset() {
                 if (timerInterval) clearInterval(timerInterval);
+				timerInterval=null
                 if (gamePaused) togglePause();
                 ringOutOccurred = false;
 				startFightTimer = 180;
@@ -8198,6 +8247,8 @@ function processProjectData(jsonString) {
 			if (!stage.vpRequired) stage.vpRequired = 0;
 			if (!stage.soloAdventure) stage.soloAdventure = false;
 			if (!stage.nextStageId) stage.nextStageId = null;
+						if (!stage.gameOverStageId) stage.gameOverStageId = null;
+ 
      if (stage.platformMarginLeft === undefined) stage.platformMarginLeft = 3;
     if (stage.platformMarginRight === undefined) stage.platformMarginRight = 3;
     if (stage.platformYOffset === undefined) stage.platformYOffset = 2;
@@ -10192,6 +10243,7 @@ function createNewCharacter() {
             vpRequired: 0,
             soloAdventure: false,
             nextStageId: null,
+			            gameOverStageId: null, 
             platformColor: '#66ccff',
             platformImage: null,
             platformMarginLeft: 3,
@@ -10215,6 +10267,7 @@ function createNewCharacter() {
             vpRequired: 0,
             soloAdventure: false,
             nextStageId: null,
+			            gameOverStageId: null, 
             platformColor: '#66ccff',
             platformImage: null,
             platformMarginLeft: 3,
@@ -10238,9 +10291,15 @@ function createNewCharacter() {
 
 
     // ─── Bouw HTML ──────────────────────────────────────────────────────
-    function buildStageOptions() {
-        return project.stages.map(s => `<option value="${s.id}" ${s.id === stage.nextStageId ? 'selected' : ''}>${s.name}</option>`).join('');
-    }
+function buildStageOptions(selectedId) {
+    return project.stages.map(s =>
+        `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.name}</option>`
+    ).join('');
+}
+
+function buildStageOptionsWithNone(selectedId) {
+    return `<option value="">(none)</option>` + buildStageOptions(selectedId);
+}
 
     function buildCharOptions(selected) {
         let opts = `<option value="">-</option><option value="random" ${selected === 'random' ? 'selected' : ''}>🎲 Random</option>`;
@@ -10292,16 +10351,21 @@ function createNewCharacter() {
         <div class="form-group"><label>Name</label><input type="text" id="editStageName" value="${stage.name}" /></div>
         <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
             <label>Solo location P1 in adventure</label>
-            <input type="checkbox" id="editStageSoloAdventure" ${stage.soloAdventure ? 'checked' : ''} />
+<input type="checkbox" id="editStageSoloAdventure" ${stage.soloAdventure ? 'checked' : ''} />
         </div>
         <div class="form-group">
-            <label>Next level after win (adventure)</label>
-            <select id="editStageNext" style="width:100%;">
-                <option value="">(none)</option>
-                ${buildStageOptions()}
-            </select>
-        </div>
-        <div class="form-group">
+            <label>Next level after WIN (adventure mode)</label>
+    <select id="editStageNext" style="width:100%;">
+        ${buildStageOptionsWithNone(stage.nextStageId || null)}
+    </select>
+</div>
+ <div class="form-group">
+            <label>Next level after LOST (adventure mode)</label>
+    <select id="editStageGameOver" style="width:100%;">
+        ${buildStageOptionsWithNone(stage.gameOverStageId || null)}
+    </select>
+</div>
+    <div class="form-group">
             <label>🏆 VP Required to unlock</label>
             <input type="number" id="editStageVP" value="${stage.vpRequired || 0}" min="0" />
         </div>
@@ -10398,7 +10462,7 @@ function createNewCharacter() {
                 Current: ${tempPlatforms.length} platforms
             </span>
         </div>
-        <h3 style="margin-top:16px;">📦 Falling items (bomb / health)</h3>
+        <h3 style="margin-top:16px;">📦 Falling items (OFFLINE ONLINE - FOR NOW)</h3>
         <p style="font-size:12px;color:#7a7a9a;">Items randomly drop out of the sky. Set your configuration here.</p>
         <div id="editStageItemConfigs">
             ${(stage.itemConfigs || []).map((cfg, i) => `
@@ -10749,6 +10813,8 @@ modalBody.addEventListener('click', function(e) {
         const vpRequired = parseInt(document.getElementById('editStageVP').value) || 0;
         const soloAdventure = document.getElementById('editStageSoloAdventure').checked;
         const nextStageId = document.getElementById('editStageNext').value || null;
+		const gameOverStageId = document.getElementById('editStageGameOver').value || null;
+
         const platformColor = document.getElementById('editStagePlatformColor').value;
         const bg = document.getElementById('editStageBg').value || 'dojo';
         const theme = document.getElementById('editStageTheme').value;
@@ -10928,6 +10994,7 @@ const damageP2 = parseFloat(row.querySelector('.tc-dmg2').value) || 0;
                 vpRequired: vpRequired,
                 soloAdventure: soloAdventure,
                 nextStageId: nextStageId,
+				 gameOverStageId :gameOverStageId,
                 platformColor: platformColor,
                 platformImage: platformImage,
                 platformMarginLeft: platformMarginLeft,
@@ -12988,8 +13055,9 @@ ws.onmessage = (event) => {
             receivedState = data.state;
  		
 		// joiner stuff from host set here
-		setStage(receivedState.st);
- 
+		setStage(receivedState.st); 
+    // project.selectedP2Char = data.c;
+
         }
     } else if (data.type === 'input') {
 
