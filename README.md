@@ -1,6 +1,6 @@
 
 <img   width="254" height="254" alt="transparent_logo" src="https://github.com/user-attachments/assets/08103747-a9db-4da0-90c5-4b3082aa9615" />
-<b>Fist First Fighting Engine</b><br><br>
+<b>Fist First Fighting Engine</b><br> 
 <i>The 21st-Century Cross-Platform M.U.G.E.N Alternative</i>
 <br><br>
 Welcome to the Fist First Fighting Engine. Are you dreaming of creating your own fighting game but don't want to deal with bloated software, complex installations, or legacy platforms? Look no further.
@@ -27,16 +27,16 @@ Ready to build the next generation of fighting games? Fork the repo, open the en
 <br>
 Note: 
 Best performance is on a chromium based browser.
-
+<br>
 Note 2:
 At the bottom of this project page, you’ll find documentation to help you get started, including tips on plugin creation. I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process: https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757
 Codes  and guides can also be found here: https://jonathanneels.itch.io/fist-first-fighting-engine 
-
+<br>
 
 Note 3: 
 95% of the code was written by me. I used Claude and DeepSeek here and there to speed up and refine the development process. For me, this project isn't about the money; it’s about providing an accessible and fun way for people to create their own fighting games. RPGmaker was a huge inspiration for me!
 
-
+<br>
 Screenshots: 
 <br>
 <img width="1905" height="915" alt="Schermafbeelding 2026-07-02 131618" src="https://github.com/user-attachments/assets/2b9d6e3e-9b77-4912-9d21-17134a59f58c" />
