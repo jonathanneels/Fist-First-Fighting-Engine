@@ -1,8 +1,8 @@
 
 <img   width="254" height="254" alt="transparent_logo" src="https://github.com/user-attachments/assets/08103747-a9db-4da0-90c5-4b3082aa9615" />
-<b>Fist First Fighting Engine</b>
+<b>Fist First Fighting Engine</b><br>
 <i>The 21st-Century Cross-Platform M.U.G.E.N Alternative</i>
-
+<br><br>
 Welcome to the Fist First Fighting Engine. Are you dreaming of creating your own fighting game but don't want to deal with bloated software, complex installations, or legacy platforms? Look no further.
 
 Play the demo COmboLAde here: https://jonathanneels.itch.io/combolade
