@@ -24,7 +24,7 @@
 <p><em>Ready to build the next generation of fighting games? Fork the repo, open the engine, and throw that first punch!</em>
 </p>
 <p>Note:<br>Best performance is on a Chromium based browser.</p>
-<p>Note 2: I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process:&nbsp;<a href="https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757">https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757<br></a>&nbsp;  <span></span></p><br>
+<p>Note 2: <br>I have also integrated a custom AI assistant, powered by Google LLMs, that can actively support you in your game creation process:&nbsp;<a href="https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757">https://notebooklm.google.com/notebook/fdabbab2-3ada-4382-9b1a-dff596353757<br></a>&nbsp;  <span></span></p>
 <p>Note 3:&nbsp;<br>95% of the code was written by me. I used Claude and DeepSeek here and there to speed up and refine the development process. <strong>For me, this project is about providing an accessible and fun way for people to create their own fighting games. RPGmaker was a huge inspiration for me!</strong></p>
 
 
