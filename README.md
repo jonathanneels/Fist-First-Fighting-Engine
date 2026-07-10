@@ -1,12 +1,13 @@
 
+<img   width="254" height="254" alt="transparent_logo" src="https://github.com/user-attachments/assets/08103747-a9db-4da0-90c5-4b3082aa9615" />
 <b>Fist First Fighting Engine</b>
-The 21st-Century Cross-Platform M.U.G.E.N Alternative
-<img style="position:absolute; right:0; top:0; margin-top:25px;" width="254" height="254" alt="transparent_logo" src="https://github.com/user-attachments/assets/08103747-a9db-4da0-90c5-4b3082aa9615" />
+<i>The 21st-Century Cross-Platform M.U.G.E.N Alternative</i>
 
 Welcome to the Fist First Fighting Engine. Are you dreaming of creating your own fighting game but don't want to deal with bloated software, complex installations, or legacy platforms? Look no further.
 
 Play the demo COmboLAde here: https://jonathanneels.itch.io/combolade
 It is a great way to see some of the possibilities the engine provides. 
+<img width="382" height="187" alt="tiny_movie" src="https://github.com/user-attachments/assets/5b023267-48b2-456c-949d-b40b9424a9d7" />
 
 Fist First is a lightning-fast, web-native 2D fighting engine designed for accessibility, speed, and pure creative freedom. Whether you are playing on a PC with a gamepad or on a smartphone via touch controls, your game runs everywhere. Directly in the browser.
 
@@ -38,7 +39,6 @@ Note 3:
 
 Screenshots: 
 <br>
-<img width="382" height="187" alt="tiny_movie" src="https://github.com/user-attachments/assets/5b023267-48b2-456c-949d-b40b9424a9d7" />
 <img width="1905" height="915" alt="Schermafbeelding 2026-07-02 131618" src="https://github.com/user-attachments/assets/2b9d6e3e-9b77-4912-9d21-17134a59f58c" />
 ​<img width="1904" height="924" alt="Schermafbeelding 2026-07-02 131731" src="https://github.com/user-attachments/assets/d6ba01da-d6a5-4c7f-94fd-c02195faf81a" />
 <img width="1911" height="930" alt="Schermafbeelding 2026-07-02 132214" src="https://github.com/user-attachments/assets/5237c8ab-f131-4a8e-926d-a29996fc8a66" />
