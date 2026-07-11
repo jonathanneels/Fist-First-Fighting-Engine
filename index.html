@@ -1527,7 +1527,14 @@ function collectJoinerInput() {
     }
     return input;
 }
-
+function playerJoinerIdSend()
+{
+return { name:p2.name}
+}
+function playerHOSTIdSend()
+{
+return { name:p1.name}
+}
 
 let weatherParticles = [];
 let weatherState = { type: 'none', intensity: 1 };
@@ -1647,6 +1654,8 @@ const DEFAULT_STATES = {
                 spriteCols: 8,
                 spriteRows: 12,
                 gravity: 0.6,
+				autoReturnToMiddleLane: false,
+    autoReturnDelay: 2,    
 				    isBoss: false, 
                 doubleJump: false,
                  flinchTime: 12,
@@ -3133,6 +3142,9 @@ this._ignorePlatform = null;
 this._lastAttackTime = 0;
 this._aiActionCooldown = 0;
 this._aiJumpCooldown=0; 
+this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
+this.autoReturnDelay = charData.autoReturnDelay || 2;
+this._autoReturnTimer = 0;
 
 this.profilePic = charData.profilePic || null;
 
@@ -3290,6 +3302,9 @@ this._lastAttackTime = 0;
 this.profilePic = charData.profilePic || null;
 
 this.superJumpPower = charData.superJumpPower !== undefined ? charData.superJumpPower : -18;
+this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
+this.autoReturnDelay = charData.autoReturnDelay || 2;
+this._autoReturnTimer = 0;
 
                     this.x = x;
                     this.y = GROUND_Y - PLAYER_H;
@@ -3807,6 +3822,7 @@ if (move.type === 'mine') {
                     }
                     this.groundY = candidateY;
                 }
+				
 
                 update(opponent) {
                     this.input.forward = (this.facing === 1 && this.input.right) || (this.facing === -1 && this.input.left);
@@ -3965,6 +3981,23 @@ if (this.state === 'swept' || this.state === 'ko') {
                     } else {
                         this._laneSwitchThisFrame = false;
                     }
+					
+					// ─── AUTO RETURN TO MIDDLE LANE ────────────────────
+if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.state !== 'ko'&& this.state !== 'swept' && this.state !== 'attack') {
+    if (this.lane !== 1) {
+        this._autoReturnTimer += 1;
+        const delayFrames = Math.round(this.autoReturnDelay * 60);
+        if (this._autoReturnTimer >= delayFrames) {
+            const delta = 1 - this.lane; // -1, 0, 1
+            if (delta !== 0) {
+                this.switchLane(delta);
+                this._autoReturnTimer = 0;
+            }
+        }
+    } else {
+        this._autoReturnTimer = 0;
+    }
+}
 
                     // ─── ATTACK STATE ─────────────────────────────────────────
                     if (this.state === 'attack') {
@@ -4332,6 +4365,7 @@ const doubleJumpPower = superJump ? this.superJumpPower * 0.9 : -10;
                             }
                         }
                     }
+					 
 					
 
                     // ─── FYSICA ──────────────────────────────────────────────────
@@ -6179,7 +6213,8 @@ if (!local) return;
 
 function getLocalPlayer() {
     if (!networkMode) return p1;
-    return (networkRole === 'host') ? p1 : p2;
+    if (networkMode && networkRole === 'host') return p1;
+    if (networkMode && networkRole === 'joiner') return p2;
 }
 function setupTouchControls() {
     updateTouchDpad();
@@ -9422,6 +9457,17 @@ let newMoveImages = {};
     <label>Super jump power (neg. = up)</label>
     <input type="number" id="editCharSuperJump" value="${char.superJumpPower || -18}" step="0.5" />
 </div>
+<h3>🔄 Lane behavior (only in lane mode)</h3>
+<div class="form-row">
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>Auto-return to middle lane</label>
+        <input type="checkbox" id="editCharAutoReturn" ${char.autoReturnToMiddleLane ? 'checked' : ''} />
+    </div>
+    <div class="form-group">
+        <label>Return delay (seconds)</label>
+        <input type="number" id="editCharReturnDelay" value="${char.autoReturnDelay || 2}" step="0.5" min="0.5" />
+    </div>
+</div>
 
         <h3>🔊 Sounds</h3>
         <div class="form-row-3">
@@ -9707,6 +9753,8 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
     const hasEnergy = document.getElementById('editCharEnergy').checked;
 	const bio = document.getElementById('editCharBio').value || '';
 	const superJumpPower = parseFloat(document.getElementById('editCharSuperJump').value) || -18;
+const autoReturn = document.getElementById('editCharAutoReturn').checked;
+const returnDelay = parseFloat(document.getElementById('editCharReturnDelay').value) || 2;
 
 	const isBoss = document.getElementById('editCharBoss').checked;
  const vpRequired = parseInt(document.getElementById('editCharVP').value) || 0;
@@ -9999,6 +10047,8 @@ function collectMoves() {
             spriteCols: cols,
             spriteRows: rows,
             gravity: gravity,
+			    autoReturnToMiddleLane: autoReturn,
+    autoReturnDelay: returnDelay, 
             doubleJump: doubleJump,
              flinchTime: flinch,
             canRecoverFromFlinch: canRecover,
@@ -10126,6 +10176,8 @@ function createNewCharacter() {
         gravity: 0.6,
         doubleJump: false,
         flinchTime: 12,
+		    autoReturnToMiddleLane: false,
+    autoReturnDelay: 2, 
         canRecoverFromFlinch: false,
         headSize: 20,
         armLength: 30,
@@ -12970,7 +13022,17 @@ const ns = document.getElementById('networkStatus');
 function generateUID() {
     return String(Math.floor(1000 + Math.random() * 9000));
 }
+function getFighterByName(name) {
+if(!name){return null}
 
+    for (const [id, char] of Object.entries(project.characters)) {
+	if(char && char.name){
+        if (char.name.toLowerCase() === name.toLowerCase()) {
+            return { id, char };
+        }
+    }}
+    return null;  
+}
 hostBtn.addEventListener('click', () => {
     const uid = generateUID();
     networkUID = uid;
@@ -13053,12 +13115,58 @@ ws.onmessage = (event) => {
         if (networkRole === 'joiner') {
             receivedState = data.state;
  		
-		// joiner stuff from host set here
-		setStage(receivedState.st); 
-    // project.selectedP2Char = data.c;
-
+ 		setStage(receivedState.st); 
+ const feed= playerJoinerIdSend();
+        ws.send(JSON.stringify({ type: 'p2Name', feed}));
         }
-    } else if (data.type === 'input') {
+    }
+else if (data.type === 'p2Name' && networkRole === 'host') {
+ 
+if (!p2 || p2.name !== data.feed.name && !window["takeAP2SwitchBreakNetwork"] ) {
+
+const result = getFighterByName(data.feed.name);
+if (result) {
+project.selectedP2Char=result.id
+fullReset()
+			updatePlayerIcons() 
+
+		   const feed= playerHOSTIdSend();
+        ws.send(JSON.stringify({ type: 'p1Name', feed}));
+
+		  window["takeAP2SwitchBreakNetwork"] =true;
+		  setTimeout(() => {
+  delete  window["takeAP2SwitchBreakNetwork"] 
+}, 5000);
+
+
+ } else {
+    console.log('Fighter not found');
+}
+
+}
+}else if (data.type === 'p1Name' && networkRole === 'joiner') {
+ 
+if (!p1 || p1.name !== data.feed.name && !window["takeAP1SwitchBreakNetwork"] ) {
+
+const result = getFighterByName(data.feed.name);
+if (result) {
+project.selectedP1Char=result.id
+fullReset()
+			updatePlayerIcons() 
+
+		  window["takeAP1SwitchBreakNetwork"] =true;
+		  setTimeout(() => {
+  delete  window["takeAP1SwitchBreakNetwork"] 
+}, 5000);
+
+
+ } else {
+    console.log('Fighter not found');
+}
+
+}
+}
+	else if (data.type === 'input') {
 
         if (networkRole === 'host') {
              receivedInput = data.input; // Dit blijft staan voor je normale D-pad/bewegingen
