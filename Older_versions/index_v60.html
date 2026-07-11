@@ -2655,6 +2655,8 @@ const BIO_TRAITS = [
                  char.flinchTime = 10 + Math.floor(Math.random() * 12);
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
     char.bio = generateRandomBio(char.name || 'Motivated');
+			char.superJumpPower =	  parseInt(-14 - Math.random() * 10)  
+
 
             }
 function getCurrentDir(fighter) {
@@ -5185,49 +5187,198 @@ const cfg = this._cachedStateConfig;
             const armW = 8 * camera.zoom * scaleY;
             armLen = safeArm * camera.zoom * scaleY;
 
-            const showArms = (this.state === 'idle' && this.showArmsInIdle) || (this.state === 'attack' && this.attackActive);
+// ─── ARMEN (fallback) ──────────────────────────────────────
+const showArms = (this.state === 'idle' && this.showArmsInIdle) || (this.state === 'attack' && this.attackActive);
 
-            if (showArms) {
-                ctx.save();
-                ctx.fillStyle = this.lightColor;
-                // ctx.shadowBlur = 10;
-                let angle = 0;
-                let showFist = false;
-                if (this.state === 'attack' && this.attackActive) {
-                    const move3 = this.getMove(this.attackIdx);
-                    if (move3) {
-                        if (move3.height === 'low') angle = 45 * Math.PI / 180;
-                        else if (move3.height === 'high') angle = -30 * Math.PI / 180;
-                        else angle = 15 * Math.PI / 180;
-                        const nameLower = (move3.name || '').toLowerCase();
-                        if (nameLower.includes('trap') || nameLower.includes('kick')) {
-                            armLen = safeArm * 1.5 * camera.zoom * scaleY;
-                        }
-                        showFist = true;
-                    }
-                } else if (this.state === 'idle' && this.showArmsInIdle) {
-                    angle = 20 * Math.PI / 180;
-                    showFist = false;
+if (showArms) {
+    ctx.save();
+    ctx.fillStyle = this.lightColor;
+
+    // Schouderpositie
+    const shoulderX = sx + w / 2 + f * 10 * camera.zoom * scaleY;
+    const shoulderY = (drawY2 + 20 * camera.zoom * scaleY) + safeTorso * 0.3 * camera.zoom * scaleY;
+    const armW = 8 * camera.zoom * scaleY;
+    let armLen = safeArm * camera.zoom * scaleY;
+
+    let angle1 = 0;
+    let showFist1 = false;
+    let swooshAngleStart = 0;
+    let swooshAngleEnd = 0;
+    let drawSwoosh = false;
+    let progress = 0;
+    let idx = -1;
+
+    if (this.state === 'attack' && this.attackActive) {
+        const move = this.getMove(this.attackIdx);
+        if (move) {
+            idx = this.attackIdx;
+            progress = 1 - (this.attackTimer / move.speed);
+            const p = Math.max(0, Math.min(1, progress));
+
+            if (idx === 3) { // actie 4: zwaai boven hoofd
+                const startAngle = -120 * Math.PI / 180;
+                const endAngle = -30 * Math.PI / 180;
+                angle1 = startAngle + (endAngle - startAngle) * p;
+                armLen = (safeArm * 1.2 + p * safeArm * 0.5) * camera.zoom * scaleY;
+                showFist1 = true;
+                swooshAngleStart = startAngle;
+                swooshAngleEnd = endAngle;
+                drawSwoosh = true;
+            } else if (idx === 4) { // actie 5: horizontale zwaai
+                const startAngle = -20 * Math.PI / 180;
+                const endAngle = 60 * Math.PI / 180;
+                angle1 = startAngle + (endAngle - startAngle) * p;
+                armLen = (safeArm * 1.0 + p * safeArm * 0.4) * camera.zoom * scaleY;
+                showFist1 = true;
+                swooshAngleStart = startAngle;
+                swooshAngleEnd = endAngle;
+                drawSwoosh = true;
+            } else if (idx === 5) { // actie 6: uppercut
+                const endAngle = 80 * Math.PI / 180;
+                const startAngle  = -40 * Math.PI / 180;
+                angle1 = startAngle + (endAngle - startAngle) * p;
+                armLen = (safeArm * 1.2 + p * safeArm * 0.7) * camera.zoom * scaleY;
+                showFist1 = true;
+                swooshAngleStart = startAngle;
+                swooshAngleEnd = endAngle;
+                drawSwoosh = true;
+            } else if (idx >= 0 && idx <= 2) { // acties 1,2,3 (punch)
+                // Bestaande hoekbepaling
+                const nameLower = (move.name || '').toLowerCase();
+                if (move.height === 'low') angle1 = 45 * Math.PI / 180;
+                else if (move.height === 'high') angle1 = -30 * Math.PI / 180;
+                else angle1 = 15 * Math.PI / 180;
+                if (nameLower.includes('trap') || nameLower.includes('kick')) {
+                    armLen = safeArm * 1.5 * camera.zoom * scaleY;
                 }
-                const endX = shoulderX + f * armLen * Math.cos(angle);
-                const endY = shoulderY + armLen * Math.sin(angle);
+                showFist1 = true;
+                drawSwoosh = true; // rookcirkel, geen lijn
+            } else {
+                // andere moves: geen swoosh
+                const nameLower = (move.name || '').toLowerCase();
+                if (move.height === 'low') angle1 = 45 * Math.PI / 180;
+                else if (move.height === 'high') angle1 = -30 * Math.PI / 180;
+                else angle1 = 15 * Math.PI / 180;
+                if (nameLower.includes('trap') || nameLower.includes('kick')) {
+                    armLen = safeArm * 1.5 * camera.zoom * scaleY;
+                }
+                showFist1 = true;
+            }
+        }
+    } else if (this.state === 'idle' && this.showArmsInIdle) {
+        angle1 = 20 * Math.PI / 180;
+        showFist1 = false;
+    }
+
+    // Teken arm 1
+    if (showFist1 || (this.state === 'idle' && this.showArmsInIdle)) {
+        const endX1 = shoulderX + f * armLen * Math.cos(angle1);
+        const endY1 = shoulderY + armLen * Math.sin(angle1);
+        ctx.beginPath();
+        ctx.moveTo(shoulderX, shoulderY);
+        ctx.lineTo(endX1, endY1);
+        ctx.lineWidth = armW;
+        ctx.strokeStyle = this.lightColor;
+        ctx.stroke();
+        if (showFist1) {
+            ctx.fillStyle = this.darkColor;
+            ctx.beginPath();
+            ctx.arc(endX1, endY1, armW * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ─── Swoosh effect ──────────────────────────────────────────
+        if (drawSwoosh && this.attackActive) {
+            ctx.save();
+            const baseAlpha = 0.3 * (1 - progress);
+
+           if (idx >= 0 && idx <= 2) {
+    // ─── ROOKCIRKEL rond de vuist ──────────────────────
+    const fistX = endX1;
+    const fistY = endY1;
+    const baseRadius = armW * 2.5 * camera.zoom * scaleY;
+    const maxRadius = baseRadius * (1.5 + progress * 0.5);
+    const alphaFactor = 1 - progress * 0.6;
+
+    // Laag 1: brede, vage rook
+    ctx.shadowBlur = 30 * camera.zoom * scaleY; // van 40 naar 30
+    ctx.globalAlpha = 0.08 * alphaFactor; // van 0.15 naar 0.08
+    ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+    ctx.beginPath();
+    ctx.arc(fistX, fistY, maxRadius * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Laag 2: medium rook
+    ctx.shadowBlur = 20 * camera.zoom * scaleY; // van 25 naar 20
+    ctx.globalAlpha = 0.15 * alphaFactor; // van 0.25 naar 0.15
+    ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(fistX, fistY, maxRadius * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+ 
+   
+} else {
+                // ─── GEBOGEN ROOK-SWOOSH voor moves 4-6 ────────────
+                const swooshRadius = armLen * 1.5;
+                ctx.shadowBlur = 0; // resetten
+
+                // Laag 1: brede, vage rook
+                ctx.shadowBlur = 30 * camera.zoom * scaleY;
+                ctx.globalAlpha = baseAlpha * 0.5;
+                ctx.strokeStyle = 'rgba(160, 120, 80, 0.8)';
+                ctx.lineWidth = 20 * camera.zoom * scaleY;
                 ctx.beginPath();
-                ctx.moveTo(shoulderX, shoulderY);
-                ctx.lineTo(endX, endY);
-                ctx.lineWidth = armW;
-                ctx.strokeStyle = this.lightColor;
-                // ctx.shadowBlur = 10;
-                ctx.stroke();
-                if (showFist) {
-                    ctx.fillStyle = this.darkColor;
-                    // ctx.shadowBlur = 6;
-                    ctx.beginPath();
-                    ctx.arc(endX, endY, armW * 0.9, 0, Math.PI * 2);
-                    ctx.fill();
+                const steps = 10;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
+                    const x = shoulderX + f * swooshRadius * Math.cos(a);
+                    const y = shoulderY + swooshRadius * Math.sin(a);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
                 }
-                ctx.restore();
+                ctx.stroke();
+
+                // Laag 2: smallere, meer zichtbare rooklijn
+                ctx.shadowBlur = 15 * camera.zoom * scaleY;
+                ctx.globalAlpha = baseAlpha * 0.7;
+                ctx.strokeStyle = 'rgba(120, 80, 50, 0.9)';
+                ctx.lineWidth = 10 * camera.zoom * scaleY;
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
+                    const x = shoulderX + f * swooshRadius * Math.cos(a);
+                    const y = shoulderY + swooshRadius * Math.sin(a);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Laag 3: kern, helderdere lijn
+                ctx.shadowBlur = 5 * camera.zoom * scaleY;
+                ctx.globalAlpha = baseAlpha * 0.9;
+                ctx.strokeStyle = 'rgba(200, 160, 120, 1)';
+                ctx.lineWidth = 4 * camera.zoom * scaleY;
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
+                    const x = shoulderX + f * swooshRadius * Math.cos(a);
+                    const y = shoulderY + swooshRadius * Math.sin(a);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
             }
 
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    ctx.restore();
+}
             // Blok schild
             if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
                 ctx.save();
@@ -9716,6 +9867,8 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         document.getElementById('editCharHeadShape').value = tempChar.headShape;
         document.getElementById('editCharTorsoShape').value = tempChar.torsoShape;
         document.getElementById('editCharHeadgear').value = tempChar.headgear;
+				        document.getElementById('editCharSuperJump').value =tempChar.superJumpPower
+
     });
 
     // ─── Save ──────────────────────────────────────────────────
