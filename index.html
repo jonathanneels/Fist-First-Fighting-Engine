@@ -1135,8 +1135,8 @@
     <span id="nameP2">P2</span>
 </span>
     <div id="hudOverlay">
-<div id="textP1" style="position:absolute; left:20px; top:30vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line;"></div>
-<div id="textP2" style="position:absolute; right:20px; top:30vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line; text-align:right;"></div>
+<div id="textP1" style="position:absolute; left:20px; top:25vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line;"></div>
+<div id="textP2" style="position:absolute; right:20px; top:25vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line; text-align:right;"></div>
 
         <div class="hud-health">
             <div class="health-bar-wrap">
@@ -1270,6 +1270,9 @@
     <script>
         (() => {
             'use strict';
+
+const isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+                   (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
 
 const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
@@ -1576,26 +1579,26 @@ smiley: { full: '☺', empty: '☹' }
 };
 const DEFAULT_AI_PARAMS = {
     beginner: {
-        attackChance: 0.3, blockChance: 0.12, counterChance: 0.05,
-        superJumpChance: 0.35, recoverChance: 0.08, moveThreshold: 350,
-        idleChance: 0.15, specialChance: 0.05, fleeChance: 0.05,
+        attackChance: 0.4, blockChance: 0.12, counterChance: 0.05,
+        superJumpChance: 0.35, recoverChance: 0.08, moveThreshold: 250,
+        idleChance: 0.13, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
-        attackChance: 0.4, blockChance: 0.4, counterChance: 0.3,
-        superJumpChance: 0.20, recoverChance: 0.2, moveThreshold: 250,
-        idleChance: 0.10, specialChance: 0.2, fleeChance: 0.04,
+        attackChance: 0.5, blockChance: 0.4, counterChance: 0.3,
+        superJumpChance: 0.20, recoverChance: 0.2, moveThreshold: 200,
+        idleChance: 0.09, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
-        attackChance: 0.5, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.15, recoverChance: 0.5, moveThreshold: 250,
+        attackChance: 0.55, blockChance: 0.4, counterChance: 0.5,
+        superJumpChance: 0.15, recoverChance: 0.5, moveThreshold: 150,
         idleChance: 0.04, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
         attackChance: 0.6, blockChance: 0.6, counterChance: 0.7,
-        superJumpChance: 0.10, recoverChance: 0.8, moveThreshold: 250,
+        superJumpChance: 0.10, recoverChance: 0.8, moveThreshold: 150,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
@@ -2038,7 +2041,6 @@ function applyScreenFilter(type) {
     project.settings.screenFilter = type;
  }
 function initWeather(stage) {
-const isLowPower = /Mobi|Android/i.test(navigator.userAgent);
 
     weatherParticles = [];
     const type = stage.weather || 'none';
@@ -3896,15 +3898,16 @@ else if (p2) {
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
-    var flatHeight = 15
-	if(this.spriteImg){ flatHeight = 65;  }
+    var flatHeight =15
+	 if(this.spriteImg){ flatHeight = 65;  }
      if (laneMode) {
         this.y = LANE_Y[this.lane] - flatHeight;
     } else {
         this.y = GROUND_Y - flatHeight;
     }
-     this.vx = 0;
+      this.vx = 0;
     this.onGround = true;
+	if (this.state !== 'ko'  ) {
                         this.hitTimer--;
                         this.vx *= 0.9;
                         if (Math.abs(this.vx) < 0.1) this.vx = 0;
@@ -3928,7 +3931,7 @@ if (this.state === 'swept' || this.state === 'ko') {
                         }
                         return;
                     }
-
+}
                     // ─── DASH DETECTIE ──────────────────────────────────────────
                     let currentDir = 0;
                     if (this.input.left) currentDir = -1;
@@ -4733,7 +4736,7 @@ if (this.statusTimer > 0) {
         ctx.fillText(this.statusMessage, (this.cx - camera.offsetX) * camera.zoom, textY);
     } else {
         const x = this.playerIdx === 0 ? 90 : W - 90;
-        const y = H / 2.1;
+        const y = H / 1.8;
         ctx.fillText(this.statusMessage, x, y);
     }
     ctx.restore();
@@ -5069,10 +5072,10 @@ const cfg = this._cachedStateConfig;
             ctx.save();
 			   if (this.state === 'swept' || this.state === 'ko') {
 			   
-        const flatH = 20 * camera.zoom;
+        const flatH = 180  * camera.zoom;
         const bodyW = w * 0.8;
-        const bodyH = flatH * 0.6;
-        const headR = 16 * camera.zoom;
+        const bodyH = 30* 0.6;//flatH * 0.6;
+        const headR = 16   * camera.zoom;
         const cx = sx + w / 2;
         const cy = drawY + flatH / 2;
 
@@ -5288,7 +5291,7 @@ if (showArms) {
         }
 
         // ─── Swoosh effect ──────────────────────────────────────────
-        if (drawSwoosh && this.attackActive) {
+        if (drawSwoosh && this.attackActive && !isLowPower) {
             ctx.save();
             const baseAlpha = 0.3 * (1 - progress);
 
@@ -5492,7 +5495,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.fillText(`${this.comboCount} COMBO!`, sx + w / 2, drawY - 30 * camera.zoom);
     } else {
         const x = this.playerIdx === 1 ? 90 : W - 90;
-        const y = H / 2.5;
+        const y = H / 2.2;
         ctx.fillText(`${this.comboCount} COMBO!`, x, y);
     }
     ctx.restore();
@@ -6813,9 +6816,9 @@ var timeToJumpTONextLane=0;
  if (fighter._aiJumpCooldown > 0) {
         fighter._aiJumpCooldown--;
      }
-    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 8;
-    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 6;
-    if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 4;
+    if (diffKey == 'beginner' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 6;
+    if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 4;
+    if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 3;
     if (diffKey == 'hard' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 2;
 
     // Super jump timer
@@ -6849,13 +6852,7 @@ var timeToJumpTONextLane=0;
     }
 
     // ─── Parameters uit instellingen ──────────────────────────────
-    params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal || {
-        attackChance: 0.4, blockChance: 0.4, counterChance: 0.5,
-        superJumpChance: 0.21, recoverChance: 0.5, moveThreshold: 250,
-        idleChance: 0.05, specialChance: 0.3, fleeChance: 0.03,
-        oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03,
-        laneSwitchChance: 0.05
-    };
+    params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
 	
 ///////////////////////////Experimental platformer handler////////////////////////////////////////////////////////////// 
  if (opponent.onGround  && opponent.groundY === GROUND_Y && fighter.groundY !== GROUND_Y) {
@@ -7435,7 +7432,7 @@ function getRandomDifficulty() {
  			
 				frameSaveTimer++;
 				
-	if(frameSaveTimer ==5 || frameSaveTimer==10  ){// Travelcube teleport check
+	if(frameSaveTimer ==7 || frameSaveTimer==14   ){// Travelcube teleport check
      if (p1 && p2 && travelCubes.length > 0) {
         if (p1._teleportCooldown > 0) p1._teleportCooldown--;
         if (p2._teleportCooldown > 0) p2._teleportCooldown--;
@@ -7601,7 +7598,7 @@ for (const cube of textCubes) {
 }
  				
 				
-if(frameSaveTimer >=10){
+if(frameSaveTimer >=14){
 frameSaveTimer=0;
 const hp1Pct = Math.max(0, (p1.health / p1.maxHealth) * 100);
 const hp2Pct = Math.max(0, (p2.health / p2.maxHealth) * 100);
@@ -7645,6 +7642,77 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
                 }
                 updateSinglePlayerHUD();
                 updateWinIndicators();
+				
+				
+				   if (roundActive && project.settings.ringOutEnabled) {
+    if (p1.ringOut) {
+        winner = 'p2';
+        roundActive = false;
+        ringOutOccurred = true;
+		                updateWinIndicators();
+
+             if (singlePlayer.active) {
+           handleSinglePlayerRoundEnd('p2'); 
+
+            } else {
+                handleRoundEnd('p2');
+            }
+     } else if (p2.ringOut) {
+        winner = 'p1';
+        roundActive = false;
+        ringOutOccurred = true;
+		                updateWinIndicators();
+
+             if (singlePlayer.active) {
+            handleSinglePlayerRoundEnd('p1');
+
+            } else {
+                handleRoundEnd('p1');
+            }
+     }
+}
+  if (currentMode !== 'training') {
+                    if (p1.health <= 0 && winner === null) {
+                        winner = 'p2';
+                        roundActive = false;
+                        p1.state = 'ko';
+                        if (singlePlayer.active) {
+                  
+       handleSinglePlayerRoundEnd('p2'); 
+
+                        } else {
+                              handleRoundEnd('p2')
+                        }
+                    } else if (p2.health <= 0 && winner === null) {
+                        winner = 'p1';
+                        roundActive = false;
+                        p2.state = 'ko';
+                        if (singlePlayer.active) {
+                        
+       handleSinglePlayerRoundEnd('p1'); 
+
+                        } else {
+                            handleRoundEnd('p1')
+                        }
+                    }
+                    if (gameTimer <= 0 && roundActive) {
+                        roundActive = false;
+                        winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
+                        if (singlePlayer.active) {
+                            const spelerWint = (p1.health > p2.health);
+                           handleSinglePlayerRoundEnd(spelerWint ? 'p1' : 'p2'); 
+                        } else {
+                            handleRoundEnd(winner);
+                        }
+                    }
+                } else {
+                    if (p2.health < 9999) p2.health = 9999;
+                    if (p1.health <= 0) { p1.health = 100;
+                        p1.state = 'idle'; }
+                }
+				
+				
+				
 				}
   
   
@@ -7844,77 +7912,13 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
     p2.update(p1);
 }
 
-               if (roundActive && project.settings.ringOutEnabled) {
-    if (p1.ringOut) {
-        winner = 'p2';
-        roundActive = false;
-        ringOutOccurred = true;
-		                updateWinIndicators();
-
-             if (singlePlayer.active) {
-           handleSinglePlayerRoundEnd('p2'); 
-
-            } else {
-                handleRoundEnd('p2');
-            }
-     } else if (p2.ringOut) {
-        winner = 'p1';
-        roundActive = false;
-        ringOutOccurred = true;
-		                updateWinIndicators();
-
-             if (singlePlayer.active) {
-            handleSinglePlayerRoundEnd('p1');
-
-            } else {
-                handleRoundEnd('p1');
-            }
-     }
-}
-
+            
+				
                 updateProjectilesAndMines();
 				updateWeather();
                 updateCamera();
 
-                if (currentMode !== 'training') {
-                    if (p1.health <= 0 && winner === null) {
-                        winner = 'p2';
-                        roundActive = false;
-                        p1.state = 'ko';
-                        if (singlePlayer.active) {
-                  
-       handleSinglePlayerRoundEnd('p2'); 
-
-                        } else {
-                              handleRoundEnd('p2')
-                        }
-                    } else if (p2.health <= 0 && winner === null) {
-                        winner = 'p1';
-                        roundActive = false;
-                        p2.state = 'ko';
-                        if (singlePlayer.active) {
-                        
-       handleSinglePlayerRoundEnd('p1'); 
-
-                        } else {
-                            handleRoundEnd('p1')
-                        }
-                    }
-                    if (gameTimer <= 0 && roundActive) {
-                        roundActive = false;
-                        winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
-                        if (singlePlayer.active) {
-                            const spelerWint = (p1.health > p2.health);
-                           handleSinglePlayerRoundEnd(spelerWint ? 'p1' : 'p2'); 
-                        } else {
-                            handleRoundEnd(winner);
-                        }
-                    }
-                } else {
-                    if (p2.health < 9999) p2.health = 9999;
-                    if (p1.health <= 0) { p1.health = 100;
-                        p1.state = 'idle'; }
-                }
+              
 
 
              
