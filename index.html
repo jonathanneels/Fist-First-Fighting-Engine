@@ -1300,6 +1300,9 @@ let p2GamepadIndex = -1;
 let waitingForInput = null; // { player: 'p1'|'p2', action: string, type: 'keyboard'|'gamepad' }
 let remapTimeout = null;
 
+    let params;
+    let diffKey 
+	
 let fps = 0;
 let frameCount = 0;
 let lastFpsTime = performance.now();
@@ -1579,25 +1582,25 @@ smiley: { full: '☺', empty: '☹' }
 };
 const DEFAULT_AI_PARAMS = {
     beginner: {
-        attackChance: 0.4, blockChance: 0.12, counterChance: 0.05,
+        attackChance: 0.4, blockChance: 0.10, counterChance: 0.05,
         superJumpChance: 0.35, recoverChance: 0.08, moveThreshold: 250,
         idleChance: 0.13, specialChance: 0.05, fleeChance: 0.05,
         oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
     },
     easy: {
-        attackChance: 0.5, blockChance: 0.4, counterChance: 0.3,
+        attackChance: 0.5, blockChance: 0.15, counterChance: 0.3,
         superJumpChance: 0.20, recoverChance: 0.2, moveThreshold: 200,
         idleChance: 0.09, specialChance: 0.2, fleeChance: 0.04,
         oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
     },
     normal: {
-        attackChance: 0.55, blockChance: 0.4, counterChance: 0.5,
+        attackChance: 0.55, blockChance: 0.3, counterChance: 0.5,
         superJumpChance: 0.15, recoverChance: 0.5, moveThreshold: 150,
         idleChance: 0.04, specialChance: 0.3, fleeChance: 0.03,
         oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
     },
     hard: {
-        attackChance: 0.6, blockChance: 0.6, counterChance: 0.7,
+        attackChance: 0.6, blockChance: 0.4, counterChance: 0.7,
         superJumpChance: 0.10, recoverChance: 0.8, moveThreshold: 150,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
@@ -3149,6 +3152,7 @@ this._aiJumpCooldown=0;
 this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
 this.autoReturnDelay = charData.autoReturnDelay || 2;
 this._autoReturnTimer = 0;
+this.BlockCounter=0;
 
 this.profilePic = charData.profilePic || null;
 
@@ -3309,6 +3313,7 @@ this.superJumpPower = charData.superJumpPower !== undefined ? charData.superJump
 this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
 this.autoReturnDelay = charData.autoReturnDelay || 2;
 this._autoReturnTimer = 0;
+this.BlockCounter=0;
 
                     this.x = x;
                     this.y = GROUND_Y - PLAYER_H;
@@ -6783,7 +6788,7 @@ function aiPerformAttack(fighter, moveList) {
 }
 
 var timeToJumpTONextLane=0;
- function updateAIFor(fighter, opponent, isAIvsAI) {
+  function updateAIFor(fighter, opponent, isAIvsAI) {
     if (fighter.health <= 0 || opponent.health <= 0) {
         fighter.input.up = false;
         fighter.input.down = false;
@@ -6794,25 +6799,40 @@ var timeToJumpTONextLane=0;
         return;
     }
 
-    let params;
-    const diffKey = project.settings.aiDifficulty || 'normal';
-
-    fighter.input.up = false;
-    fighter.input.down = false;
-    fighter.input.left = false;
-    fighter.input.right = false;
-    fighter.input.forward = false;
-    fighter.input.back = false;
 
  
     if (fighter._aiActionCooldown > 0) {
         fighter._aiActionCooldown--;
         return;
-    }
-	
+    } 
+	 
 	   if (fighter.timeToJumpTONextLane > 0) {
         fighter.timeToJumpTONextLane--;
      }
+	 
+	 	   if (   fighter.BlockCounter > 0  ) {
+        fighter.BlockCounter--;
+     }
+    const oppMove = (opponent.state === 'attack' && opponent.attackActive)
+        ? opponent.getMove(opponent.attackIdx)
+        : null;
+
+    if (  fighter.BlockCounter==0  &&  (oppMove && !oppMove.unblockable && Math.random() < params.blockChance) ) {
+        fighter.input.back = true;
+        if ((oppMove && oppMove.height === 'low' )|| Math.random() < params.blockChance) {
+            fighter.input.down = true;
+        }
+ fighter.BlockCounter=20; console.log("jj")
+        return;
+    }  else if(  fighter.BlockCounter ==0){
+    fighter.input.up = false;
+    fighter.input.down = false;
+    fighter.input.left = false;
+    fighter.input.right = false;
+    fighter.input.forward = false;
+    fighter.input.back = false;}
+
+
  if (fighter._aiJumpCooldown > 0) {
         fighter._aiJumpCooldown--;
      }
@@ -6820,6 +6840,7 @@ var timeToJumpTONextLane=0;
     if (diffKey == 'easy' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 4;
     if (diffKey == 'normal' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 3;
     if (diffKey == 'hard' && fighter._aiActionCooldown <= 0) fighter._aiActionCooldown = 2;
+
 
     // Super jump timer
     if (fighter._aiTimer > 0) {
@@ -6829,7 +6850,7 @@ var timeToJumpTONextLane=0;
         fighter._aiTimer--;
         return;
     }
-
+ 
     const dist = Math.abs(fighter.cx - opponent.cx);
     const dir = Math.sign(opponent.cx - fighter.cx);
     const difficulty = project.settings.aiDifficulty || 'normal';
@@ -6851,9 +6872,7 @@ var timeToJumpTONextLane=0;
         rightBound = camera.offsetX + viewWidth - margin;
     }
 
-    // ─── Parameters uit instellingen ──────────────────────────────
-    params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
-	
+ 	
 ///////////////////////////Experimental platformer handler////////////////////////////////////////////////////////////// 
  if (opponent.onGround  && opponent.groundY === GROUND_Y && fighter.groundY !== GROUND_Y) {
          const chance =0.3;// params.dropThroughChance || 0.3;
@@ -6907,6 +6926,9 @@ var timeToJumpTONextLane=0;
         return;
     }
 
+
+  
+	
     // ─── FLINCH HERSTEL ──────────────────────────────────────────
     if (fighter.state === 'hit' || fighter.state === 'swept' || fighter.state === 'ko') {
         if (fighter.canRecoverFromFlinch && fighter.hitTimer > 0) {
@@ -6931,11 +6953,7 @@ var timeToJumpTONextLane=0;
         }
     }
 
-    // ─── TEGENSTANDER AANVAL (voor blok en counter) ──────────────
-    const oppMove = (opponent.state === 'attack' && opponent.attackActive)
-        ? opponent.getMove(opponent.attackIdx)
-        : null;
-
+ 
     // ─── COUNTER OP GRAB ──────────────────────────────────────────
     if (oppMove && oppMove.type === 'grab' && dist < 150) {
         const counterMoves = fighter.moves.filter(m =>
@@ -6947,7 +6965,11 @@ var timeToJumpTONextLane=0;
         }
     }
 
-    // ─── RANDVERMIJDING + AGGRESSIE BIJ DE RAND ────────────────
+
+   
+	
+	
+// ─── RANDVERMIJDING + AGGRESSIE BIJ DE RAND ────────────────
     const borderBuffer = 70;
     const fighterLeft = fighter.x;
     const fighterRight = fighter.x + fighter.w;
@@ -6985,7 +7007,6 @@ var timeToJumpTONextLane=0;
             return;
         }
     }
-
     // ─── TEGENSTANDER BIJ DE RAND → PUSHEN ─────────────────────
     if ((oppNearLeft || oppNearRight) && dist < 300) {
         if (opponent.cx > fighter.cx) fighter.input.right = true;
@@ -7037,7 +7058,7 @@ var timeToJumpTONextLane=0;
 
     // ─── DICHTBIJ (dist < moveThreshold) ────────────────────────
 
-    // 1) VLUCHTEN bij lage gezondheid
+  	  // 1) VLUCHTEN bij lage gezondheid
     if (isLowHealth && Math.random() < params.fleeChance) {
         if (dir > 0) fighter.input.left = true;
         else fighter.input.right = true;
@@ -7045,15 +7066,9 @@ var timeToJumpTONextLane=0;
         if (fighter.onGround && Math.random() < 0.3) fighter.input.up = true;
         return;
     }
+  
 
-    // 2) BLOKKEREN
-    if (oppMove && !oppMove.unblockable && Math.random() < params.blockChance) {
-        fighter.input.back = true;
-        if (oppMove.height === 'low') {
-            fighter.input.down = true;
-        }
-        return;
-    }
+ 
 
     // 3) AANVALLEN (hoofd)
     if (dist < 150 && Math.random() < params.attackChance) {
@@ -7072,13 +7087,13 @@ var timeToJumpTONextLane=0;
     }
 
     // 4) ONTWIJKEN / IDLE
-    if (fighter.onGround && Math.random() < (difficulty === 'beginner' ? 0.2 : 0.1)) {
+     if (fighter.onGround && Math.random() < (difficulty === 'beginner' ? 0.2 : 0.1)) {
         fighter.input.up = true;
         if (Math.random() < 0.5) {
             fighter.input[dir > 0 ? 'left' : 'right'] = true;
         }
         return;
-    }
+    } 
 
     // 5) STILSTAAN
     if (Math.random() < params.idleChance) {
@@ -8185,7 +8200,11 @@ isSoloLevel=isAdventureSolo()
 p1.reset(project.settings.startX1 || 470, 1);
 p2.reset(project.settings.startX2 || 740, -1);
 resetPositions()
-updateHUDVisibility()
+updateHUDVisibility();
+
+       diffKey = project.settings.aiDifficulty || 'normal'; 
+    params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
+
  
                  const introP1 = getRandomText(p1.introText);
                 const introP2 = getRandomText(p2.introText);
@@ -8233,6 +8252,10 @@ matchEndSoundPlayed = false;
 isSoloLevel=isAdventureSolo()
 applyBarStyles();
 updatePlayerIcons();
+
+       diffKey = project.settings.aiDifficulty || 'normal'; 
+    params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
+
 
                 activeFallingItems = [];
                 fallingItemSpawnTimer = FALLING_ITEM_SPAWN_INTERVAL;
