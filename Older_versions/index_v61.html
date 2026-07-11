@@ -2876,6 +2876,7 @@ class Projectile {
             const h = r * 2;
             ctx.save();
             ctx.translate(sx, sy);
+			  if (this.dir === -1) ctx.scale(-1, 1); 
             ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
             ctx.restore();
             return;
@@ -2894,6 +2895,7 @@ class Projectile {
 
             ctx.save();
             ctx.translate(sx, sy);
+			  if (this.dir === -1) ctx.scale(-1, 1); 
             ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
             ctx.restore();
             return;
@@ -3062,32 +3064,34 @@ class Mine {
         const sy = (this.y - camera.offsetY) * camera.zoom;
         const r = (this.radius || 20) * camera.zoom;
 
-        if (this.extraImage && this.imageLoaded) {
-            const w = r * 2;
-            const h = r * 2;
-            ctx.save();
-            ctx.translate(sx, sy);
-            ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
-            ctx.restore();
-            return;
-        }
+      if (this.extraImage && this.imageLoaded) {
+    const w = r * 2;
+    const h = r * 2;
+    ctx.save();
+    ctx.translate(sx, sy);
+    if (this.owner && this.owner.facing === -1) ctx.scale(-1, 1);
+    ctx.drawImage(this.extraImage, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return;
+}
 
-        if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
-            const owner = this.owner;
-            const fw = owner?.spriteFrameWidth ?? 64;
-            const fh = owner?.spriteFrameHeight ?? 64;
-            const cols = owner?.spriteCols ?? 8;
+if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
+    const owner = this.owner;
+    const fw = owner?.spriteFrameWidth ?? 64;
+    const fh = owner?.spriteFrameHeight ?? 64;
+    const cols = owner?.spriteCols ?? 8;
 
-            const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
-            const col = frameIndex % cols;
-            const row = Math.floor(frameIndex / cols);
+    const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
+    const col = frameIndex % cols;
+    const row = Math.floor(frameIndex / cols);
 
-            ctx.save();
-            ctx.translate(sx, sy);
-            ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
-            ctx.restore();
-            return;
-        }
+    ctx.save();
+    ctx.translate(sx, sy);
+    if (this.owner && this.owner.facing === -1) ctx.scale(-1, 1);
+    ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
+    ctx.restore();
+    return;
+}
 
         // Fallback
         if (!isFinite(r) || r <= 0) return;
@@ -3653,13 +3657,20 @@ if (move.type === 'mine') {
             this.projectileMijnTimer = 30;
         }
     }
-    const offsetX = move.startDistance || 0;
-    const mineX = this.x + (this.facing === 1 ? this.w : 0) + this.facing * offsetX;
-    const mineLife = move.speed ? move.speed : 300;
+const offsetX = move.startDistance || 0;
+const distance = this.w / 2 + offsetX;   // afstand van midden tot spawn
+var mineX = this.cx + this.facing * distance;
+if( move.mineImage || sprite  )
+{
+      mineX = this.x +     (offsetX*this.facing);
+
+}
+const mineY = this.y + this.h - 10;     
+ const mineLife = move.speed ? move.speed : 300;
 
     const mine = new Mine(
         mineX,
-        this.y + this.h - 10,
+        mineY,
         move.damage || 15,
         this,
         sprite,
@@ -4768,7 +4779,7 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     
     // Teken een zwarte achtergrond (kader)
     const padding = 8;
-    const maxWidth = 230; // geschatte breedte
+    const maxWidth = 233; // geschatte breedte
     const totalHeight = 12.5 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
