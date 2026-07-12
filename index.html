@@ -1252,7 +1252,7 @@
 
 
 <div id="networkOverlay" hidden style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:200; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; font-family:sans-serif;">
-            <button class="close-btn" id="modalClose" onclick="document.getElementById('networkOverlay').style.display='none';">✕</button>
+            <button class="close-btn" id="modalClose"  style="width:40px;background-color:  #3a3a5a; color:white" onclick="document.getElementById('networkOverlay').style.display='none';">✕</button>
   
   <h2 style="font-size:2.5rem; margin-bottom:20px;">🌐 Network Fight</h2>
     <div style="display:flex; gap:20px;">
@@ -1262,8 +1262,8 @@
     <div id="networkStatus" style="margin-top:20px; font-size:1.1rem; color:#aaa;"></div>
     <div id="uidDisplay" style="margin-top:10px; font-size:2rem; font-weight:bold; color:#8affd0;"></div>
     <div id="joinInput" style="display:none; margin-top:20px; flex-direction:column; gap:10px; align-items:center;">
-        <input type="text" id="uidInput" placeholder="UID (4 cijfers)" style="padding:8px 16px; background:#1a1a2e; border:1px solid #3a3a5a; color:#fff; border-radius:6px; width:200px; text-align:center; font-size:1.2rem;">
-        <input type="text" id="ipInput" placeholder="Server IP (standaard localhost)" style="padding:8px 16px; background:#1a1a2e; border:1px solid #3a3a5a; color:#fff; border-radius:6px; width:200px; text-align:center;">
+        <input type="text" id="uidInput" placeholder="UID (4 numbers)" style="padding:8px 16px; background:#1a1a2e; border:1px solid #3a3a5a; color:#fff; border-radius:6px; width:200px; text-align:center; font-size:1.2rem;">
+        <input type="text" id="ipInput" placeholder="Server IP (default localhost)" style="padding:8px 16px; background:#1a1a2e; border:1px solid #3a3a5a; color:#fff; border-radius:6px; width:200px; text-align:center;">
         <button id="connectBtn" class="menu-btn success" style="font-size:1.1rem; padding:8px 30px;">🔗 Connect</button>
     </div>
 </div>
@@ -1398,7 +1398,10 @@ function serializeGameStateCompact() {
         w: winner,
         p1w: p1Wins,
         p2w: p2Wins,
-        mo: matchOver
+        mo: matchOver,
+		/*        fa: project.settings.fatalityActive,
+        ft: project.settings.fatalityTimer,*/
+ 
     };
 }
 function deserializeGameStateCompact(data) {
@@ -1425,7 +1428,10 @@ function deserializeGameStateCompact(data) {
         deserializeFighterCompact(p2, data.p2);
     }
 
- 
+    /*if (data.fa !== undefined) { // fatality not functional
+        fatalityActive = data.fa|| false;
+        fatalityTimer = data.ft || 0;
+     }*/
 
     // Projectielen soepel overnemen
     projectiles = data.proj.map(pd => {
@@ -1611,27 +1617,27 @@ const DEFAULT_AI_PARAMS = {
                 { id: 'punch_l', name: 'Light', damage: 8, range: 55, speed: 12, button: 0, command: '1',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                    unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none'  },
+                  fatalityOnly: false,  unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none'  },
                 { id: 'punch_m', name: 'Middle', damage: 14, range: 70, speed: 18, button: 1, command: '2',
                      row: 3,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                    unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
                 { id: 'punch_h', name: 'Heavy', damage: 22, range: 85, speed: 28, button: 2, command: '3',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                    unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
                 { id: 'kick_l', name: 'Attack L', damage: 7, range: 50, speed: 10, button: 3, command: '4',
                      row: 5,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                    unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
                 { id: 'kick_m', name: 'Attack M', damage: 13, range: 65, speed: 16, button: 4, command: '5',
                     row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                      row: 6,projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                    unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
                 { id: 'kick_h', name: 'Attack H', damage: 20, range: 90, speed: 26, button: 5, command: '6',
                      row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                    unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' },
+                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' },
             ];
 
 const DEFAULT_STATES = {
@@ -1804,6 +1810,11 @@ const FONT_LIST = [
                     ringOutEnabled: true,
                     ringOutLeft: 60,
                     ringOutRight: 1220,
+					flawlessVictoryText: 'PERFECT!',
+					fatalityEnabled: false,
+fatalityDuration: 5, 
+fatalityText: 'FATALITY!',
+fatalityColor: '#ff0000', 
 					    ringOutText: "RING OUT!",
     startFightText: "FIGHT!",
     roundWinText: "{winner} WINS!",
@@ -1933,6 +1944,9 @@ if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object')
             const extraImages = {};
             const bloodImages = {};
             const hitEffectImages = {};
+let flawlessVictory = false;
+let fatalityActive = false;
+let fatalityTimer = 0;
 
             let springPlatforms = [];
 
@@ -2189,7 +2203,7 @@ function drawWeather(ctx, camera) {
     const font = project.settings.introOutroFont ||   "'Segoe UI', system-ui, sans-serif";
     el.style.color = color;
     el.style.fontFamily = font;
-    // ook eventueel font-size aanpassen?
+    el.style.fontSize  = `2.5vw `;
     if (introOutroTimeout) clearTimeout(introOutroTimeout);
     el.textContent = text.replace(/\\n/g, '\n');
     el.style.opacity = '1';
@@ -2207,6 +2221,10 @@ function drawWeather(ctx, camera) {
                 if (winnerText) showIntroOutroText(winner === 'p1' ? 1 : 2, winnerText, false);
                 if (loserText) showIntroOutroText(winner === 'p1' ? 2 : 1, loserText, false);
 playSystemSound('roundEnd');
+
+if (winner === 'p1' && p1.health === p1.maxHealth) flawlessVictory = true;
+else if (winner === 'p2' && p2.health === p2.maxHealth) flawlessVictory = true;
+else flawlessVictory = false;
 
                 let roundsNeeded;
                 if (singlePlayer.mode === 'survival') {
@@ -2547,6 +2565,10 @@ function awardVictoryPoints() {
                     p2Wins++;
                 }
 				
+				if (winner === 'p1' && p1.health === p1.maxHealth) flawlessVictory = true;
+else if (winner === 'p2' && p2.health === p2.maxHealth) flawlessVictory = true;
+else flawlessVictory = false;
+
                 const maxRounds = project.settings.roundCount || 3;
                 if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
                     matchOver = true;
@@ -3489,16 +3511,18 @@ _defaultRow(state) {
 startAttack(idx) {
     if (!roundActive) return false;
 
+
+
     if (!this.isButtonActive(idx)) return false;
 
     if (this.cooldown > 0 || this.state === 'attack' || this.state === 'hit' || this.state === 'ko')
         return false;
     if (idx < 0 || idx >= this.moves.length) return false;
 	
-	    const move = this.moves[idx];
+	    var move = this.moves[idx];
+		 if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null}
     if (!move) return false;
-
-	
+ 
 			    const now = performance.now();
 
 if (move.type  == 'projectile' ||  move.type  == 'mine') {
@@ -3720,6 +3744,8 @@ const mineY = this.y + this.h - 10;
     return true;
 }
               takeDamage(dmg, fromDir, blocked = false) {
+	
+	
     // ─── Healing bij negatieve damage ──────────────
     if (dmg < 0) {
         const heal = -dmg; // bijv. -8 wordt 8
@@ -3745,6 +3771,15 @@ const mineY = this.y + this.h - 10;
     this.comboTimer = 60;
     this.comboCount++;
     this.spawnBlood(20);
+	
+			  
+			      if (fatalityActive && this.health <= 0.1  ) {
+        // Toon wel een hit-effect voor de show
+     //   this.hitTimer = 10;
+     //   this.state = 'hit';
+        // Geen health vermindering
+        return;
+    }
     this.health = Math.max(0, this.health - dmg);
     if (this.health <= 0) {
         this.health = 0;
@@ -3845,6 +3880,18 @@ const mineY = this.y + this.h - 10;
 				
 
                 update(opponent) {
+				
+				    if (fatalityActive) {
+        const isLoser = (winner === 'p1' && this === p2) || (winner === 'p2' && this === p1);
+        if (isLoser) {
+            this.state = 'hit';
+            this.hitTimer = 999;
+            this.onGround = true;
+            this.vy = 0;
+            this.vx = 0;
+            this.input = { up: false, down: false, left: false, right: false };
+         }
+    }
                     this.input.forward = (this.facing === 1 && this.input.right) || (this.facing === -1 && this.input.left);
                     this.input.back = (this.facing === 1 && this.input.left) || (this.facing === -1 && this.input.right);
 
@@ -4023,7 +4070,10 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
                     // ─── ATTACK STATE ─────────────────────────────────────────
                     if (this.state === 'attack') {
                         this.attackTimer--;
-                        const move = this.getMove(this.attackIdx);
+                        var move = this.getMove(this.attackIdx);
+						
+ 						if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null;}
+
                         if (move) {
                             const start = move.startFrame || 0;
                             const end = move.endFrame || start + 3;
@@ -5228,7 +5278,8 @@ if (showArms) {
     let idx = -1;
 
     if (this.state === 'attack' && this.attackActive) {
-        const move = this.getMove(this.attackIdx);
+ 		 if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null;}
+
         if (move) {
             idx = this.attackIdx;
             progress = 1 - (this.attackTimer / move.speed);
@@ -7697,8 +7748,60 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
             }
      }
 }
-  if (currentMode !== 'training') {
-                    if (p1.health <= 0 && winner === null) {
+ if (currentMode !== 'training') { 
+
+if (roundActive && winner === null && project.settings.fatalityEnabled) {
+
+         if (p2.health <= 0 && p1.health <= 0) {
+             winner = 'draw';
+            roundActive = false;
+            p1.state = 'ko';
+            p2.state = 'ko';
+            if (singlePlayer.active) {
+                handleSinglePlayerRoundEnd('draw');
+            } else {
+                handleRoundEnd('draw');
+            }
+			}
+						else if (p1.health <= 0 && !p1.ringOut) {
+        // P2 wint, start fatality voor P1 (verliezer)
+        winner = 'p2';
+        fatalityActive = true;
+        fatalityTimer = project.settings.fatalityDuration * 60;
+        // Zet de verliezer op een kleine health, en in hit state
+        p1.health = 0.1;
+        p1.state = 'hit';
+        p1.hitTimer = 999;
+        p1.onGround = true;
+        p1.vx = 0;
+        p1.vy = 0;
+        // We moeten de verliezer zijn input uitschakelen
+        p1.input = { up: false, down: false, left: false, right: false };
+    } else if (p2.health <= 0 && !p2.ringOut) {
+        winner = 'p1';
+        fatalityActive = true;
+        fatalityTimer = project.settings.fatalityDuration * 60;
+        p2.health = 0.1;
+        p2.state = 'hit';
+        p2.hitTimer = 999;
+        p2.onGround = true;
+        p2.vx = 0;
+        p2.vy = 0;
+        p2.input = { up: false, down: false, left: false, right: false };
+    }
+} else     if (roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
+             // DRAW: beide dood
+            winner = 'draw';
+            roundActive = false;
+            p1.state = 'ko';
+            p2.state = 'ko';
+            if (singlePlayer.active) {
+                handleSinglePlayerRoundEnd('draw');
+            } else {
+                handleRoundEnd('draw');
+            }
+        } 
+		else  if (p1.health <= 0 && winner === null) {
                         winner = 'p2';
                         roundActive = false;
                         p1.state = 'ko';
@@ -7721,17 +7824,17 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
                             handleRoundEnd('p1')
                         }
                     }
-                    if (gameTimer <= 0 && roundActive) {
-                        roundActive = false;
-                        winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
-                        if (singlePlayer.active) {
-                            const spelerWint = (p1.health > p2.health);
-                           handleSinglePlayerRoundEnd(spelerWint ? 'p1' : 'p2'); 
-                        } else {
-                            handleRoundEnd(winner);
-                        }
-                    }
-                } else {
+    // Timer (time-out) check (bestaand, maar pas aan)
+    if (gameTimer <= 0 && roundActive) {
+      roundActive = false;
+    winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
+    if (singlePlayer.active) {
+        handleSinglePlayerRoundEnd(winner);
+    } else {
+        handleRoundEnd(winner);
+    }
+    }
+} else {
                     if (p2.health < 9999) p2.health = 9999;
                     if (p1.health <= 0) { p1.health = 100;
                         p1.state = 'idle'; }
@@ -7741,7 +7844,31 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
 				
 				}
   
-  
+      // Fatality timer update
+    if (fatalityActive) {
+        fatalityTimer--;
+        // Verlam de verliezer
+        if (winner === 'p1') {
+            p2.input = { up: false, down: false, left: false, right: false };
+			 	if (fatalityTimer <= 1) {p2.state = 'ko'; } 
+            // Optioneel: p2.vx = 0; p2.vy = 0;
+        } else if (winner === 'p2') {
+            p1.input = { up: false, down: false, left: false, right: false };
+					if (fatalityTimer <= 1) {p1.state = 'ko'; }
+
+        }
+		
+        if (fatalityTimer <= 0) {
+            fatalityActive = false;
+            roundActive = false;
+            // Roep de round-end handlers aan
+            if (singlePlayer.active) {
+                handleSinglePlayerRoundEnd(winner);
+            } else {
+                handleRoundEnd(winner);
+            }
+        }
+    }
  if (startFightTimer > 0) {
       if (currentMode  == 'training' || isSoloLevel) {startFightTimer=0}
 	  else{
@@ -7996,7 +8123,7 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
     ctx.font = `bold 48px ${font}`;
     ctx.fillStyle = project.settings.ringOutColor || '#ff4444';
     ctx.shadowColor = 'rgba(255,50,50,0.3)';
-    ctx.fillText(project.settings.ringOutText, W / 2, H / 2 - 80 * camera.zoom);
+    ctx.fillText(project.settings.ringOutText, W / 2, H / 3.2  );// camera.zoom);
     ctx.restore();
                 }
 
@@ -8043,7 +8170,37 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                 }
 
                 ctx.restore();
- 
+			
+if (fatalityActive) {
+    ctx.save();
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const font = project.settings.winFont || "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 64px ${font}`;
+    ctx.fillStyle = project.settings.fatalityColor || '#ff0000';
+    ctx.shadowColor = 'rgba(255,0,0,0.5)';
+     ctx.fillText(project.settings.fatalityText || 'FATALITY!', W / 2, H / 2 - 120);
+    // Toon timer (seconden)
+ //   const seconds = Math.ceil(fatalityTimer / 60);
+  //  ctx.font = `bold 32px ${font}`;
+  //  ctx.fillStyle = '#ffffff';
+  //  ctx.fillText(seconds + 's', W/2, H/2.9);
+    ctx.restore();
+}
+
+			
+ if (flawlessVictory && winner) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const font = project.settings.winFont || "'Segoe UI', system-ui, sans-serif";
+    ctx.font = `bold 36px ${font}`;
+    ctx.fillStyle = project.settings.winColor || '#ffdd44';
+    ctx.shadowColor = 'rgba(255,200,50,0.3)';
+    ctx.fillText(project.settings.flawlessVictoryText || 'FLAWLESS VICTORY!', W / 2, H /  2.3);
+    ctx.restore();
+}
 const maxRounds = project.settings.roundCount || 3;
 if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     matchOver = true;
@@ -8201,6 +8358,9 @@ if (now - lastFpsTime >= 1000) {
             function resetRound() {
                 roundCount++;
                 isOutrRendered = false;
+				flawlessVictory = false;
+				fatalityActive = false;
+fatalityTimer = 0; 
 				startFightTimer = 180;
 				startFightSoundPlayed = false;
 resetFighterUI();
@@ -8260,6 +8420,10 @@ updateHUDVisibility();
 				startFightTimer = 180;
 startFightSoundPlayed = false;
 matchEndSoundPlayed = false;
+flawlessVictory = false;
+fatalityActive = false;
+fatalityTimer = 0;
+
 isSoloLevel=isAdventureSolo()
 applyBarStyles();
 updatePlayerIcons();
@@ -8491,6 +8655,11 @@ function processProjectData(jsonString) {
                     ringOutLeft: 60,
                     ringOutRight: 1220,
 					    ringOutText: "RING OUT!",
+						flawlessVictoryText: 'PERFECT!',
+															fatalityEnabled: false,
+fatalityDuration: 5,  
+fatalityText: 'FATALITY!',
+fatalityColor: '#ff0000',  
     startFightText: "FIGHT!",
 	autoFreezeOnBlock: true, 
     roundWinText: "{winner} WINS!",
@@ -8512,6 +8681,11 @@ function processProjectData(jsonString) {
     introOutroColor: '#ffffff',
     ringOutColor: '#ff4444',
   showRingOutText: true,
+  flawlessVictoryText: 'PERFECT!',
+  									fatalityEnabled: false,
+fatalityDuration: 5,  
+fatalityText: 'FATALITY!',
+fatalityColor: '#ff0000',  
     showBlockEffect: true,
     showCounterShield: true,
     showRecoverFlash: true,
@@ -8559,6 +8733,11 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.controls) project.settings.controls = getDefaultControls();
         // Zorg voor ontbrekende tekstvelden
         if (!project.settings.ringOutText) project.settings.ringOutText = "RING OUT!";
+		        if (!project.settings.flawlessVictoryText) project.settings.flawlessVictoryText = "PERFECT!";
+						        if (!project.settings.fatalityEnabled) project.settings.fatalityEnabled = false;
+		        if (!project.settings.fatalityDuration) project.settings.fatalityDuration = 5; 
+						        if (!project.settings.fatalityText) project.settings.fatalityText = "FATALITY!";  
+						        if (!project.settings.fatalityColor) project.settings.fatalityColor ='#ff0000'; 
         if (!project.settings.startFightText) project.settings.startFightText = "FIGHT!";
         if (!project.settings.roundWinText) project.settings.roundWinText = "{winner} WINS!";
         if (!project.settings.roundDrawText) project.settings.roundDrawText = "DRAW!";
@@ -9421,6 +9600,10 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
                 <label>Teleport Up</label>
                 <input type="number" class="move-teleport-up" value="${data.teleportY || 0}" step="1" />
             </div>
+ <div class="form-group" style=" flex-direction:row; align-items:center; gap:6px;">
+    <label  >Fatality only</label>
+    <input type="checkbox" class="move-fatalityonly" ${data.fatalityOnly ? 'checked' : ''} />
+</div>
         </div>
         <div class="form-row-4 image-fields">
             <div class="form-group attack-img-wrap">
@@ -9865,7 +10048,8 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         projectileImage: null, mineImage: null, startDistance: 0,
         friendlyFire: false, chipDamage: true, height: 'mid',
         unblockable: false, energyRequired: 0,
-        teleportX: 0, teleportY: 0, generatesEnergy: 0, counterType: 'none'
+        teleportX: 0, teleportY: 0, generatesEnergy: 0, counterType: 'none',
+    fatalityOnly: fatalityOnly
     };
     addMoveRow(moveContainer, idx, defaultMove, [], null);
     setupClearFileListeners();
@@ -10127,6 +10311,7 @@ function collectMoves() {
         const mteleportY = parseInt(row.querySelector('.move-teleport-up')?.value) || 0;
         const mGainEnergy = parseInt(row.querySelector('.move-gain-energy')?.value) || 0;
         const counterType = row.querySelector('.move-counter')?.value || 'none';
+const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
 
         // ─── Bepaal sleutels voor deze move ──────────────────────
         const attackKey = 'attack_' + moveId;
@@ -10170,6 +10355,7 @@ function collectMoves() {
             startFrame: mStart,
             endFrame: mEnd,
             type: mType,
+			fatalityOnly: fatalityOnly, 
             throwPower: mThrowPower,
             throwHeight: mThrowHeight,
             attackImage: attackImg,
@@ -11468,6 +11654,10 @@ function saveSettingsFromModal() {
     const roundWinText = document.getElementById('settingsRoundWinText').value;
     const roundDrawText = document.getElementById('settingsRoundDrawText').value;
     const matchWinText = document.getElementById('settingsMatchWinText').value;
+	const flawlessText = document.getElementById('settingsFlawlessText').value;
+const fatalityEnabled = document.getElementById('settingsFatalityEnabled').checked;
+const fatalityDuration = parseInt(document.getElementById('settingsFatalityDuration').value) || 5;
+
 const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX').value) || 0;
 const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) || 0;
 
@@ -11488,8 +11678,11 @@ const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY'
     project.settings.roundWinText = roundWinText;
     project.settings.roundDrawText = roundDrawText;
     project.settings.matchWinText = matchWinText;
+	project.settings.flawlessVictoryText = flawlessText;
 	project.settings.cameraOffsetX = cameraOffsetX;
 project.settings.cameraOffsetY = cameraOffsetY;
+project.settings.fatalityEnabled = fatalityEnabled;
+project.settings.fatalityDuration = fatalityDuration;
 
     // Plugins worden elders opgeslagen (in de plugin‑logica)
 
@@ -11676,6 +11869,8 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 </div>
 <div class="form-row-3">
      <div class="form-group"><label>Ring Out</label><input type="color" id="settingsRingOutColor" value="${settings.ringOutColor || '#ff4444'}" /></div>
+	 <div class="form-group"><label>Fatality color</label><input type="color" id="settingsFatalityColor" value="${settings.fatalityColor || '#ff0000'}" /></div>
+
  </div>
  <h3>🗺️ Adventure Progress</h3>
 <div class="form-row">
@@ -11711,6 +11906,19 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <label>Freeze position when standing block</label>
     <input type="checkbox" id="settingsAutoFreeze" ${settings.autoFreezeOnBlock ? 'checked' : ''} />
 </div>
+		<h3>🏁Startposition players</h3>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Start X P1</label>
+        <input type="number" id="settingsStartX1" value="${settings.startX1 || 470}" />
+    </div>
+    <div class="form-group">
+        <label>Start X P2</label>
+        <input type="number" id="settingsStartX2" value="${settings.startX2 || 740}" />
+    </div>
+</div>
+
 <h3>📷 Camera offset</h3>
 <div class="form-row">
     <div class="form-group">
@@ -11757,14 +11965,15 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
                 <input type="number" id="settingsRingRight" value="${settings.ringOutRight ?? 1220}" step="10" />
             </div>
         </div>
+<h3>💀 Fatality</h3>
 <div class="form-row">
-    <div class="form-group">
-        <label>Start X P1</label>
-        <input type="number" id="settingsStartX1" value="${settings.startX1 || 470}" />
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>Fatality enabled</label>
+        <input type="checkbox" id="settingsFatalityEnabled" ${settings.fatalityEnabled !== false ? 'checked' : ''} />
     </div>
     <div class="form-group">
-        <label>Start X P2</label>
-        <input type="number" id="settingsStartX2" value="${settings.startX2 || 740}" />
+        <label>Duration (seconds)</label>
+        <input type="number" id="settingsFatalityDuration" value="${settings.fatalityDuration || 5}" min="1" max="30" />
     </div>
 </div>
    <h3>📝 Text</h3>
@@ -11773,6 +11982,9 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <div class="form-group"><label>Round win text (use {winner})</label><input type="text" id="settingsRoundWinText" value="${settings.roundWinText || ''}" /></div>
         <div class="form-group"><label>Round draw text</label><input type="text" id="settingsRoundDrawText" value="${settings.roundDrawText || ''}" /></div>
         <div class="form-group"><label>Match win text (use {winner})</label><input type="text" id="settingsMatchWinText" value="${settings.matchWinText || ''}" /></div>
+		<div class="form-group"><label>Flawless Victory text</label><input type="text" id="settingsFlawlessText" value="${settings.flawlessVictoryText || ''}" /></div>
+	<div class="form-group"><label>Fatality text</label><input type="text" id="settingsFatalityText" value="${settings.fatalityText || ''}" /></div>
+
 <h3>🔤 Typography</h3>
 <div class="form-row">
     <div class="form-group">
@@ -12129,6 +12341,8 @@ const adventureStage = document.getElementById('settingsAdventureStage').value |
 const adventureChar = document.getElementById('settingsAdventureChar').value || '';
 const showHUD = document.getElementById('settingsShowHUD').checked;
 
+const fatalityText = document.getElementById('settingsFatalityText').value;
+const fatalityColor = document.getElementById('settingsFatalityColor').value;
 
 const screenFilter = document.getElementById('settingsScreenFilter').value;
 
@@ -12259,6 +12473,8 @@ project.settings.comboFont = comboFont;
 project.settings.statusFont = statusFont;
 project.settings.introOutroFont = introOutroFont;
 project.settings.showHUD = showHUD;
+project.settings.fatalityText = fatalityText;
+project.settings.fatalityColor = fatalityColor;
 
 project.settings.winIndicatorStyle = winStyle;
 project.settings.winIndicatorColor = winIndicatorColor;
@@ -13384,14 +13600,18 @@ console.log(data.input)
         networkStatus.textContent = '❌ Verbindingsfout';
     };
 
-    ws.onclose = () => {
-        if (networkMode) {
-            networkMode = false;
-            alert('Connection lost!');
-            networkStatus.textContent = '🔴 Connection closed';
+   ws.onclose = () => {
+    if (networkMode) {
+        networkMode = false;
+         if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'disconnect' }));
         }
+        alert('Connection lost!');
         networkStatus.textContent = '🔴 Connection closed';
-    };
+    }
+    networkStatus.textContent = '🔴 Connection closed';
+};
+
 }
 
 function sendMyInput(input) {
