@@ -1083,8 +1083,22 @@
       z-index: 1 !important;
     text-align: center !important;
 	opacity:0.5;
-    }
- 
+   transition: transform 0.2s ease, opacity 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+     backdrop-filter: blur(4px);
+     user-select: none;
+}
+#hamburgerBtn:hover {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.15) !important;
+    color: #8affd0;
+  }
+#hamburgerBtn:active {
+    transform: translateX(-50%) scale(0.9) !important;
+    opacity: 0.7;
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(138, 255, 208, 0.1);
+} 
 
 
 /* TopMenu standaard zichtbaar, maar kan worden verborgen */
@@ -3561,11 +3575,9 @@ _defaultRow(state) {
 startAttack(idx) {
     if (!roundActive) return false;
 
+     if (!this.isButtonActive(idx)) return false;
 
-
-    if (!this.isButtonActive(idx)) return false;
-
-    if (this.cooldown > 0 || this.state === 'attack' || this.state === 'hit' || this.state === 'ko')
+    if (this.cooldown > 0 || this.state === 'attack' || this.state === 'hit' || this.state === 'ko' || (fatalityActive   && this.health <= 0.1 ) )
         return false;
     if (idx < 0 || idx >= this.moves.length) return false;
 	
@@ -3667,9 +3679,18 @@ if (move.type === 'projectile') {
         }
     }
     const startDist = (move.startDistance && move.startDistance > 0) ? move.startDistance : 30;
+	
+	const offsetX = startDist || 0;
+const distance = this.w / 2 + offsetX;   
+var projX = this.cx + this.facing * distance;
+if( move.mineImage || sprite  )
+{
+      projX = this.x +     (offsetX*this.facing);
+
+}
 
     const proj = new Projectile(
-        this.cx + this.facing * startDist,
+        projX,
         this.cy - 8,
         this.facing,
         move.damage || 10,
@@ -3811,7 +3832,7 @@ const mineY = this.y + this.h - 10;
     this.spawnBlood(20);
 	
 			  
-			      if (fatalityActive && this.health <= 0.1  ) {
+			      if (fatalityActive && fatalityTimer>=30    ) {
         return;
     }
     this.health = Math.max(0, this.health - dmg);
@@ -3867,9 +3888,9 @@ const mineY = this.y + this.h - 10;
                     opponent.state = 'swept';
                     opponent.hitTimer = 50 + this.flinchTime;
                     opponent.vx = this.facing * 4;
-                    opponent.vy = 0;
+                   // opponent.vy = 0;
                     opponent.onGround = true;
-                    opponent.y = GROUND_Y - 20;
+                   // opponent.y = GROUND_Y - 20;
                     if (opponent.health <= 0) opponent.state = 'ko';
                     this.playSound('sweep');
                 }
@@ -3989,12 +4010,12 @@ else if (p2) {
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
-    var flatHeight =15
+    var flatHeight =65
 	 if(this.spriteImg){ flatHeight = 65;  }
      if (laneMode) {
         this.y = LANE_Y[this.lane] - flatHeight;
-    } else {
-        this.y = GROUND_Y - flatHeight;
+    } else if (this.state !== 'ko'  ) {// ok to fall of platform
+        this.y =  this.groundY  -flatHeight;// GROUND_Y-flatHeight; 
     }
       this.vx = 0;
     this.onGround = true;
@@ -4005,7 +4026,7 @@ if (this.state === 'swept' || this.state === 'ko') {
                          if (laneMode) {
                             this.y = LANE_Y[this.lane] - flatHeight;
                         } else {
-                            this.y = GROUND_Y - flatHeight;
+                           // this.y = GROUND_Y - flatHeight;
                         }
                         this.vy = 0;
                         if (this.hitTimer <= 0) {
@@ -4013,7 +4034,7 @@ if (this.state === 'swept' || this.state === 'ko') {
                             if (laneMode) {
                                 this.y = LANE_Y[this.lane] - this.h;
                             } else {
-                                this.y = GROUND_Y - this.h;
+                           //     this.y = GROUND_Y - this.h;
                             }
                             this.hitTimer = 0;
                             this.vx = 0;
@@ -4761,7 +4782,13 @@ if (this.statusTimer > 0) {
     ctx.shadowColor = 'rgba(255,255,255,0.3)';
         const textY = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom - 60 * camera.zoom;
     if (project.settings.isStatusTextAbovePlayer) {
-        ctx.fillText(this.statusMessage, (this.cx - camera.offsetX) * camera.zoom, textY);
+	var cx=sx + w / 2;
+		if(spriteImages[this.charId])
+				{
+				cx = sx;
+				}
+				 
+        ctx.fillText(this.statusMessage, cx, textY);
     } else {
         const x = this.playerIdx === 0 ? 90 : W - 90;
         const y = H / 1.8;
@@ -4993,22 +5020,7 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
         ctx.restore();
     } else {
 	
-	 if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
-                ctx.save();
-                ctx.strokeStyle = 'rgba(100,200,255,0.4)';
-                ctx.lineWidth = 4 * camera.zoom;
-                ctx.shadowColor = 'rgba(100,200,255,0.3)';
-                const blockY = drawY + this.h / 2 * camera.zoom * scaleY;
-                const cx = sx + w / 2;
-                const cy = blockY;
-                const radius = 50 * camera.zoom;
-                ctx.translate(cx, cy);
-                if (this.facing === -1) ctx.scale(-1, 1);
-                ctx.beginPath();
-                ctx.arc(20 * camera.zoom, 0, radius, -1.2, 1.2);
-                ctx.stroke();
-                ctx.restore();
-            }
+ 
 			
         // ─── STATE‑SPECIFIEKE AFBEELDING (niet attack) ─────
         if (this._lastCachedState !== this.state) {
@@ -5521,25 +5533,6 @@ if (move && this.state === 'attack') {
 }
 
 
-
-
-            if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
-                ctx.save();
-                ctx.strokeStyle = 'rgba(100,200,255,0.4)';
-                ctx.lineWidth = 4 * camera.zoom;
-                ctx.shadowColor = 'rgba(100,200,255,0.3)';
-                const blockY = drawY2 + this.h / 2 * camera.zoom * scaleY;
-                const cx = sx + w / 2;
-                const cy = blockY;
-                const radius = 50 * camera.zoom;
-                ctx.translate(cx, cy);
-                if (this.facing === -1) ctx.scale(-1, 1);
-                ctx.beginPath();
-                ctx.arc(20 * camera.zoom, 0, radius, -1.2, 1.2);
-                ctx.stroke();
-                ctx.restore();
-            }
-			
 			 
             ctx.restore();
         }
@@ -5592,6 +5585,30 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         }
         ctx.restore();
     }
+	
+    // ─── BLOK ─────────────────────────────────────────
+
+            if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(100,200,255,0.4)';
+                ctx.lineWidth = 4 * camera.zoom;
+                ctx.shadowColor = 'rgba(100,200,255,0.3)';
+                const blockY = drawY + this.h / 2 * camera.zoom * scaleY;
+                   var cx = sx + w / 2;
+				if(spriteImages[this.charId])
+				{
+				cx = sx;
+				}
+                const cy = blockY;
+                const radius = 50 * camera.zoom;
+                ctx.translate(cx, cy);
+                if (this.facing === -1) ctx.scale(-1, 1);
+                ctx.beginPath();
+                ctx.arc(20 * camera.zoom, 0, radius, -1.2, 1.2);
+                ctx.stroke();
+                ctx.restore();
+            }
+			
     // ─── HERSTEL FLITS ─────────────────────────────────────────
     if (project.settings.showRecoverFlash  && this._recoverFlash > 0) {
         ctx.save();
@@ -5601,7 +5618,12 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.strokeStyle = `rgba(100,255,100,${alpha * 0.8})`;
         ctx.lineWidth = 6 * camera.zoom;
         ctx.beginPath();
-        ctx.arc(sx + w / 2, drawY + this.h / 2 * camera.zoom * scaleY, radius, 0, Math.PI * 2);
+		       var cx = sx + w / 2;
+				if(spriteImages[this.charId])
+				{
+				cx = sx;
+				}
+        ctx.arc(cx, drawY + this.h / 2 * camera.zoom * scaleY, radius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
         this._recoverFlash--;
@@ -5625,7 +5647,13 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
     ctx.fillStyle = project.settings.comboColor || '#ffdd44';
     ctx.shadowColor = 'rgba(255,200,50,0.4)';
     if (project.settings.isStatusTextAbovePlayer) {
-        ctx.fillText(`${this.comboCount} COMBO!`, sx + w / 2, drawY - 30 * camera.zoom);
+	var cx =sx + w / 2;
+	if(spriteImages[this.charId])
+				{
+				cx = sx;
+				}
+			 
+        ctx.fillText(`${this.comboCount} COMBO!`, cx, drawY - 30 * camera.zoom);
     } else {
         const x = this.playerIdx === 1 ? 90 : W - 90;
         const y = H / 2.2;
@@ -6986,7 +7014,7 @@ function aiPerformAttack(fighter, moveList) {
 
 var timeToJumpTONextLane=0;
   function updateAIFor(fighter, opponent, isAIvsAI) {
-    if (fighter.health <= 0 || opponent.health <= 0) {
+    if ((fatalityActive   && fighter.health <= 0.1 ) ||fighter.health <= 0 || opponent.health <= 0) {
         fighter.input.up = false;
         fighter.input.down = false;
         fighter.input.left = false;
@@ -7597,9 +7625,7 @@ function getRandomDifficulty() {
 }
  var frameSaveTimer=0;
             function update() {
-			
- 			
-				frameSaveTimer++;
+ 				frameSaveTimer++;
 		 
 				
 	if(frameSaveTimer ==7 || frameSaveTimer==14   ){
@@ -7967,17 +7993,21 @@ p2.comboCount=0;
 			};
 			  p2.attackActive = false;
 			    p2.attackHit = false;
-    p2.state = 'hit';
+ 
+			 	if (fatalityTimer <= 30) {		        p2.health = 0.0; p2.state = 'ko'; } else{
+						        p2.health = 0.1; 
 
-			 	if (fatalityTimer <= 1) {p2.state = 'ko'; } 
+				}
         } else if (winner === 'p2') {
             p1.input = { 
     up: false, down: false, left: false, right: false, forward: false, back: false 
 			};
 			    p1.attackHit = false;
 				 p1.attackActive = false;
-    p1.state = 'hit';
-					if (fatalityTimer <= 1) {p1.state = 'ko'; }
+ 					if (fatalityTimer <= 30) {p1.health = 0.0; p1.state = 'ko'; }
+					else{		        p1.health = 0.1; 
+
+					}
 
         }
 		
