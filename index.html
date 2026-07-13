@@ -1592,27 +1592,27 @@ const DEFAULT_AI_PARAMS = {
                 { id: 'punch_l', name: 'Light', damage: 8, range: 55, speed: 12, button: 0, command: '1',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                  fatalityOnly: false,  unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none'  },
+                  fatalityOnly: false,  unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' ,  fallbackVisual: 'punch_l'  },
                 { id: 'punch_m', name: 'Middle', damage: 14, range: 70, speed: 18, button: 1, command: '2',
                      row: 3,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'punch_m'   },
                 { id: 'punch_h', name: 'Heavy', damage: 22, range: 85, speed: 28, button: 2, command: '3',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
-                { id: 'kick_l', name: 'Attack L', damage: 7, range: 50, speed: 10, button: 3, command: '4',
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'punch_h'   },
+                { id: 'uppercutL', name: 'Attack L', damage: 7, range: 50, speed: 10, button: 3, command: '4',
                      row: 5,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'  },
-                { id: 'kick_m', name: 'Attack M', damage: 13, range: 65, speed: 16, button: 4, command: '5',
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'uppercut_l'   },
+                { id: 'uppercutM', name: 'Attack M', damage: 13, range: 65, speed: 16, button: 4, command: '5',
                     row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                      row: 6,projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none'   },
-                { id: 'kick_h', name: 'Attack H', damage: 20, range: 90, speed: 26, button: 5, command: '6',
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'uppercut_m'   },
+                { id: 'uppercutH', name: 'Attack H', damage: 20, range: 90, speed: 26, button: 5, command: '6',
                      row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' },
+                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'uppercut_h'  },
             ];
 
 const DEFAULT_STATES = {
@@ -1686,6 +1686,107 @@ belt: 'none',
 
 					
             };
+			 
+			
+	const FALLBACK_VISUAL_CONFIG = {
+    // Opties voor de dropdown (value en label)
+    options: [
+        { value: 'auto', label: 'Auto' },
+        { value: 'punch_l', label: 'Punch Light' },
+        { value: 'punch_m', label: 'Punch Mid' },
+        { value: 'punch_h', label: 'Punch Heavy' },
+        { value: 'uppercut_l', label: 'Uppercut Light' },
+        { value: 'uppercut_m', label: 'Uppercut Mid' },
+        { value: 'uppercut_h', label: 'Uppercut Heavy' },
+        { value: 'smash', label: 'Smash' },
+        { value: 'sweep', label: 'Sweep' },
+        { value: 'grab', label: 'Grab' },
+        { value: 'throwing', label: 'throwing' },
+         { value: 'none', label: 'None' }
+    ],
+
+     configs: {
+         punch_l:  { angle: 15 * Math.PI/180, swoosh: true, swooshType: 'circle', armLen: 1.0,  fist: true, swooshRadius: 1.5, swooshWidth: 20 },
+        punch_m:  { angle: 5 * Math.PI/180,  swoosh: true, swooshType: 'circle', armLen: 1.3,  fist: true, swooshRadius: 1.6, swooshWidth: 22 },
+        punch_h:  { angle: -10 * Math.PI/180, swoosh: true, swooshType: 'circle', armLen: 1.5,  fist: true, swooshRadius: 1.8, swooshWidth: 25 },
+        uppercut_l: {
+            angle: 20 * Math.PI/180, // rusthoek (wordt niet gebruikt voor boog, maar voor armpositie)
+            swoosh: true,
+            swooshType: 'arc',
+            armLen: 1.1,
+            fist: true,
+            swooshStartAngle: -30 * Math.PI/180,
+            swooshEndAngle: 70 * Math.PI/180,
+            swooshRadius: 1.5,
+            swooshWidth: 20
+        },
+        uppercut_m: {
+            angle: 10 * Math.PI/180,
+            swoosh: true,
+            swooshType: 'arc',
+            armLen: 1.2,
+            fist: true,
+            swooshStartAngle: -40 * Math.PI/180,
+            swooshEndAngle: 80 * Math.PI/180,
+            swooshRadius: 1.6,
+            swooshWidth: 22
+        },
+        uppercut_h: {
+            angle: -120,
+            swoosh: true,
+            swooshType: 'arc',
+            armLen: 1.3,
+            fist: true,
+            swooshStartAngle: -50 * Math.PI/180,
+            swooshEndAngle: 90 * Math.PI/180,
+            swooshRadius: 1.8,
+            swooshWidth: 25
+        },
+        smash:   { angle: -30 * Math.PI/180, swoosh: true, swooshType: 'arc', armLen: 1.2, fist: true, swooshRadius: 1.5, swooshWidth: 20 },
+         sweep:      { angle: 50 * Math.PI/180, swoosh: false, armLen: 1.5, fist: true, sweepEffect: true },
+        grab:       { angle: 10 * Math.PI/180, swoosh: false, armLen: 0.5, fist: true },
+        throwing: { angle: 0, swoosh: true, swooshType: 'arc', armLen: 1.3, fist: true , swooshRadius: 1.4, swooshWidth: 16 },
+         none:       { angle: 0, swoosh: false, armLen: 0, fist: false }
+    },
+
+
+    // Bepaal de visual voor een move (auto‑detectie)
+    getVisualForMove(move) {
+        if (!move) return 'none';
+        if (move.fallbackVisual && move.fallbackVisual !== 'auto') return move.fallbackVisual;
+        const name = (move.name || '').toLowerCase();
+        const type = move.type || 'normal';
+
+        // Specifieke detectie
+        if (name.includes('light') || name.includes('l')) {
+            if (name.includes('uppercut')) return 'uppercut_l';
+            return 'punch_l';
+        }
+        if (name.includes('mid') || name.includes('m')) {
+            if (name.includes('uppercut')) return 'uppercut_m';
+            return 'punch_m';
+        }
+        if (name.includes('heavy') || name.includes('h')) {
+            if (name.includes('uppercut')) return 'uppercut_h';
+            return 'punch_h';
+        }
+        if (name.includes('punch')) {
+            if (name.includes('l') || name.includes('light')) return 'punch_l';
+            if (name.includes('h') || name.includes('heavy')) return 'punch_h';
+            return 'punch_m';
+        }
+		if (name.includes('uppercut')) {
+    if (name.includes('light') || name.includes('l')) return 'uppercut_l';
+    if (name.includes('heavy') || name.includes('h')) return 'uppercut_h';
+    return 'uppercut_m';
+}
+
+        if (type === 'sweep') return 'sweep';
+        if (type === 'grab') return 'grab';
+        if (type === 'projectile' ||type === 'mine') return 'throwing';
+         return 'smash';  
+    }
+};		
 const HEADGEAR_TYPES = [
     'none',
      'afro', 'mohawk', 'dreadlocks', 'ponytail', 'bun', 'long_hair', 'short_hair', 'bald',
@@ -2224,37 +2325,50 @@ else flawlessVictory = false;
                 resetSinglePlayerRound();}, 2000);
             }
 
-            function resetSinglePlayerRound() {
-                const p1Char = project.selectedP1Char || 'fighter';
-                const p2Char = singlePlayer.currentOpponentId || 'fighter';
-                p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
-                p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
-                p1.spriteImg = spriteImages[p1Char] || null;
-                p2.spriteImg = spriteImages[p2Char] || null;
-                winner = null;
-                roundActive = true;
-                projectiles = [];
-                mines = [];
-                matchOver = false;
-startFightTimer = 180;
-startFightSoundPlayed = false;
-ringOutOccurred = false;
-  timerFrameCounter = 0;
-                const introP1 = getRandomText(p1.introText);
-                const introP2 = getRandomText(p2.introText);
-                if (introP1) showIntroOutroText(1, introP1, true);
-                if (introP2) showIntroOutroText(2, introP2, true);
+ function resetSinglePlayerRound() {
+    const p1Char = project.selectedP1Char || 'fighter';
+    const p2Char = singlePlayer.currentOpponentId || 'fighter';
 
+    let oldP1Health = null;
+    let oldP1MaxHealth = null;
+    if (singlePlayer.mode === 'survival' && p1) {
+        oldP1Health = p1.health;
+        oldP1MaxHealth = p1.maxHealth;
+    }
 
-                gameTimer = project.settings.timerSeconds || 99;
-                timerDisplay.textContent = gameTimer;
-                        timerDisplay.textContent = Math.ceil(gameTimer);
-				resetFighterUI();
-				updatePlayerIcons(); 
-                updateSinglePlayerHUD();
-				resetPositions();
+    p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
+    p1.spriteImg = spriteImages[p1Char] || null;
+    p2.spriteImg = spriteImages[p2Char] || null;
 
-            }
+    if (singlePlayer.mode === 'survival' && oldP1Health !== null) {
+        p1.health = Math.min(oldP1Health, p1.maxHealth);
+        p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
+    }
+
+    winner = null;
+    roundActive = true;
+    projectiles = [];
+    mines = [];
+    matchOver = false;
+    startFightTimer = 180;
+    startFightSoundPlayed = false;
+    ringOutOccurred = false;
+    timerFrameCounter = 0;
+
+    const introP1 = getRandomText(p1.introText);
+    const introP2 = getRandomText(p2.introText);
+    if (introP1) showIntroOutroText(1, introP1, true);
+    if (introP2) showIntroOutroText(2, introP2, true);
+
+    gameTimer = project.settings.timerSeconds || 99;
+    timerDisplay.textContent = gameTimer;
+    timerDisplay.textContent = Math.ceil(gameTimer);
+    resetFighterUI();
+    updatePlayerIcons();
+    updateSinglePlayerHUD();
+    resetPositions();
+}
 
  function getRandomBossCharacter() {
     const bossIds = [];
@@ -2328,16 +2442,15 @@ function startNextSinglePlayerMatch() {
     startFightTimer = 180;
     startFightSoundPlayed = false;
     ringOutOccurred = false;
-  timerFrameCounter = 0;
+    timerFrameCounter = 0;
     const introP1 = getRandomText(p1.introText);
     const introP2 = getRandomText(p2.introText);
     if (introP1) showIntroOutroText(1, introP1, true);
     if (introP2) showIntroOutroText(2, introP2, true);
 
-    // ─── TEGENSTANDER SELECTIE ───
+    // ─── TEGENSTANDER SELECTIE ──────────────────────────────
     let opponentId;
     const isLastRound = (singlePlayer.matchNumber === singlePlayer.maxRounds);
-
     if (isLastRound) {
         const bossId = getRandomBossCharacter();
         if (bossId) {
@@ -2352,7 +2465,7 @@ function startNextSinglePlayerMatch() {
     }
     singlePlayer.currentOpponentId = opponentId;
 
-    // ─── STAGE SELECTIE ───
+    // ─── STAGE SELECTIE ──────────────────────────────────────
     let stageId;
     do {
         stageId = singlePlayer.stagePool[Math.floor(Math.random() * singlePlayer.stagePool.length)];
@@ -2360,13 +2473,28 @@ function startNextSinglePlayerMatch() {
     singlePlayer.currentStageId = stageId;
     setStage(stageId);
 
-    // ─── FIGHTERS OPSTARTEN ───
+    // ─── FIGHTERS OPSTARTEN ──────────────────────────────────
     const p1Char = project.selectedP1Char || 'fighter';
     const p2Char = opponentId;
-    p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
+ 
+ let oldP1Health = null;
+    let oldP1MaxHealth = null;
+    if (singlePlayer.mode === 'survival' && p1) {
+        oldP1Health = p1.health;
+        oldP1MaxHealth = p1.maxHealth;
+    }
+     p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
     p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
     p1.spriteImg = spriteImages[p1Char] || null;
     p2.spriteImg = spriteImages[p2Char] || null;
+
+    // IN SURVIVAL: health van P1 herstellen naar de oude waarde
+    if (singlePlayer.mode === 'survival' && oldP1Health !== null) {
+        p1.health = Math.min(oldP1Health, p1.maxHealth);
+        p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
+		
+
+    }
 
     winner = null;
     roundActive = true;
@@ -2374,15 +2502,18 @@ function startNextSinglePlayerMatch() {
     mines = [];
     matchOver = false;
 
-    // ─── TIMER ───
+    // ─── TIMER ──────────────────────────────────────────────
     gameTimer = project.settings.timerSeconds || 99;
     timerDisplay.textContent = gameTimer;
-            timerDisplay.textContent = Math.ceil(gameTimer);
+    timerDisplay.textContent = Math.ceil(gameTimer);
 
-    // ─── UI BIJWERKEN ───
+    // ─── UI BIJWERKEN ──────────────────────────────────────
     updateWinIndicators();
     updatePlayerIcons();
     updateSinglePlayerHUD();
+				resetPositions() ;
+	    updateCamera(); 
+
 }
 
             function loadBloodImage(charId, base64) {
@@ -3752,6 +3883,12 @@ const mineY = this.y + this.h - 10;
                     opponent.hitTimer = 8;
                     this.playSound('hit');
                 }
+				
+				
+getFallbackVisual(move) {
+    return FALLBACK_VISUAL_CONFIG.getVisualForMove(move);
+}
+				
 
                 switchLane(delta) {
                     const newLane = Math.max(0, Math.min(2, this.lane + delta));
@@ -5377,192 +5514,15 @@ const shoulderY = torsoY + 1.5 * camera.zoom;
 
  
 // ─── ARMEN (fallback) ──────────────────────────────────────
-const showArms = (this.state === 'idle' && this.showArmsInIdle) || (this.state === 'attack' && this.attackActive);
-
-if (showArms) {
-    ctx.save();
-    ctx.fillStyle = this.lightColor;
-
-    const shoulderX = sx + w / 2 + f * 10 * camera.zoom * scaleY;
-    const shoulderY = (drawY2 + 20 * camera.zoom * scaleY) + safeTorso * 0.3 * camera.zoom * scaleY;
-    const armW = 8 * camera.zoom * scaleY;
-    let armLen = safeArm * camera.zoom * scaleY;
-
-    let angle1 = 0;
-    let showFist1 = false;
-    let swooshAngleStart = 0;
-    let swooshAngleEnd = 0;
-    let drawSwoosh = false;
-    let progress = 0;
-    let idx = -1;
-
-    if (this.state === 'attack' && this.attackActive) {
- 		 if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null;}
-
-        if (move) {
-            idx = this.attackIdx;
-            progress = 1 - (this.attackTimer / move.speed);
-            const p = Math.max(0, Math.min(1, progress));
-
-            if (idx === 3) { // actie 4: zwaai boven hoofd
-                const startAngle = -120 * Math.PI / 180;
-                const endAngle = -30 * Math.PI / 180;
-                angle1 = startAngle + (endAngle - startAngle) * p;
-                armLen = (safeArm * 1.2 + p * safeArm * 0.5) * camera.zoom * scaleY;
-                showFist1 = true;
-                swooshAngleStart = startAngle;
-                swooshAngleEnd = endAngle;
-                drawSwoosh = true;
-            } else if (idx === 4) { // actie 5: horizontale zwaai
-                const startAngle = -20 * Math.PI / 180;
-                const endAngle = 60 * Math.PI / 180;
-                angle1 = startAngle + (endAngle - startAngle) * p;
-                armLen = (safeArm * 1.0 + p * safeArm * 0.4) * camera.zoom * scaleY;
-                showFist1 = true;
-                swooshAngleStart = startAngle;
-                swooshAngleEnd = endAngle;
-                drawSwoosh = true;
-            } else if (idx === 5) { // actie 6: uppercut
-                const endAngle = 80 * Math.PI / 180;
-                const startAngle  = -40 * Math.PI / 180;
-                angle1 = startAngle + (endAngle - startAngle) * p;
-                armLen = (safeArm * 1.2 + p * safeArm * 0.7) * camera.zoom * scaleY;
-                showFist1 = true;
-                swooshAngleStart = startAngle;
-                swooshAngleEnd = endAngle;
-                drawSwoosh = true;
-            } else if (idx >= 0 && idx <= 2) { // acties 1,2,3 (punch)
-                // Bestaande hoekbepaling
-                const nameLower = (move.name || '').toLowerCase();
-                if (move.height === 'low') angle1 = 45 * Math.PI / 180;
-                else if (move.height === 'high') angle1 = -30 * Math.PI / 180;
-                else angle1 = 15 * Math.PI / 180;
-                if (nameLower.includes('trap') || nameLower.includes('kick')) {
-                    armLen = safeArm * 1.5 * camera.zoom * scaleY;
-                }
-                showFist1 = true;
-                drawSwoosh = true; // rookcirkel, geen lijn
-            } else {
-                // andere moves: geen swoosh
-                const nameLower = (move.name || '').toLowerCase();
-                if (move.height === 'low') angle1 = 45 * Math.PI / 180;
-                else if (move.height === 'high') angle1 = -30 * Math.PI / 180;
-                else angle1 = 15 * Math.PI / 180;
-                if (nameLower.includes('trap') || nameLower.includes('kick')) {
-                    armLen = safeArm * 1.5 * camera.zoom * scaleY;
-                }
-                showFist1 = true;
-            }
-        }
-    } else if (this.state === 'idle' && this.showArmsInIdle) {
-        angle1 = 20 * Math.PI / 180;
-        showFist1 = false;
-    }
-
-    // Teken arm 1
-    if (showFist1 || (this.state === 'idle' && this.showArmsInIdle)) {
-        const endX1 = shoulderX + f * armLen * Math.cos(angle1);
-        const endY1 = shoulderY + armLen * Math.sin(angle1);
-        ctx.beginPath();
-        ctx.moveTo(shoulderX, shoulderY);
-        ctx.lineTo(endX1, endY1);
-        ctx.lineWidth = armW;
-        ctx.strokeStyle = this.lightColor;
-        ctx.stroke();
-        if (showFist1) {
-            ctx.fillStyle = this.darkColor;
-            ctx.beginPath();
-            ctx.arc(endX1, endY1, armW * 0.9, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // ─── Swoosh effect ──────────────────────────────────────────
-        if (drawSwoosh && this.attackActive && !isLowPower) {
-            ctx.save();
-            const baseAlpha = 0.3 * (1 - progress);
-
-           if (idx >= 0 && idx <= 2) {
-    // ─── ROOKCIRKEL rond de vuist ──────────────────────
-    const fistX = endX1;
-    const fistY = endY1;
-    const baseRadius = armW * 2.5 * camera.zoom * scaleY;
-    const maxRadius = baseRadius * (1.5 + progress * 0.5);
-    const alphaFactor = 1 - progress * 0.6;
-
-    // Laag 1: brede, vage rook
-    ctx.globalAlpha = 0.08 * alphaFactor; // van 0.15 naar 0.08
-    ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
-    ctx.beginPath();
-    ctx.arc(fistX, fistY, maxRadius * 0.9, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Laag 2: medium rook
-    ctx.globalAlpha = 0.15 * alphaFactor; // van 0.25 naar 0.15
-    ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
-    ctx.beginPath();
-    ctx.arc(fistX, fistY, maxRadius * 0.6, 0, Math.PI * 2);
-    ctx.fill();
  
-   
-} else {
-                // ─── GEBOGEN ROOK-SWOOSH voor moves 4-6 ────────────
-                const swooshRadius = armLen * 1.5;
-
-                // Laag 1: brede, vage rook
-                ctx.globalAlpha = baseAlpha * 0.5;
-                ctx.strokeStyle = 'rgba(160, 120, 80, 0.8)';
-                ctx.lineWidth = 20 * camera.zoom * scaleY;
-                ctx.beginPath();
-                const steps = 10;
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
-                    const x = shoulderX + f * swooshRadius * Math.cos(a);
-                    const y = shoulderY + swooshRadius * Math.sin(a);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-
-                // Laag 2: smallere, meer zichtbare rooklijn
-                ctx.globalAlpha = baseAlpha * 0.7;
-                ctx.strokeStyle = 'rgba(120, 80, 50, 0.9)';
-                ctx.lineWidth = 10 * camera.zoom * scaleY;
-                ctx.beginPath();
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
-                    const x = shoulderX + f * swooshRadius * Math.cos(a);
-                    const y = shoulderY + swooshRadius * Math.sin(a);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-
-                // Laag 3: kern, helderdere lijn
-                ctx.globalAlpha = baseAlpha * 0.9;
-                ctx.strokeStyle = 'rgba(200, 160, 120, 1)';
-                ctx.lineWidth = 4 * camera.zoom * scaleY;
-                ctx.beginPath();
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const a = swooshAngleStart + (swooshAngleEnd - swooshAngleStart) * t;
-                    const x = shoulderX + f * swooshRadius * Math.cos(a);
-                    const y = shoulderY + swooshRadius * Math.sin(a);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-
-            ctx.restore();
-            ctx.globalAlpha = 1;
-        }
-    }
-	
-
-    ctx.restore();
+const move = this.getMove(this.attackIdx);
+if (move && this.state === 'attack') {
+    drawFallbackAttack(ctx, camera, this, move, sx, sy, w, h, scaleY, offsetY);
 }
+
+
+
+
             if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
                 ctx.save();
                 ctx.strokeStyle = 'rgba(100,200,255,0.4)';
@@ -5774,6 +5734,120 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
             }
  
  
+function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, offsetY) {
+    if (!move) return;
+
+    const visual = fighter.getFallbackVisual(move);
+    let cfg = FALLBACK_VISUAL_CONFIG.configs[visual];
+    if (!cfg) {
+        console.warn('Fallback visual not found:', visual, '→ using punch_l');
+        cfg = FALLBACK_VISUAL_CONFIG.configs['punch_l'];
+        if (!cfg) return;
+    }
+
+    const f = fighter.facing;
+    const zoom = camera.zoom;
+    const scale = zoom * scaleY;
+    const armW = 8 * scale;
+    const armLen = (fighter.armLength || 30) * cfg.armLen * scale;
+    const shoulderX = sx + w/2 + f * 10 * scale;
+    const shoulderY = sy + (fighter.h * (1 - scaleY) * zoom) / 2 + 20 * scale + (fighter.torsoHeight || 50) * 0.3 * scale;
+    const angle = cfg.angle;
+    const endX = shoulderX + f * armLen * Math.cos(angle);
+    const endY = shoulderY + armLen * Math.sin(angle);
+
+    ctx.save();
+
+    // ─── ARM (altijd tekenen) ───────────────────
+    ctx.lineWidth = armW;
+    ctx.strokeStyle = fighter.lightColor;
+    ctx.beginPath();
+    ctx.moveTo(shoulderX, shoulderY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // ─── VUIST (als ingesteld) ─────────────────
+    if (cfg.fist) {
+        ctx.fillStyle = fighter.darkColor;
+        ctx.beginPath();
+        ctx.arc(endX, endY, armW * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ─── SWOOSH (alleen als attack actief is) ──
+	if(!isLowPower){
+    if (cfg.swoosh && fighter.attackActive) {
+        const progress = 1 - (fighter.attackTimer / move.speed);
+        const alpha = 0.3 * (1 - progress);
+
+        if (cfg.swooshType === 'circle') {
+            // ─── Cirkel (voor punches) ────────────
+            const fistX = endX;
+            const fistY = endY;
+            const baseRadius = armW * 2.5;
+            const maxRadius = baseRadius * (1.5 + progress * 0.5);
+            const alphaFactor = 1 - progress * 0.6;
+
+             ctx.globalAlpha = 0.08 * alphaFactor;
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(fistX, fistY, maxRadius * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+
+             ctx.globalAlpha = 0.15 * alphaFactor;
+            ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(fistX, fistY, maxRadius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+             ctx.globalAlpha = 1;
+        } else {
+            // ─── Boog (voor uppercuts, projectielen) ──
+            const swooshRadius = armLen * (cfg.swooshRadius || 1.5);
+            const lineWidth = (cfg.swooshWidth || 20) * scale;
+            const startAngle = angle - 0.8;
+            const endAngle = angle + 0.8;
+            const steps = 10;
+
+            // Buitenste vage lijn
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.strokeStyle = 'rgba(160,120,80,0.8)';
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const a = startAngle + (endAngle - startAngle) * t;
+                const x = shoulderX + f * swooshRadius * Math.cos(a);
+                const y = shoulderY + swooshRadius * Math.sin(a);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Kernlijn
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.strokeStyle = 'rgba(200,160,120,1)';
+            ctx.lineWidth = lineWidth * 0.2;
+            ctx.beginPath();
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const a = startAngle + (endAngle - startAngle) * t;
+                const x = shoulderX + f * swooshRadius * Math.cos(a);
+                const y = shoulderY + swooshRadius * Math.sin(a);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+		
+ 
+    }
+}
+    
+
+    ctx.restore();
+}
 function drawHeadgear(ctx, type, x, y, radius, facing, lightColor, darkColor, camera) {
     const scale = camera.zoom;
     ctx.save();
@@ -9572,6 +9646,14 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
     <input type="checkbox" class="move-fatalityonly" ${data.fatalityOnly ? 'checked' : ''} />
 </div>
         </div>
+		<div class="form-group">
+    <label>Fallback visual (without spritesheet/images)</label>
+<select class="move-fallback">
+    ${FALLBACK_VISUAL_CONFIG.options.map(opt =>
+        `<option value="${opt.value}" ${data.fallbackVisual === opt.value ? 'selected' : ''}>${opt.label}</option>`
+    ).join('')}
+</select>
+</div>
         <div class="form-row-4 image-fields">
             <div class="form-group attack-img-wrap">
                 <label style="font-size:9px;color:#5a5a8a;">Attack img.</label>
@@ -10037,7 +10119,7 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         friendlyFire: false, chipDamage: true, height: 'mid',
         unblockable: false, energyRequired: 0,
         teleportX: 0, teleportY: 0, generatesEnergy: 0, counterType: 'none',
-    fatalityOnly: false
+    fatalityOnly: false, fallbackVisual:'auto'
     };
     addMoveRow(moveContainer, idx, defaultMove, [], null);
     setupClearFileListeners();
@@ -10314,6 +10396,7 @@ function collectMoves() {
         const mGainEnergy = parseInt(row.querySelector('.move-gain-energy')?.value) || 0;
         const counterType = row.querySelector('.move-counter')?.value || 'none';
 const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
+const fallbackVisual = row.querySelector('.move-fallback')?.value || 'auto';
 
         // ─── Bepaal sleutels voor deze move ──────────────────────
         const attackKey = 'attack_' + moveId;
@@ -10372,7 +10455,8 @@ const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
             teleportX: mteleportX,
             teleportY: mteleportY,
             generatesEnergy: mGainEnergy,
-            counterType: counterType
+            counterType: counterType,
+			fallbackVisual:fallbackVisual
         });
     });
     return moves;
