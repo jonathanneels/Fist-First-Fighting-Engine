@@ -1186,7 +1186,7 @@
             <option value="pvp" >PvP</option>
             <option value="aivai">AIvsAI</option>
             <option value="training" selected>Training</option>
-			            <option value="network">Network (not ready yet!)</option>
+			            <option hidden value="network">Network (not ready yet!)</option>
 
         </select>
         <span style="display:flex;gap:2px;align-items:center;">
@@ -1297,7 +1297,7 @@ var isSoloLevel= false;
 
 let p1GamepadIndex = -1;
 let p2GamepadIndex = -1;
-let waitingForInput = null; // { player: 'p1'|'p2', action: string, type: 'keyboard'|'gamepad' }
+let waitingForInput = null; 
 let remapTimeout = null;
 
     let params;
@@ -1308,8 +1308,6 @@ let frameCount = 0;
 let lastFpsTime = performance.now();
 // ─── Netwerk synchronisatie ──────────────────────────────
 
-// serializeFighter en deserializeFighter met charId
- 
 function serializeFighterCompact(fighter) {
     if (!fighter) return null;
     return {
@@ -1326,7 +1324,6 @@ function serializeFighterCompact(fighter) {
         ct: fighter.comboTimer,
         bt: fighter.blockTimer,
 		c: fighter.charId
-        // alleen als nodig: charId wordt apart gestuurd
     };
 }
 
@@ -1357,17 +1354,14 @@ function deserializeFighterCompact(fighter, data) {
     fighter.ringOut = data.r || false;
     fighter.attackActive = data.aa || false;
     
-    // Timers synchroniseren
     fighter.hitTimer = data.ht || 0;
     fighter.comboCount = data.cc || 0;
     fighter.comboTimer = data.ct || 0;
     fighter.blockTimer = data.bt || 0;
 
    
-    // Als de timers op 0 staan in de binnengekomen data, dwingen we het effect lokaal ook direct te stoppen
- //   if (fighter.hitTimer === 0) fighter.isHitVisualActive = false;
     if (fighter.comboTimer === 0 && fighter.comboCount > 0) {
-        fighter.comboCount = 0; // Ruimt rondslingerende combo-tellers op
+        fighter.comboCount = 0; 
     }
 }
 
@@ -1399,17 +1393,12 @@ function serializeGameStateCompact() {
         p1w: p1Wins,
         p2w: p2Wins,
         mo: matchOver,
-		/*        fa: project.settings.fatalityActive,
-        ft: project.settings.fatalityTimer,*/
  
     };
 }
 function deserializeGameStateCompact(data) {
-    // CRITIEK VOOR DE HOST: De host is autoritair en berekent alles zelf.
-    // Dit voorkomt dat de host zijn eigen state overschrijft met laggy client-data -> Fix voor het trillen!
     if (networkMode && networkRole === 'host') return;
 
-    // Bewaar oude status om UI-triggers correct op te vangen op de client
     const prevRoundActive = roundActive;
     const prevMatchOver = matchOver;
 
@@ -1428,10 +1417,6 @@ function deserializeGameStateCompact(data) {
         deserializeFighterCompact(p2, data.p2);
     }
 
-    /*if (data.fa !== undefined) { // fatality not functional
-        fatalityActive = data.fa|| false;
-        fatalityTimer = data.ft || 0;
-     }*/
 
     // Projectielen soepel overnemen
     projectiles = data.proj.map(pd => {
@@ -1463,18 +1448,15 @@ function deserializeGameStateCompact(data) {
         return mine;
     });
 
-    // Timer synchroniseren
     if (gameTimer !== data.t) {
         gameTimer = data.t;
         timerDisplay.textContent = Math.ceil(gameTimer);
     }
 
-    // Stage updaten indien gewijzigd
     if (data.st && data.st !== project.currentStageId) {
         setStage(data.st);
     }
 
-    // Statistieken overnemen
     p1Wins = data.p1w || 0;
     p2Wins = data.p2w || 0;
     roundActive = data.ra !== undefined ? data.ra : true;
@@ -1483,16 +1465,12 @@ function deserializeGameStateCompact(data) {
 
     updateWinIndicators();
 
-    // --- FIX VOOR SPELEINDE & RESET FREEZE ---
-    // Als een match voorbij was, maar nu weer gereset is (nieuwe match start)
     if (prevMatchOver && !matchOver) {
         matchEndSoundPlayed = false;
-        // Verberg direct de oude winnaarsteksten van het scherm om freezes te voorkomen
         document.getElementById('textP1').style.opacity = '0';
         document.getElementById('textP2').style.opacity = '0';
     }
 
-    // Ronde-einde logica triggeren op de Client
     if (prevRoundActive && !roundActive) {
         playSystemSound('roundEnd');
         if (winner) {
@@ -1502,7 +1480,6 @@ function deserializeGameStateCompact(data) {
         }
     }
 
-    // Match-einde logica triggeren op de Client
     if (!prevMatchOver && matchOver) {
         if (!matchEndSoundPlayed) {
             playSystemSound('matchEnd');
@@ -1510,7 +1487,6 @@ function deserializeGameStateCompact(data) {
         }
     }
 
-    // Directe HTML UI-balken update voor de Client (Host doet dit in zijn eigen render/update loop)
     if (p1 && p2) {
         const hP1 = document.getElementById('healthP1');
         const hP2 = document.getElementById('healthP2');
@@ -1524,7 +1500,6 @@ function deserializeGameStateCompact(data) {
 
  
 
-// Input van joiner (P2) verzamelen
 function collectJoinerInput() {
     const input = {
         up: p2.input.up || false,
@@ -1694,6 +1669,10 @@ const DEFAULT_STATES = {
                 bloodEnabled: true,
 				    hasEnergy: true,
 					headgear: null,
+					shoes: 'none',
+glasses: 'none',
+shoulderPads: 'none',
+belt: 'none',
 					profilePic: null, 
 					bio: "",
 					 vpRequired: 0,
@@ -1709,16 +1688,16 @@ const DEFAULT_STATES = {
             };
 const HEADGEAR_TYPES = [
     'none',
-    // Kapsels
-    'afro', 'mohawk', 'dreadlocks', 'ponytail', 'bun', 'long_hair', 'short_hair', 'bald',
-    // Petten & mutsen
-    'baseball_cap', 'beanie', 'beret', 'fedora', 'bowler_hat', 'top_hat', 'straw_hat', 'cowboy_hat',
-    // Helmen
-    'knight_helmet', 'viking_helmet', 'space_helmet', 'construction_helmet', 'military_helmet', 'biker_helmet',
-    // Kronen & accessoires
-    'crown', 'tiara', 'headband', 'bandana', 'hood', 'turban', 'sombrero', 'pith_helmet', 'sun_hat'
+     'afro', 'mohawk', 'dreadlocks', 'ponytail', 'bun', 'long_hair', 'short_hair', 'bald',
+     'baseball_cap', 'beanie', 'beret', 'fedora', 'bowler_hat', 'top_hat', 'straw_hat', 'cowboy_hat',
+     'knight_helmet', 'viking_helmet', 'space_helmet', 'construction_helmet', 'military_helmet', 'biker_helmet',
+     'crown', 'tiara', 'headband', 'bandana', 'hood', 'turban', 'sombrero', 'pith_helmet', 'sun_hat'
 ];
 
+const SHOE_TYPES = ['none', 'boots', 'sneakers', 'high_heels', 'sandals', 'combat_boots'];
+const GLASSES_TYPES = ['none', 'sunglasses', 'monocle', 'visor', 'nerd_glasses', 'aviator'];
+const SHOULDER_PAD_TYPES = ['none', 'spiked', 'round', 'square', 'winged', 'bulky'];
+const BELT_TYPES = ['none', 'leather', 'studded', 'golden', 'silver', 'utility'];
 
 let travelCubes = [];
 let textCubes=[];
@@ -1767,8 +1746,7 @@ let textCubes=[];
 
             let gameRunning = true;
             let gameTimer = 99;
-            let timerInterval = null;
-            let roundActive = true;
+             let roundActive = true;
             let winner = null;
             let roundCount = 0;
 			let fightDisplayTimer = 0;
@@ -1784,6 +1762,9 @@ const FONT_LIST = [
     'Montserrat', 'Poppins', 'Oswald', 'Raleway', 'Merriweather',
     'Playfair Display', 'Ubuntu', 'Nunito', 'Quicksand', 'Work Sans'
 ];
+
+let timerFrameCounter = 0;         
+const TIMER_STEP_FRAMES = 30;        
 
             let project = {
                 characters: { fighter: { ...DEFAULT_CHARACTER, id: 'fighter' } },
@@ -1829,11 +1810,11 @@ fatalityColor: '#ff0000',
     cameraOffsetY: 0, 
      victoryPoints: 0,         
     vpPerWin: 1,
-    healthColorP1: '#b1c40f',      // primaire kleur P1 (groen/geel)
-    healthColorP2: '#b1c40f',      // primaire kleur P2
-    healthBadColor: '#e74c3c',     // kleur bij lage HP (rood)
-    energyColor: '#3498db',        // energiebalk kleur
-    energyFullColor: '#f1c40f',    // energiebalk bij 100% (goud)
+    healthColorP1: '#b1c40f',      
+    healthColorP2: '#b1c40f',      
+    healthBadColor: '#e74c3c',     
+    energyColor: '#3498db',       
+    energyFullColor: '#f1c40f',    
     timerColor: '#ffffff',
     introOutroColor: '#ffffff',
     ringOutColor: '#ff4444',
@@ -1887,9 +1868,7 @@ aiParams: DEFAULT_AI_PARAMS
 }
 }
 
- 
-// Ensure controls always exist
-if (!project.settings.controls || typeof project.settings.controls !== 'object') {
+ if (!project.settings.controls || typeof project.settings.controls !== 'object') {
     project.settings.controls = getDefaultControls();
 } else {
     const defaults = getDefaultControls();
@@ -1901,7 +1880,6 @@ if (!project.settings.controls || typeof project.settings.controls !== 'object')
                 if (!project.settings.controls[player][type]) {
                     project.settings.controls[player][type] = defaults[player][type];
                 }
-                // Fill missing actions
                 for (const action in defaults[player][type]) {
                     if (!project.settings.controls[player][type][action]) {
                         project.settings.controls[player][type][action] = defaults[player][type][action];
@@ -1927,8 +1905,6 @@ if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object')
         }
     }
 }
-
-
             let p1 = null,
                 p2 = null;
             const spriteImages = {};
@@ -1984,29 +1960,16 @@ let networkUID  = null
                 const btn = document.getElementById('pauseBtn');
                 if (gamePaused) {
                     overlay.classList.add('open');
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                    }
-                    btn.textContent = '▶️ Resume';
+                      btn.textContent = '▶️ Resume';
                 } else {
                     overlay.classList.remove('open');
                     if (currentMode !== 'training' && gameTimer > 0) {
-                        timerInterval = setInterval(() => {
-                            if (roundActive && gameTimer > 0) {
-                                gameTimer -= 0.5;
-                                if (gameTimer < 0) gameTimer = 0;
-                                timerDisplay.textContent = Math.ceil(gameTimer);
-                            }
-                        }, 500);
-                    }
+                     }
                     btn.textContent = '⏸️ Pause';
                     gamepadStartPressed = false;
                 }
             }
-			
-			
-  
+			  
 function toggleScanlines(show) {
     let overlay = document.getElementById('scanlineOverlay');
     if (show) {
@@ -2036,10 +1999,8 @@ function toggleScanlines(show) {
     }
 }
 function applyScreenFilter(type) {
-     // verberg scanlines
     toggleScanlines(false);
 
-    // zet CSS-filter
     let filter = 'none';
     switch(type) {
         case 'blur': filter = 'blur(2px)'; break;
@@ -2122,13 +2083,11 @@ function updateWeather() {
         p.x += p.vx;
         p.y += p.vy;
 
-        // hergebruik
         if (p.y > H + 50) { p.y = -50; p.x = Math.random() * W; }
         if (p.x > W + 50) p.x = -50;
         if (p.x < -50) p.x = W + 50;
     }
 
-    // Bliksem voor storm
     if (type === 'storm' && Math.random() < 0.005) {
         weatherState.flash = 10;
     }
@@ -2180,7 +2139,6 @@ function drawWeather(ctx, camera) {
         }
     }
 
-    // Bliksemflits
     if (weatherState.flash > 0) {
         ctx.fillStyle = `rgba(255, 255, 255, ${weatherState.flash / 10 * 0.6})`;
         ctx.fillRect(0, 0, W, H);
@@ -2281,7 +2239,7 @@ else flawlessVictory = false;
 startFightTimer = 180;
 startFightSoundPlayed = false;
 ringOutOccurred = false;
-
+  timerFrameCounter = 0;
                 const introP1 = getRandomText(p1.introText);
                 const introP2 = getRandomText(p2.introText);
                 if (introP1) showIntroOutroText(1, introP1, true);
@@ -2290,14 +2248,7 @@ ringOutOccurred = false;
 
                 gameTimer = project.settings.timerSeconds || 99;
                 timerDisplay.textContent = gameTimer;
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    if (roundActive && gameTimer > 0) {
-                        gameTimer -= 0.5;
-                        if (gameTimer < 0) gameTimer = 0;
                         timerDisplay.textContent = Math.ceil(gameTimer);
-                    }
-                }, 500);
 				resetFighterUI();
 				updatePlayerIcons(); 
                 updateSinglePlayerHUD();
@@ -2347,12 +2298,9 @@ ringOutOccurred = false;
 
     // ─── TEGENSTANDERPOOL: alle karakters   EN behalve bosses ───
     singlePlayer.opponentPool = allChars.filter(id => {
-       // if (id === playerChar) return false;
-        // Als het een boss is, niet in de pool (die komt alleen in de laatste ronde)
         return !project.characters[id].isBoss;
     });
 
-    // Als de pool leeg is, val terug op alle karakters behalve de speler
     if (singlePlayer.opponentPool.length === 0) {
         singlePlayer.opponentPool = allChars.filter(id => id !== playerChar);
     }
@@ -2380,7 +2328,7 @@ function startNextSinglePlayerMatch() {
     startFightTimer = 180;
     startFightSoundPlayed = false;
     ringOutOccurred = false;
-
+  timerFrameCounter = 0;
     const introP1 = getRandomText(p1.introText);
     const introP2 = getRandomText(p2.introText);
     if (introP1) showIntroOutroText(1, introP1, true);
@@ -2391,17 +2339,13 @@ function startNextSinglePlayerMatch() {
     const isLastRound = (singlePlayer.matchNumber === singlePlayer.maxRounds);
 
     if (isLastRound) {
-        // Laatste ronde: probeer een willekeurige boss te kiezen
         const bossId = getRandomBossCharacter();
         if (bossId) {
             opponentId = bossId;
         } else {
-            // Geen boss beschikbaar → val terug op willekeurige tegenstander uit de pool
             opponentId = singlePlayer.opponentPool[Math.floor(Math.random() * singlePlayer.opponentPool.length)];
         }
     } else {
-        // Normale ronde: kies uit de pool (geen bosses)
-        // Voorkom directe herhaling indien mogelijk
         do {
             opponentId = singlePlayer.opponentPool[Math.floor(Math.random() * singlePlayer.opponentPool.length)];
         } while (opponentId === singlePlayer.currentOpponentId && singlePlayer.opponentPool.length > 1);
@@ -2433,14 +2377,7 @@ function startNextSinglePlayerMatch() {
     // ─── TIMER ───
     gameTimer = project.settings.timerSeconds || 99;
     timerDisplay.textContent = gameTimer;
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        if (roundActive && gameTimer > 0) {
-            gameTimer -= 0.5;
-            if (gameTimer < 0) gameTimer = 0;
             timerDisplay.textContent = Math.ceil(gameTimer);
-        }
-    }, 500);
 
     // ─── UI BIJWERKEN ───
     updateWinIndicators();
@@ -2483,10 +2420,8 @@ function startNextSinglePlayerMatch() {
                 info.textContent = text;
             }
 function resetPositions() {
-    // Zet de vechters op de startposities
     p1.x = project.settings.startX1 || 470;
     p2.x = project.settings.startX2 || 740;
-    // Als laneMode aan staat, zet de lane op 1 (standaard)
     if (laneMode) {
         p1.lane = 1;
         p2.lane = 1;
@@ -2496,10 +2431,8 @@ function resetPositions() {
         p1.y = GROUND_Y - p1.h;
         p2.y = GROUND_Y - p2.h;
     }
-    // Reset snelheid en val
     p1.vx = 0; p1.vy = 0; p1.onGround = true;
     p2.vx = 0; p2.vy = 0; p2.onGround = true;
-    // Update de camera direct
     updateCamera();
 }
 
@@ -2546,7 +2479,6 @@ function updateWinIndicators() {
 }
 function awardVictoryPoints() {
     if (!project.settings.vpPerWin) return;
-    // Alleen toekennen in toegestane modi
     if (!VP_ALLOWED_MODES.includes(currentMode)) return;
 
     const vp = (project.settings.victoryPoints || 0) + project.settings.vpPerWin;
@@ -2620,7 +2552,6 @@ function loadStageMedia(stageId, dataUrl) {
     if (element.complete) onLoad();
 }
  
-// Lijst met willekeurige namen (bovenin geplaatst)
 const RANDOM_NAMES = [
     'Blaze', 'Shadow', 'Frost', 'Storm', 'Fury', 'Ghost', 'Titan', 'Crimson',
     'Sable', 'Viper', 'Wraith', 'Raven', 'Phoenix', 'Onyx', 'Slash', 'Rex',
@@ -2661,10 +2592,10 @@ const BIO_TRAITS = [
     return templates[Math.floor(Math.random() * templates.length)];
 }
             function randomizeCharacter(char) {
-                char.headSize = Math.floor(12 + Math.random() * 24);
+                char.headSize = Math.floor(12 + Math.random() * 20);
                 char.armLength = Math.floor(20 + Math.random() * 30);
                 char.torsoHeight = Math.floor(30 + Math.random() * 40);
-                char.legLength = Math.floor(20 + Math.random() * 30);
+                char.legLength = Math.floor(21 + Math.random() * 26);
                 const headShapes = ['circle', 'oval', 'triangle', 'square'];
                 const torsoShapes = ['rect', 'oval', 'triangle'];
                 char.headShape = headShapes[Math.floor(Math.random() * headShapes.length)];
@@ -2683,6 +2614,10 @@ const BIO_TRAITS = [
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
     char.bio = generateRandomBio(char.name || 'Motivated');
 			char.superJumpPower =	  parseInt(-14 - Math.random() * 10)  
+char.shoes = SHOE_TYPES[Math.floor(Math.random() * SHOE_TYPES.length)];
+char.glasses = GLASSES_TYPES[Math.floor(Math.random() * GLASSES_TYPES.length)];
+char.shoulderPads = SHOULDER_PAD_TYPES[Math.floor(Math.random() * SHOULDER_PAD_TYPES.length)];
+char.belt = BELT_TYPES[Math.floor(Math.random() * BELT_TYPES.length)];
 
 
             }
@@ -2690,11 +2625,9 @@ function getCurrentDir(fighter) {
     const i = fighter.input;
     const f = fighter.facing;
 
-    // forward/back zelf bepalen (zonder te wachten op update())
     const forward = (f === 1 && i.right) || (f === -1 && i.left);
     const back    = (f === 1 && i.left)  || (f === -1 && i.right);
 
-    // Zelfde logica als voorheen, maar met lokaal berekende forward/back
     if (forward && back)        return 'b+f';
     if (forward && i.down)      return 'd+f';
     if (forward && i.up)        return 'u+f';
@@ -2715,12 +2648,10 @@ function getCurrentDir(fighter) {
     let button = null;
     let dirs = [];
 
-    // Laatste deel is een knop als het een getal is
     if (/^\d+$/.test(parts[parts.length - 1])) {
         button = parts.pop();
     }
 
-    // Alles wat overblijft zijn richtingen
     dirs = parts.filter(p => p.length > 0);
 
     return { dirs, button };
@@ -2740,7 +2671,6 @@ function matchCommand(history, buttonPressed, command) {
 
     if (dirs.length === 0) return true;
 
-    // Alleen richtingen uit history halen (geen cijfers)
     const dirHistory = history.filter(entry => !/^\d+$/.test(entry));
 
     // Flatten gecombineerde inputs zoals "b+d" → ["b","d"]
@@ -2753,7 +2683,6 @@ function matchCommand(history, buttonPressed, command) {
         }
     }
 
-    // Moet exact matchen aan het einde van de geschiedenis
     if (flatDirHistory.length < dirs.length) return false;
 
     const startIdx = flatDirHistory.length - dirs.length;
@@ -2812,7 +2741,6 @@ class Projectile {
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
 
-        // Animatie: verhoog offset binnen startFrame..endFrame
         this.animTimer++;
         if (this.animTimer >= this.animSpeed) {
             this.animTimer = 0;
@@ -2910,7 +2838,6 @@ class Projectile {
             const fh = owner?.spriteFrameHeight ?? 64;
             const cols = owner?.spriteCols ?? 8;
 
-            // Bereken de absolute frame-index: row * cols + (startFrame + currentOffset)
             const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
             const col = frameIndex % cols;
             const row = Math.floor(frameIndex / cols);
@@ -3000,7 +2927,6 @@ class Mine {
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
 
-        // Animatie
         this.animTimer++;
         if (this.animTimer >= this.animSpeed) {
             this.animTimer = 0;
@@ -3035,7 +2961,6 @@ class Mine {
         let blocked = false;
         if (target.state === 'block' || target.state === 'block_crouch') {
             if (target.state === 'block') {
-                // stand-block blokkeert low niet
             } else {
                 blocked = true;
                 if (this.chipDamage) {
@@ -3141,23 +3066,13 @@ if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0
 }
 function applyBarStyles() {
  
- //   const healthHeight = project.settings.healthBarHeight || 16;
     const healthRadius = project.settings.healthBarBorderRadius;// || 12;
- //   healthP1.style.height = healthHeight + 'px';
-  //  healthP1.style.borderRadius = healthRadius + 'px';
-  //  healthP2.style.height = healthHeight + 'px';
-  //  healthP2.style.borderRadius = healthRadius + 'px';
 
     document.querySelectorAll('.health-bar').forEach(bar => {
         bar.style.borderRadius = healthRadius + 'px';
     });
 
-  //  const energyHeight = project.settings.energyBarHeight || 10;
      const energyRadius = project.settings.energyBarBorderRadius;// || 4;
-   // document.querySelectorAll('.energy-track').forEach(track => {
-   //     track.style.height = energyHeight + 'px';
-   //     track.style.borderRadius = energyRadius + 'px';
-   // });
     document.querySelectorAll('.energy-bar').forEach(bar => {
         bar.style.borderRadius = energyRadius + 'px';
     });
@@ -3230,6 +3145,10 @@ this.onGround = true;
                     this.input = { up: false, down: false, left: false, right: false, forward: false, back: false };
                     this.customSprite = null;
 					this.headgear = charData.headgear || null;
+					this.shoes = charData.shoes || 'none';
+this.glasses = charData.glasses || 'none';
+this.shoulderPads = charData.shoulderPads || 'none';
+this.belt = charData.belt || 'none'; 
                     this._aiTimer = 0;
                     this.lane = 1;
 					this.hasEnergy = charData.hasEnergy !== undefined ? charData.hasEnergy : true;
@@ -3266,7 +3185,7 @@ this._currentMoveHeight = 'mid';
                     // ─── Energie ──────────────────────────────────
                     this.energy = 0;
                     this.maxEnergy = 100;
-                    this.energyChargeRate = 0.15; // per frame
+                    this.energyChargeRate = 0.15; 
 
 this.counterActive = false;
 this.counterType = 'none';
@@ -3349,6 +3268,10 @@ this.BlockCounter=0;
                     this.speed = charData.speed || 4;
                     this.gravity = charData.gravity || 0.6;
 					this.headgear = charData.headgear || null;
+					this.shoes = charData.shoes || 'none';
+this.glasses = charData.glasses || 'none';
+this.shoulderPads = charData.shoulderPads || 'none';
+this.belt = charData.belt || 'none'; 
                     this.bloodParticles = [];
                     this._currentMoveHeight = 'mid';
                     this._currentMoveUnblockable = false;
@@ -3448,9 +3371,7 @@ isDirectionActive(dir) {
                     if (idx >= 0 && idx < this.moves.length) return this.moves[idx];
                     return null;
                 }
-// Haal de configuratie voor een bepaalde toestand op
 getStateConfig(state) {
-    // Als er een expliciete configuratie in this.states staat, gebruik die
     const explicit = this.states[state];
     if (explicit) {
         return {
@@ -3460,7 +3381,6 @@ getStateConfig(state) {
             image: explicit.image || null
         };
     }
-    // Anders de oude vaste mapping gebruiken (alleen row, frames 0..7)
     return {
         row: this._defaultRow(state),
         startFrame: 0,
@@ -3469,7 +3389,6 @@ getStateConfig(state) {
     };
 }
 
-// De oude vaste rij‑mapping (zoals in getSpriteRow)
 _defaultRow(state) {
     const map = {
         'idle': 0, 'walk': 1, 'jump': 2, 'crouch': 3,
@@ -3537,13 +3456,10 @@ if (move.type  == 'projectile' ||  move.type  == 'mine') {
 
 }
    if (move.speed < 3) {
-            move.speed = 3; // non visual secret
+            move.speed = 3; 
         }
 	    this._lastAttackTime = now;
 
-	
-
-    // Energie controle
     if (this.hasEnergy) {
         const required = parseInt(move.energyRequired) || 0;
         if (required > 0 && this.energy < required) return false;
@@ -3563,7 +3479,6 @@ if (move.type  == 'projectile' ||  move.type  == 'mine') {
         if (move.teleportX !== 0 || move.teleportY !== 0) {
             this.x += move.teleportX * (-this.facing);
             this.y -= move.teleportY;
-            // Begrenzing
             const leftBound = project.settings.ringOutLeft ?? -100;
             const rightBound = project.settings.ringOutRight ?? (1280 + 100);
             if (this.x < leftBound) this.x = leftBound;
@@ -3586,17 +3501,12 @@ if (move.type  == 'projectile' ||  move.type  == 'mine') {
             }
         }
     }
-	
-	
-	
-    // Energie verbruiken
     if (this.hasEnergy) {
         const required = parseInt(move.energyRequired) || 0;
         if (required > 0) {  
             this.energy = Math.max(0, this.energy - required);
         }
     }
-
  // ─── Projectiel ─────────────────────────────────
 if (move.type === 'projectile') {
     if (this._projectileCooldown > 0) return false;
@@ -3625,7 +3535,6 @@ if (move.type === 'projectile') {
             this.projectileMijnTimer = 30;
         }
     }
-
     const startDist = (move.startDistance && move.startDistance > 0) ? move.startDistance : 30;
 
     const proj = new Projectile(
@@ -3682,7 +3591,7 @@ if (move.type === 'mine') {
         }
     }
 const offsetX = move.startDistance || 0;
-const distance = this.w / 2 + offsetX;   // afstand van midden tot spawn
+const distance = this.w / 2 + offsetX;   
 var mineX = this.cx + this.facing * distance;
 if( move.mineImage || sprite  )
 {
@@ -3720,7 +3629,6 @@ const mineY = this.y + this.h - 10;
     this._currentMoveHeight = move.height || 'mid';
     this._currentMoveUnblockable = move.unblockable || false;
 
-    // History cleanup (optioneel)
     if (this._history && this._history.length > 0 && move.command) {
         const { dirs, button } = parseCommand(move.command);
         const totalParts = dirs.length + (button ? 1 : 0);
@@ -3748,10 +3656,9 @@ const mineY = this.y + this.h - 10;
 	
     // ─── Healing bij negatieve damage ──────────────
     if (dmg < 0) {
-        const heal = -dmg; // bijv. -8 wordt 8
+        const heal = -dmg; 
         this.health = Math.min(this.maxHealth, this.health + heal);
         this.playSound('recover');
-        // Geen flinch, geen combo, geen bloed, geen knockback
         return;
     }
 
@@ -3774,10 +3681,6 @@ const mineY = this.y + this.h - 10;
 	
 			  
 			      if (fatalityActive && this.health <= 0.1  ) {
-        // Toon wel een hit-effect voor de show
-     //   this.hitTimer = 10;
-     //   this.state = 'hit';
-        // Geen health vermindering
         return;
     }
     this.health = Math.max(0, this.health - dmg);
@@ -3855,7 +3758,7 @@ const mineY = this.y + this.h - 10;
     if (newLane !== this.lane) {
         this.lane = newLane;
         this.y = LANE_Y[this.lane] - this.h;
-        this.groundY = LANE_Y[this.lane]; // ← toevoegen
+        this.groundY = LANE_Y[this.lane]; 
         this.vy = 0;
         this.onGround = true;
         this._laneCooldown = 10;
@@ -3880,18 +3783,7 @@ const mineY = this.y + this.h - 10;
 				
 
                 update(opponent) {
-				
-				    if (fatalityActive) {
-        const isLoser = (winner === 'p1' && this === p2) || (winner === 'p2' && this === p1);
-        if (isLoser) {
-            this.state = 'hit';
-            this.hitTimer = 999;
-            this.onGround = true;
-            this.vy = 0;
-            this.vx = 0;
-            this.input = { up: false, down: false, left: false, right: false };
-         }
-    }
+ 
                     this.input.forward = (this.facing === 1 && this.input.right) || (this.facing === -1 && this.input.left);
                     this.input.back = (this.facing === 1 && this.input.left) || (this.facing === -1 && this.input.right);
 
@@ -3930,12 +3822,11 @@ if (this.counterActive) {
 }
 
 if (this.state === 'hit' && this.canRecoverFromFlinch && this.hitTimer > 0) {
-    // Check of de speler down + attack1 (knop 1) ingedrukt heeft
     if (this.input.down && this._pendingButton === '1') {
         this.hitTimer = 0;
         this.state = 'idle';
-        this._pendingButton = null;  // voorkom dat hij nog een aanval start
-        this._recoverFlash = 15;     // visuele flits
+        this._pendingButton = null;  
+        this._recoverFlash = 15;     
         this.playSound('recover');
 		this.statusMessage = 'RECOVER!';
 this.statusTimer = 30;
@@ -4101,7 +3992,6 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
                                     const dist = Math.abs(dx);
                                     const dir = Math.sign(dx);
                                     if (laneMode && this.lane !== opponent.lane) {
-                                        // geen hit
                                     } else if (this.facing === dir && dist < move.range) {
                                         const dy = Math.abs(opponent.cy - this.cy);
                                         if (dy < 80) {
@@ -4116,14 +4006,11 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
                 else if (counterType === 'highmid' && (attackHeight === 'high' || attackHeight === 'mid')) match = true;
 
                 if (match) {
-                    // Annuleer eigen aanval
                     this.attackActive = false;
                     this.state = 'idle';
                     this.attackTimer = 0;
-                    // Schade toepassen op aanvaller
                     const counterDmg = opponent.counterMove ? opponent.counterMove.damage : 0;
                     this.takeDamage(counterDmg, opponent.facing, false);
-                    // Reset de counter van de tegenstander
                     opponent.counterActive = false;
                     opponent.counterTimer = 0;
                     opponent.counterMove = null;
@@ -4131,12 +4018,10 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
 opponent.statusTimer = 30;
 
                     if (opponent.state === 'counter') opponent.state = 'idle';
-                    // Geluid (optioneel)
                     opponent.playSound('counter');
-                    return; // geen verdere schade
+                    return; 
                 }
-            }
-			
+            }			
                                             this.attackHit = true;
                                             const isBlocking = (opponent.state === 'block' || opponent.state ===
                                                 'block_crouch');
@@ -4228,7 +4113,6 @@ if (move.generatesEnergy) {
                                         if (Math.abs(this.vx) < 0.1) this.vx = 0;
                                     }
 
-                                    // Springen
                                     if (!laneMode && this.input.up) {
 									let superJump = false;
 if (this.input.up && !this._prevUp) {
@@ -4289,7 +4173,6 @@ const jumpPower = superJump ? this.superJumpPower : -12;
                                             this._upPressTime = 0;
                                         }
                                     }
-
                                     // ─── KNIELEN ──────────────────────────────────
                                     if (this.input.down && this.onGround && !moving && Math.abs(this.vx) < 0.5 &&
                                         this.state !== 'jump' && !this._laneSwitchThisFrame) {
@@ -4347,7 +4230,6 @@ const jumpPower = superJump ? this.superJumpPower : -12;
                                         if (Math.abs(this.vx) < 0.1) this.vx = 0;
                                     }
 
-                                    // Springen (in lane mode)
                                     if (laneMode && this.input.up) {
 									let superJump = false;
 if (this.input.up && !this._prevUp) {
@@ -4375,8 +4257,6 @@ if (this.input.up && !this._prevUp) {
         }
     }
 }
-
-
                                     
 const jumpPower = superJump ? this.superJumpPower : -12;
 const doubleJumpPower = superJump ? this.superJumpPower * 0.9 : -10;
@@ -4418,7 +4298,6 @@ const doubleJumpPower = superJump ? this.superJumpPower * 0.9 : -10;
                                         }
                                     }
 
-                                    // Knielen
                                     if (this.input.down && this.onGround && !moving && Math.abs(this.vx) < 0.5 &&
                                         this.state !== 'jump' && !this._laneSwitchThisFrame) {
                                         this.state = 'crouch';
@@ -4444,12 +4323,11 @@ const doubleJumpPower = superJump ? this.superJumpPower * 0.9 : -10;
                     if (this.vy > 12) this.vy = 12;
                     this.x += this.vx;
                     this.y += this.vy;
-                    this.onGround = false;
-					
+                    this.onGround = false;					
 					
 // ─── Beperk de maximale afstand tussen de twee vechters ───
-const viewWidth = W / camera.zoom; // zichtbare breedte in wereldpixels
-const MAX_DIST_FRACTION = 0.94;     // 94% van de viewport – pas aan naar wens
+const viewWidth = W / camera.zoom; 
+const MAX_DIST_FRACTION = 0.94;     
 const MAX_DIST = viewWidth * MAX_DIST_FRACTION;
 
 const dx = p2.cx - p1.cx;
@@ -4457,7 +4335,6 @@ const dist = Math.abs(dx);
 if (dist > MAX_DIST) {
     const overshoot = dist - MAX_DIST;
     const move = overshoot / 2;
-    // Schuif beide vechters naar elkaar toe (symmetrisch)
     if (dx > 0) {
         p1.x += move;
         p2.x -= move;
@@ -4467,7 +4344,6 @@ if (dist > MAX_DIST) {
     }
 }
 
-// ─── Behoud de oorspronkelijke limietlogica (alleen als ring‑out uit staat) ───
 if (!project.settings.ringOutEnabled) {
     const leftMargin = project.settings.borderWithoutRingOUTLeft ?? 20;
     const rightMargin = project.settings.borderWithoutRingOUTRight ?? 20;
@@ -4488,7 +4364,7 @@ if (!project.settings.ringOutEnabled) {
         this.onGround = true;
         this.groundY = GROUND_Y;
         this.jumpCount = 0;
-        this._ignorePlatform = null; // ← reset
+        this._ignorePlatform = null; 
         if (this.state === 'jump') this.state = 'idle';
      }
 } else {
@@ -4503,11 +4379,10 @@ if (!project.settings.ringOutEnabled) {
                          }
                     }
 
-                if (!laneMode && !this.onGround) {// ─── In update() ────────────────────────────────────────────
+                if (!laneMode && !this.onGround) {
 const stage = project.stages.find(s => s.id === project.currentStageId);
 const marginL = stage?.platformMarginLeft ?? 3;
 const marginR = stage?.platformMarginRight ?? 3;
-// yOff wordt hier NIET gebruikt voor fysica!
 
 let onPlatform = false;
 for (const p of springPlatforms) {
@@ -4519,7 +4394,7 @@ for (const p of springPlatforms) {
     const landing = (this.vy >= 0 && feetY >= p.y && prevFeetY <= p.y + 5);
 
     if (isOver && landing) {
-        this.y = p.y - this.h;          // ← GEEN offset
+        this.y = p.y - this.h;        
         this.vy = 0;
         this.onGround = true;
         this.groundY = p.y;
@@ -4529,7 +4404,7 @@ for (const p of springPlatforms) {
         onPlatform = true;
         break;
     } else if (isOver && this.onGround) {
-        const expectedY = p.y - this.h;  // ← GEEN offset
+        const expectedY = p.y - this.h; 
         if (Math.abs(this.y - expectedY) > 0.5) {
             this.y = expectedY;
             this.groundY = p.y;
@@ -4571,7 +4446,6 @@ if (!laneMode && this.input.down && !this._prevDown) {
 
     if (onPlatform) {
         if (now - this._dropDownPressTime < DOUBLE_TAP_MS && this._dropDownPressCount > 0) {
-            // Dubbel tik → val alleen door dit platform
             this._ignorePlatform = onPlatform;
             this.onGround = false;
             this._dropDownPressTime = 0;
@@ -4585,7 +4459,6 @@ if (!laneMode && this.input.down && !this._prevDown) {
         this._dropDownPressCount = 0;
     }
 }
-
                     // ─── RING‑OUT CHECK ──────────────────────────────────────────────
                     if (project.settings.ringOutEnabled && !isSoloLevel) {
                         const left = project.settings.ringOutLeft ?? -100;
@@ -4619,7 +4492,6 @@ const cfg = this._cachedStateConfig;
     const animSpeed = this.state === 'walk' ? 6 : 10;
     if (this.animTimer >= animSpeed) {
         this.animTimer = 0;
-        // Blijf binnen start..end
         this.animFrame = start + ((this.animFrame - start + 1) % range);
     }
 }
@@ -4639,53 +4511,13 @@ const cfg = this._cachedStateConfig;
                     this.updateGroundY(springPlatforms);
 
                     if (this.state === 'hit' && this.hitTimer === 0 && this.health > 0) this.state = 'idle';
-                    if (this.state === 'ko' && this.health > 0) this.state = 'idle';
+                    if (this.state === 'ko' && this.health > 0) this.state = 'idle';       
 
-                    
-                    // ─── HISTORY ──────────────────────────────────────────────────
-function matchCommand(history, buttonPressed, command) {
-    if (!command || typeof command !== 'string' || command.trim() === '') return false;
-
-    const { dirs, button } = parseCommand(command);
-
-    // Knop check
-    if (button !== null) {
-        if (buttonPressed !== button) return false;
-    } else if (buttonPressed !== null && buttonPressed !== "") { 
-        return false; 
-    }
-
-    if (dirs.length === 0) return true;
-
-    // Alleen richtingen uit history halen (geen cijfers)
-    const dirHistory = history.filter(entry => !/^\d+$/.test(entry));
-    if (dirHistory.length === 0) return false;
-
-    // Slimme, flexibele controle vanaf het einde van de geschiedenis
-    let dirIdx = dirs.length - 1;
-    for (let hIdx = dirHistory.length - 1; hIdx >= 0 && dirIdx >= 0; hIdx--) {
-        const currentTarget = dirs[dirIdx];
-        const histEntry = dirHistory[hIdx];
-        
-        // Controleer of de exacte richting erin zit (bijv. 'b' in 'b+f' is een geldige match)
-        if (histEntry === currentTarget || histEntry.split('+').includes(currentTarget)) {
-            dirIdx--; // Match gevonden! Ga naar de vorige vereiste richting in de combo
-        } else {
-            return false; // Combo gebroken: er is een verkeerde richting gedetecteerd aan het eind
-        }
-    }
-
-    // Als dirIdx onder de 0 komt, zijn alle benodigde inputs in de juiste volgorde gevonden
-    return dirIdx < 0;
-}
-
-// Verwijder te oude inputs (1 seconde buffer)
-const now = performance.now();
+ const now = performance.now();
 while (this._history.length > 0 && now - this._historyTimes[0] > 500) {
     this._history.shift();
     this._historyTimes.shift();
 }
-
                     if (this._pendingButton) {
                         this._history.push(this._pendingButton);
                         this._historyTimes.push(now);
@@ -4731,7 +4563,6 @@ while (this._history.length > 0 && now - this._historyTimes[0] > 500) {
                         }
                     }
                 }
-
                 getSpriteRow() {
                     const map = {
                         'idle': 0,
@@ -4763,9 +4594,8 @@ if (this.onGround && this.groundY !== GROUND_Y) {
     const stage = project.stages.find(s => s.id === project.currentStageId);
     const yOff = stage?.platformYOffset ?? 0;
 
-    // Clamp: de sprite mag niet onder de grond komen
-    const maxOffset = this.groundY - this.y; // maximale visuele daling (tot grondniveau)
-    visualOffsetWorld = Math.min(yOff, maxOffset); // niet lager dan de grond
+    const maxOffset = this.groundY - this.y; 
+    visualOffsetWorld = Math.min(yOff, maxOffset); 
 }
     const sx = (this.x - camera.offsetX) * camera.zoom;
     const sy = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom;
@@ -4789,12 +4619,7 @@ if (this.statusTimer > 0) {
      ctx.textAlign = 'center';
     const font = project.settings.statusFont ||  "'Segoe UI', system-ui, sans-serif";
     ctx.font = `bold ${26}px ${font}`;
-    let color = project.settings.statusColor || '#6fa8dc'; // atm color is hidden
-    // Pas kleur aan per type (optioneel)
-   // if (this.statusMessage === 'HIT!') color = '#ff4444';
-  //  else if (this.statusMessage === 'BLOCK!') color = '#44aaff';
-  //  else if (this.statusMessage === 'COUNTER!') color = '#ffaa00';
-  //  else if (this.statusMessage === 'RECOVER!') color = '#44ff88';
+    let color = project.settings.statusColor || '#6fa8dc'; 
     ctx.fillStyle = color;
     ctx.shadowColor = 'rgba(255,255,255,0.3)';
         const textY = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom - 60 * camera.zoom;
@@ -4812,25 +4637,18 @@ if (this.statusTimer > 0) {
 
  // ─── Toon huidige input (P1, training) ────────────────────────
 if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showMoveNamesInTraining) {
-    // Sla de huidige transformatie op
     ctx.save();
-    // Reset de transformatie naar identiteit (geen schaal/translatie)
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     
-    // Stel de tekststijlen in op een vaste grootte (in schermpixels)
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = 'bold 14px monospace';
-    
-    // Bepaal een vaste positie linksboven (bijv. 20, 20)
     const x = 20;
     let y = 155;
     const lineHeight = 17;
-    
-    // Teken een zwarte achtergrond (kader)
     const padding = 8;
-    const maxWidth = 233; // geschatte breedte
-    const totalHeight = 12.5 * lineHeight + padding * 2; // aantal regels * lineHeight + padding
+    const maxWidth = 233; 
+    const totalHeight = 12.5 * lineHeight + padding * 2; 
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
      ctx.fillRect(x - padding, y - padding, maxWidth, totalHeight);
@@ -4853,8 +4671,6 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         ctx.fillText(`  ${dir}: ${status}`, x, y);
         y += lineHeight;
     }
-    
-  //  y += lineHeight * 0.5;
     ctx.fillStyle = '#ffdd44';
     ctx.fillText('Attacks (recently pressed):', x, y);
     y += lineHeight;
@@ -4877,13 +4693,8 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         ctx.fillText(`  attack${i+1}: ${status}`, x, y);
         y += lineHeight;
     }
-	
-
-    
-    // Herstel de oorspronkelijke transformatie
     ctx.restore();
-}
-	
+}	
 	// ─── COUNTER SHIELD ──────────────────────────────
  if (project.settings.showCounterShield  &&this.counterActive) {
     ctx.save();
@@ -4913,10 +4724,8 @@ ctx.fillText(`FPS: ${fps}`, x, y);
     }
 
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
-    // ctx.shadowBlur = 20;
     ctx.strokeStyle = color;
     ctx.lineWidth = 4 * camera.zoom;
-    // ctx.shadowBlur = 30;
     ctx.shadowColor = color;
 
     if (shape === 'circle') {
@@ -4924,7 +4733,6 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         ctx.arc(cx, cy, baseRadius, 0, Math.PI * 2);
         ctx.stroke();
     } else if (shape === 'oval_low') {
-        // Ovaal lager (meer horizontaal, naar beneden verplaatst)
         const rx = baseRadius * 1.0;
         const ry = baseRadius * 0.7;
         const yOff = baseRadius * 0.3;
@@ -4932,7 +4740,6 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         ctx.ellipse(cx, cy + yOff, rx, ry, 0, 0, Math.PI * 2);
         ctx.stroke();
     } else if (shape === 'oval_high') {
-        // Ovaal hoger (meer verticaal, naar boven verplaatst)
         const rx = baseRadius * 1.0;
         const ry = baseRadius * 0.7;
         const yOff = -baseRadius * 0.5;
@@ -4956,13 +4763,11 @@ ctx.fillText(`FPS: ${fps}`, x, y);
         } else {
             ctx.fillStyle = p.color;
             ctx.shadowColor = 'rgba(200,0,0,0.3)';
-            // ctx.shadowBlur = 10;
             ctx.beginPath();
             ctx.arc(px, py, p.radius * camera.zoom * alpha, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
-        // ctx.shadowBlur = 0;
     }
 
  
@@ -4971,11 +4776,7 @@ ctx.fillText(`FPS: ${fps}`, x, y);
 const shadowWorldX = this.cx;
 let shadowOffsetX = 0;
 
-// Bepaal of we de spritesheet (of een andere afbeelding) gebruiken
 if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
-    // Afbeeldingen worden in deze engine visueel getekend rond 'this.x' (de linkerkant),
-    // terwijl de geometrische vormen rond 'this.cx' (het midden) staan.
-    // We trekken de helft van de spelerbreedte (this.w / 2) af om de schaduw er weer recht onder te zetten.
     shadowOffsetX = -(this.w / 2);
 }
 
@@ -4998,19 +4799,15 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
     const shadowWidth = 32 * camera.zoom * shadowScale;
     const shadowHeight = 8 * camera.zoom * shadowScale;
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
-    // ctx.shadowBlur = 20;
     ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
     ctx.beginPath();
     ctx.ellipse(shadowSx, shadowSy, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
-    // ctx.shadowBlur = 0;
-
     // ─── HINT: HERSTEL ────────────────────────────────────────
     if (this.state === 'hit' && this.canRecoverFromFlinch && this.hitTimer > 0) {
         ctx.save();
         ctx.fillStyle = '#8affd0';
         ctx.shadowColor = 'rgba(138,255,208,0.5)';
-        // ctx.shadowBlur = 20;
         ctx.font = `bold ${20 * camera.zoom}px "Segoe UI", system-ui, sans-serif`;
         ctx.textAlign = 'center';
         const textY = sy - 20 * camera.zoom;
@@ -5032,8 +4829,6 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
     let drawY = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + offsetY;
 
     // ─── AANVALSAFBEELDING (heeft voorrang) ──────────────────
-	
-
     let attackImg = null;
     let move = null;
 	        move = this.getMove(this.attackIdx);
@@ -5066,7 +4861,6 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
                 ctx.strokeStyle = 'rgba(100,200,255,0.4)';
                 ctx.lineWidth = 4 * camera.zoom;
                 ctx.shadowColor = 'rgba(100,200,255,0.3)';
-                // ctx.shadowBlur = 30;
                 const blockY = drawY + this.h / 2 * camera.zoom * scaleY;
                 const cx = sx + w / 2;
                 const cy = blockY;
@@ -5135,127 +4929,453 @@ const cfg = this._cachedStateConfig;
             ctx.restore();
         } else {
             // ─── FALLBACK: GEOMETRISCHE VORMEN ─────────────
+			
             ctx.save();
 			   if (this.state === 'swept' || this.state === 'ko') {
-			   
-        const flatH = 180  * camera.zoom;
-        const bodyW = w * 0.8;
-        const bodyH = 30* 0.6;//flatH * 0.6;
-        const headR = 16   * camera.zoom;
-        const cx = sx + w / 2;
-        const cy = drawY + flatH / 2;
+   // ─── Liggende houding ──────────────────────────────
+    const flatH = 180 * camera.zoom;
+    const bodyW = w * 0.8;
+    const bodyH = 30 * 0.6; // flatH * 0.6;
+    const headR = (this.headSize || 20) * camera.zoom;
+    const cx = sx + w / 2;
+    const cy = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + flatH / 2;
 
-        // Schaduw
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        // ctx.shadowBlur = 12;
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
 
-        // Lichaam (liggende rechthoek)
-        ctx.fillStyle = this.color;
-        // ctx.shadowBlur = 10;
-        ctx.fillRect(cx - bodyW / 2, cy - bodyH / 2, bodyW, bodyH);
-
-        // Hoofd (cirkel) aan de zijkant, afhankelijk van facing
-        ctx.fillStyle = this.lightColor;
-        // ctx.shadowBlur = 8;
-        const headX = cx + (this.facing * (bodyW / 2 + headR * 0.6));
+    // ─── Torso (met gekozen vorm) ──────────────────────
+    ctx.fillStyle = this.color;
+    if (this.torsoShape === 'oval') {
         ctx.beginPath();
-        ctx.arc(headX, cy, headR, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, bodyW / 2, bodyH / 2, 0, 0, Math.PI * 2);
         ctx.fill();
- 
-
-        ctx.restore();
-        return;
+    } else if (this.torsoShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - bodyH/2);
+        ctx.lineTo(cx - bodyW/2, cy + bodyH/2);
+        ctx.lineTo(cx + bodyW/2, cy + bodyH/2);
+        ctx.closePath();
+        ctx.fill();
+    } else { // rect (standaard)
+        ctx.fillRect(cx - bodyW/2, cy - bodyH/2, bodyW, bodyH);
     }
-            const safeHead = this.headSize || 20;
-            const safeTorso = this.torsoHeight || 50;
-            const safeLeg = this.legLength || 28;
-            const safeArm = this.armLength || 30;
-            const headShape = this.headShape || 'circle';
-            const torsoShape = this.torsoShape || 'rect';
 
-            const headR = this.headSize * camera.zoom * scaleY;
-            const torsoH = safeTorso * camera.zoom * scaleY;
-            const legLen = safeLeg * camera.zoom * scaleY;
-            var armLen = safeArm * camera.zoom * scaleY;
+    // ─── Hoofd (met gekozen vorm) ──────────────────────
+    ctx.fillStyle = this.lightColor;
+    const headX = cx + (this.facing * (bodyW / 2 + headR * 0.6));
+    const headY = cy;
+    if (this.headShape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(headX, headY, headR * 1.2, headR, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (this.headShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(headX, headY - headR);
+        ctx.lineTo(headX - headR * 1.2, headY + headR * 0.6);
+        ctx.lineTo(headX + headR * 1.2, headY + headR * 0.6);
+        ctx.closePath();
+        ctx.fill();
+    } else if (this.headShape === 'square') {
+        ctx.fillRect(headX - headR, headY - headR, headR * 2, headR * 2);
+    } else { // circle (standaard)
+        ctx.beginPath();
+        ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-            const bx = sx + (f > 0 ? 0 : w * 0.2);
-            const bw = w * 0.8;
-            const drawY2 = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + offsetY;
-            const torsoY = drawY2 + 20 * camera.zoom * scaleY;
-            const headCenterY = drawY2 + 18 * camera.zoom * scaleY;
+   
+ 
+    ctx.restore();
+     }
+	
+	else if (this.state === 'hit') { 
+    const intensity = Math.max(0, Math.min(1, this.hitTimer / this.flinchTime));
+    const headBendX = this.facing * intensity * 8 * camera.zoom;
+    const headBendY = intensity * 12 * camera.zoom;
 
-            if (this.headgear && this.headgear !== 'none') {
-                drawHeadgear(ctx, this.headgear, sx + w/2, headCenterY - headR * 0.5, headR * 1.6, this.facing, this.lightColor, this.darkColor, camera);
+    const headR = (this.headSize || 20) * camera.zoom;
+    const torsoH = (this.torsoHeight || 50) * camera.zoom;
+    const legLen = (this.legLength || 28) * camera.zoom;
+
+    const drawY2 = sy + (this.h * (1 - scaleY) * camera.zoom) / 2;
+    const torsoY = drawY2 + 20 * camera.zoom;
+    const cx = sx + w / 2;
+    const bw = w * 0.8;
+    const bx = cx - bw/2;
+
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+
+    // ─── Torso (met gekozen vorm) ──────────────────────
+    ctx.fillStyle = this.color;
+    if (this.torsoShape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(cx, torsoY + torsoH/2, bw/2, torsoH/2, 0, 0, Math.PI*2);
+        ctx.fill();
+    } else if (this.torsoShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(cx, torsoY);
+        ctx.lineTo(cx - bw/2, torsoY + torsoH);
+        ctx.lineTo(cx + bw/2, torsoY + torsoH);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.beginPath();
+        ctx.roundRect(bx, torsoY, bw, torsoH, 8 * camera.zoom);
+        ctx.fill();
+    }
+
+    // ─── Benen (gecentreerd) ──────────────────────────
+    const legW = 14 * camera.zoom;
+    const legY = torsoY + torsoH;
+    ctx.fillStyle = this.darkColor;
+    const legSpacing = 12 * camera.zoom;
+    const leftLegX = cx - legSpacing - legW/2;
+    const rightLegX = cx + legSpacing - legW/2;
+    ctx.fillRect(leftLegX, legY, legW, legLen);
+    ctx.fillRect(rightLegX, legY, legW, legLen);
+
+    // ─── Schoenen (als geselecteerd) ──────────────────
+    if (this.shoes && this.shoes !== 'none') {
+        const shoeColors = {
+            boots: '#4a3a2a',
+            sneakers: '#ff4444',
+            high_heels: '#ff66aa',
+            sandals: '#c8a060',
+            combat_boots: '#2a2a2a'
+        };
+        ctx.fillStyle = shoeColors[this.shoes] || '#888';
+        const shoeW = legW * 1.4;
+        const shoeH = legLen * 0.4;
+        const leftLegBottom = legY + legLen;
+        const rightLegBottom = legY + legLen;
+        ctx.fillRect(leftLegX - 2 * camera.zoom, leftLegBottom - shoeH + 2 * camera.zoom, shoeW, shoeH);
+        ctx.fillRect(rightLegX - 2 * camera.zoom, rightLegBottom - shoeH + 2 * camera.zoom, shoeW, shoeH);
+    }
+
+    // ─── Hoofd (gebogen, met gekozen vorm) ────────────
+    const headCX = sx + w / 2 + headBendX;
+    const headCY = drawY2 + 18 * camera.zoom + headBendY;
+    ctx.fillStyle = this.lightColor;
+    if (this.headShape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(headCX, headCY, headR * 1.2, headR, 0, 0, Math.PI*2);
+        ctx.fill();
+    } else if (this.headShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(headCX, headCY - headR);
+        ctx.lineTo(headCX - headR * 1.2, headCY + headR * 0.6);
+        ctx.lineTo(headCX + headR * 1.2, headCY + headR * 0.6);
+        ctx.closePath();
+        ctx.fill();
+    } else if (this.headShape === 'square') {
+        ctx.fillRect(headCX - headR, headCY - headR, headR*2, headR*2);
+    } else {
+        ctx.beginPath();
+        ctx.arc(headCX, headCY, headR, 0, Math.PI*2);
+        ctx.fill();
+    }
+	
+        ctx.restore();
+
+ } else{
+        const safeHead = this.headSize || 20;
+    const safeTorso = this.torsoHeight || 50;
+    const safeLeg = this.legLength || 28;
+    const safeArm = this.armLength || 30;
+    const headShape = this.headShape || 'circle';
+    const torsoShape = this.torsoShape || 'rect';
+
+    const headR = safeHead * camera.zoom * scaleY;
+    const torsoH = safeTorso * camera.zoom * scaleY;
+    const legLen = safeLeg * camera.zoom * scaleY;
+    const armLen = safeArm * camera.zoom * scaleY;
+
+    const bx = sx + (this.facing > 0 ? 0 : w * 0.2);
+    const bw = w * 0.8;
+    const drawY2 = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + offsetY;
+    const torsoY = drawY2 + 20 * camera.zoom * scaleY;
+    const headCenterY = drawY2 + 18 * camera.zoom * scaleY;
+
+    // Hoofdtooi (headgear) - blijft zoals het is
+    if (this.headgear && this.headgear !== 'none') {
+        drawHeadgear(ctx, this.headgear, sx + w/2, headCenterY - headR * 0.5, headR * 1.6, this.facing, this.lightColor, this.darkColor, camera);
+    }
+
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    // ctx.shadowBlur = 12; // uit voor performance
+
+    // ─── TORSO ──────────────────────────────────────
+    ctx.fillStyle = this.color;
+    if (torsoShape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(sx + w / 2, torsoY + torsoH / 2, bw / 2, torsoH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (torsoShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(sx + w / 2, torsoY);
+        ctx.lineTo(sx + w / 2 - bw / 2, torsoY + torsoH);
+        ctx.lineTo(sx + w / 2 + bw / 2, torsoY + torsoH);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.beginPath();
+        ctx.roundRect(bx, torsoY, bw, torsoH, 8 * camera.zoom * scaleY);
+        ctx.fill();
+    }
+
+    // ─── HOOFD ──────────────────────────────────────
+    const headY = drawY2 + 18 * camera.zoom * scaleY;
+    ctx.fillStyle = this.lightColor;
+    if (headShape === 'oval') {
+        ctx.beginPath();
+        ctx.ellipse(sx + w / 2, headY, headR * 1.2, headR, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (headShape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(sx + w / 2, headY - headR);
+        ctx.lineTo(sx + w / 2 - headR * 1.2, headY + headR * 0.6);
+        ctx.lineTo(sx + w / 2 + headR * 1.2, headY + headR * 0.6);
+        ctx.closePath();
+        ctx.fill();
+    } else if (headShape === 'square') {
+        ctx.fillRect(sx + w / 2 - headR, headY - headR, headR * 2, headR * 2);
+    } else {
+        ctx.beginPath();
+        ctx.arc(sx + w / 2, headY, headR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+// ─── Ogen ──────────────────────────────────────
+
+    ctx.fillStyle = '#1a1a2a';
+const eyeRadius = headR * 0.2;
+const eyeOffsetX = 6 * camera.zoom * scaleY;
+const eyeY = headY - 2 * camera.zoom * scaleY;
+// Linker oog (vanuit speler perspectief)
+ctx.beginPath();
+ctx.arc(sx + w/2 - eyeOffsetX + this.facing * 2 * camera.zoom * scaleY, eyeY, eyeRadius, 0, Math.PI * 2);
+ctx.fill();
+// Rechter oog
+ctx.beginPath();
+ctx.arc(sx + w/2 + eyeOffsetX + this.facing * 2 * camera.zoom * scaleY, eyeY, eyeRadius, 0, Math.PI * 2);
+ctx.fill();
+    // ─── BENEN + SCHOENEN (gecentreerd) ──────────────
+    const legOffset = -this.facing * 3 * camera.zoom;
+    const lo = this.state === 'walk' ? Math.sin(this.animFrame * 0.8) * 4 * camera.zoom * scaleY : 0;
+    const legY = torsoY + torsoH;
+    const legW = 14 * camera.zoom;
+    const cx = sx + w / 2;
+    const legSpacing = 12 * camera.zoom;
+
+    const leftLegX = cx + legOffset - legSpacing - legW/2;
+    const rightLegX = cx + legOffset + legSpacing - legW/2;
+
+    ctx.fillStyle = this.darkColor;
+    ctx.fillRect(leftLegX, legY, legW, legLen + lo);
+    ctx.fillRect(rightLegX, legY, legW, legLen - lo);
+
+    if (this.shoes && this.shoes !== 'none') {
+        const shoeColors = { boots: '#4a3a2a', sneakers: '#ff4444', high_heels: '#ff66aa', sandals: '#c8a060', combat_boots: '#2a2a2a' };
+        const color = shoeColors[this.shoes] || '#888';
+        ctx.fillStyle = color;
+        const shoeW = legW * 1.4;
+        const shoeH = legLen * 0.4;
+
+        const leftLegBottom = legY + (legLen + lo);
+        ctx.fillRect(leftLegX - 2 * camera.zoom, leftLegBottom - shoeH + 2 * camera.zoom, shoeW, shoeH);
+
+        const rightLegBottom = legY + (legLen - lo);
+        ctx.fillRect(rightLegX - 2 * camera.zoom, rightLegBottom - shoeH + 2 * camera.zoom, shoeW, shoeH);
+    }
+
+
+
+    // ─── RIEM ────────────────────────────────────────
+    if (this.belt && this.belt !== 'none') {
+        const beltY = torsoY + torsoH * 0.65;
+        const beltColors = {
+            leather: '#5a3a1a',
+            studded: '#333',
+            golden: '#d4af37',
+            silver: '#c0c0c0',
+            utility: '#3a6a4a'
+        };
+        ctx.fillStyle = beltColors[this.belt] || '#888';
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 2 * camera.zoom;
+
+        const beltW = w * 0.8;
+        const beltH = 8 * camera.zoom;
+        const bxBelt = sx + (w - beltW)/2;
+
+        ctx.fillRect(bxBelt, beltY, beltW, beltH);
+        ctx.strokeRect(bxBelt, beltY, beltW, beltH);
+
+        // Gesp
+        ctx.fillStyle = '#d4af37';
+        ctx.strokeStyle = '#222';
+        const buckleSize = 10 * camera.zoom;
+        const buckleX = sx + w/2 - buckleSize/2;
+        ctx.fillRect(buckleX, beltY - 2 * camera.zoom, buckleSize, beltH + 4 * camera.zoom);
+        ctx.strokeRect(buckleX, beltY - 2 * camera.zoom, buckleSize, beltH + 4 * camera.zoom);
+
+        if (this.belt === 'studded') {
+            ctx.fillStyle = '#d4af37';
+            for (let i = 0; i < 4; i++) {
+                const sx2 = bxBelt + 10 * camera.zoom + i * (beltW/4);
+                ctx.beginPath();
+                ctx.arc(sx2, beltY + beltH/2, 3 * camera.zoom, 0, Math.PI*2);
+                ctx.fill();
             }
+        } else if (this.belt === 'utility') {
+            ctx.fillStyle = '#2a4a3a';
+            ctx.fillRect(bxBelt + 6 * camera.zoom, beltY - 2 * camera.zoom, 8 * camera.zoom, beltH + 4 * camera.zoom);
+            ctx.fillRect(bxBelt + beltW - 14 * camera.zoom, beltY - 2 * camera.zoom, 8 * camera.zoom, beltH + 4 * camera.zoom);
+        }
+    }
 
-            ctx.shadowColor = 'rgba(0,0,0,0.3)';
-            // ctx.shadowBlur = 12;
+    // ─── SCHOUDERPADS ──────────────────────────────
+    if (this.shoulderPads && this.shoulderPads !== 'none') {
+        const padColors = {
+            spiked: '#cc3333',
+            round: '#4488cc',
+            square: '#66aa44',
+            winged: '#aa66cc',
+            bulky: '#886644'
+        };
+        ctx.fillStyle = padColors[this.shoulderPads] || '#888';
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 2 * camera.zoom;
 
-            // Torso
-            ctx.fillStyle = this.color;
-            // ctx.shadowBlur = 10;
-            if (torsoShape === 'oval') {
-                ctx.beginPath();
-                ctx.ellipse(sx + w / 2, torsoY + torsoH / 2, bw / 2, torsoH / 2, 0, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (torsoShape === 'triangle') {
-                ctx.beginPath();
-                ctx.moveTo(sx + w / 2, torsoY);
-                ctx.lineTo(sx + w / 2 - bw / 2, torsoY + torsoH);
-                ctx.lineTo(sx + w / 2 + bw / 2, torsoY + torsoH);
-                ctx.closePath();
-                ctx.fill();
-            } else {
-                ctx.beginPath();
-                ctx.roundRect(bx, torsoY, bw, torsoH, 8 * camera.zoom * scaleY);
-                ctx.fill();
-            }
+        const padW = w * 0.25;
+        const padH = torsoH * 0.3;
+const shoulderY = torsoY + 1.5 * camera.zoom;  
 
-            // Hoofd
-            const headY = drawY2 + 18 * camera.zoom * scaleY;
-            ctx.fillStyle = this.lightColor;
-            // ctx.shadowBlur = 8;
-            if (headShape === 'oval') {
-                ctx.beginPath();
-                ctx.ellipse(sx + w / 2, headY, headR * 1.2, headR, 0, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (headShape === 'triangle') {
-                ctx.beginPath();
-                ctx.moveTo(sx + w / 2, headY - headR);
-                ctx.lineTo(sx + w / 2 - headR * 1.2, headY + headR * 0.6);
-                ctx.lineTo(sx + w / 2 + headR * 1.2, headY + headR * 0.6);
-                ctx.closePath();
-                ctx.fill();
-            } else if (headShape === 'square') {
-                ctx.fillRect(sx + w / 2 - headR, headY - headR, headR * 2, headR * 2);
-            } else {
-                ctx.beginPath();
-                ctx.arc(sx + w / 2, headY, headR, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // Oog
-            ctx.fillStyle = '#1a1a2a';
-            // ctx.shadowBlur = 4;
+        if (this.shoulderPads === 'spiked') {
+            // Linker schouderpad
             ctx.beginPath();
-            ctx.arc(sx + w / 2 + f * 6 * camera.zoom * scaleY, headY - 2 * camera.zoom * scaleY, headR * 0.2, 0, Math.PI * 2);
+            ctx.moveTo(sx + 4 * camera.zoom, shoulderY);
+            ctx.lineTo(sx + padW, shoulderY - padH);
+            ctx.lineTo(sx + padW + 10 * camera.zoom, shoulderY);
+            ctx.closePath();
             ctx.fill();
+            ctx.stroke();
+            // Rechter schouderpad
+            ctx.beginPath();
+            ctx.moveTo(sx + w - 4 * camera.zoom, shoulderY);
+            ctx.lineTo(sx + w - padW, shoulderY - padH);
+            ctx.lineTo(sx + w - padW - 10 * camera.zoom, shoulderY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        } else if (this.shoulderPads === 'round') {
+            ctx.beginPath();
+            ctx.ellipse(sx + 10 * camera.zoom, shoulderY + padH/2, padW/1.5, padH/1.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(sx + w - 10 * camera.zoom, shoulderY + padH/2, padW/1.5, padH/1.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+        } else if (this.shoulderPads === 'square') {
+            ctx.fillRect(sx + 2 * camera.zoom, shoulderY - 4 * camera.zoom, padW, padH);
+            ctx.strokeRect(sx + 2 * camera.zoom, shoulderY - 4 * camera.zoom, padW, padH);
+            ctx.fillRect(sx + w - padW - 2 * camera.zoom, shoulderY - 4 * camera.zoom, padW, padH);
+            ctx.strokeRect(sx + w - padW - 2 * camera.zoom, shoulderY - 4 * camera.zoom, padW, padH);
+        } else if (this.shoulderPads === 'winged') {
+            ctx.beginPath();
+            ctx.moveTo(sx + 4 * camera.zoom, shoulderY);
+            ctx.quadraticCurveTo(sx - 20 * camera.zoom, shoulderY - padH*1.5, sx + padW, shoulderY - padH);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(sx + w - 4 * camera.zoom, shoulderY);
+            ctx.quadraticCurveTo(sx + w + 20 * camera.zoom, shoulderY - padH*1.5, sx + w - padW, shoulderY - padH);
+            ctx.fill();
+            ctx.stroke();
+        } else if (this.shoulderPads === 'bulky') {
+            ctx.beginPath();
+            ctx.ellipse(sx + 8 * camera.zoom, shoulderY + padH/2, padW, padH*0.8, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(sx + w - 8 * camera.zoom, shoulderY + padH/2, padW, padH*0.8, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
 
-            // Benen
-            ctx.fillStyle = this.darkColor;
-            // ctx.shadowBlur = 6;
-            const lo = this.state === 'walk' ? Math.sin(this.animFrame * 0.8) * 4 * camera.zoom * scaleY : 0;
-            const legY = torsoY + torsoH;
-            const legW = 14 * camera.zoom;
-            ctx.fillRect(bx + 4 * camera.zoom, legY, legW, legLen + lo);
-            ctx.fillRect(bx + bw - 18 * camera.zoom, legY, legW, legLen - lo);
+    // ─── BRILLEN ──────────────────────────────────────
+    if (this.glasses && this.glasses !== 'none') {
+        const glassSize = headR * 0.5;
+        const cx = sx + w / 2;
+        const f = this.facing;
+        ctx.save();
 
-            // Armen
-            const shoulderX = sx + w / 2 + f * 10 * camera.zoom * scaleY;
-            const shoulderY = (drawY2 + 20 * camera.zoom * scaleY) + safeTorso * 0.3 * camera.zoom * scaleY;
-            const armW = 8 * camera.zoom * scaleY;
-            armLen = safeArm * camera.zoom * scaleY;
+        if (this.glasses === 'sunglasses') {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.beginPath();
+            ctx.ellipse(cx - headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, glassSize, glassSize * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, glassSize, glassSize * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 2 * camera.zoom;
+            ctx.beginPath();
+            ctx.moveTo(cx - glassSize * 0.4 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.lineTo(cx + glassSize * 0.4 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.stroke();
+        } else if (this.glasses === 'monocle') {
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 3 * camera.zoom;
+            ctx.beginPath();
+            ctx.arc(cx + f * 6 * camera.zoom, headY - 2 * camera.zoom, glassSize * 0.7, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + f * 6 * camera.zoom, headY - 2 * camera.zoom + glassSize * 0.7);
+            ctx.lineTo(cx + f * 12 * camera.zoom, headY + headR * 0.8);
+            ctx.stroke();
+        } else if (this.glasses === 'visor') {
+            ctx.fillStyle = 'rgba(0,150,255,0.4)';
+            ctx.fillRect(cx - headR * 0.9, headY - headR * 0.3, headR * 1.8, headR * 0.4);
+            ctx.strokeStyle = '#66ccff';
+            ctx.lineWidth = 2 * camera.zoom;
+            ctx.strokeRect(cx - headR * 0.9, headY - headR * 0.3, headR * 1.8, headR * 0.4);
+        } else if (this.glasses === 'nerd_glasses') {
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 3 * camera.zoom;
+            const gs = glassSize * 0.6;
+            ctx.beginPath();
+            ctx.arc(cx - headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, gs, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx + headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, gs, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx - gs * 0.6 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.lineTo(cx + gs * 0.6 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.stroke();
+        } else if (this.glasses === 'aviator') {
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2 * camera.zoom;
+            const drawTeardrop = (x, y, size) => {
+                ctx.beginPath();
+                ctx.moveTo(x, y - size);
+                ctx.quadraticCurveTo(x + size, y - size * 0.2, x + size * 0.8, y + size * 0.6);
+                ctx.quadraticCurveTo(x, y + size * 0.8, x - size * 0.8, y + size * 0.6);
+                ctx.quadraticCurveTo(x - size, y - size * 0.2, x, y - size);
+                ctx.stroke();
+            };
+            drawTeardrop(cx - headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, glassSize);
+            drawTeardrop(cx + headR * 0.5 + f * 2 * camera.zoom, headY - 2 * camera.zoom, glassSize);
+            ctx.beginPath();
+            ctx.moveTo(cx - glassSize * 0.3 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.lineTo(cx + glassSize * 0.3 + f * 2 * camera.zoom, headY - 2 * camera.zoom);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 
+ 
 // ─── ARMEN (fallback) ──────────────────────────────────────
 const showArms = (this.state === 'idle' && this.showArmsInIdle) || (this.state === 'attack' && this.attackActive);
 
@@ -5263,7 +5383,6 @@ if (showArms) {
     ctx.save();
     ctx.fillStyle = this.lightColor;
 
-    // Schouderpositie
     const shoulderX = sx + w / 2 + f * 10 * camera.zoom * scaleY;
     const shoulderY = (drawY2 + 20 * camera.zoom * scaleY) + safeTorso * 0.3 * camera.zoom * scaleY;
     const armW = 8 * camera.zoom * scaleY;
@@ -5371,7 +5490,6 @@ if (showArms) {
     const alphaFactor = 1 - progress * 0.6;
 
     // Laag 1: brede, vage rook
-    ctx.shadowBlur = 30 * camera.zoom * scaleY; // van 40 naar 30
     ctx.globalAlpha = 0.08 * alphaFactor; // van 0.15 naar 0.08
     ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
     ctx.beginPath();
@@ -5379,7 +5497,6 @@ if (showArms) {
     ctx.fill();
 
     // Laag 2: medium rook
-    ctx.shadowBlur = 20 * camera.zoom * scaleY; // van 25 naar 20
     ctx.globalAlpha = 0.15 * alphaFactor; // van 0.25 naar 0.15
     ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
     ctx.beginPath();
@@ -5390,10 +5507,8 @@ if (showArms) {
 } else {
                 // ─── GEBOGEN ROOK-SWOOSH voor moves 4-6 ────────────
                 const swooshRadius = armLen * 1.5;
-                ctx.shadowBlur = 0; // resetten
 
                 // Laag 1: brede, vage rook
-                ctx.shadowBlur = 30 * camera.zoom * scaleY;
                 ctx.globalAlpha = baseAlpha * 0.5;
                 ctx.strokeStyle = 'rgba(160, 120, 80, 0.8)';
                 ctx.lineWidth = 20 * camera.zoom * scaleY;
@@ -5410,7 +5525,6 @@ if (showArms) {
                 ctx.stroke();
 
                 // Laag 2: smallere, meer zichtbare rooklijn
-                ctx.shadowBlur = 15 * camera.zoom * scaleY;
                 ctx.globalAlpha = baseAlpha * 0.7;
                 ctx.strokeStyle = 'rgba(120, 80, 50, 0.9)';
                 ctx.lineWidth = 10 * camera.zoom * scaleY;
@@ -5426,7 +5540,6 @@ if (showArms) {
                 ctx.stroke();
 
                 // Laag 3: kern, helderdere lijn
-                ctx.shadowBlur = 5 * camera.zoom * scaleY;
                 ctx.globalAlpha = baseAlpha * 0.9;
                 ctx.strokeStyle = 'rgba(200, 160, 120, 1)';
                 ctx.lineWidth = 4 * camera.zoom * scaleY;
@@ -5446,16 +5559,15 @@ if (showArms) {
             ctx.globalAlpha = 1;
         }
     }
+	
 
     ctx.restore();
 }
-            // Blok schild
             if (project.settings.showBlockEffect &&(this.state === 'block' || this.state === 'block_crouch')) {
                 ctx.save();
                 ctx.strokeStyle = 'rgba(100,200,255,0.4)';
                 ctx.lineWidth = 4 * camera.zoom;
                 ctx.shadowColor = 'rgba(100,200,255,0.3)';
-                // ctx.shadowBlur = 30;
                 const blockY = drawY2 + this.h / 2 * camera.zoom * scaleY;
                 const cx = sx + w / 2;
                 const cy = blockY;
@@ -5467,16 +5579,17 @@ if (showArms) {
                 ctx.stroke();
                 ctx.restore();
             }
-
-            // ctx.shadowBlur = 0;
+			
+			 
             ctx.restore();
         }
-    }
+    }	}
+
 
 if (this.projectileMijnTimer > 0) {
     this.projectileMijnTimer--;
     if (this.projectileMijnTimer === 0) {
-        this.projectileMijnImg = null; // afbeelding verwijderen na tijd
+        this.projectileMijnImg = null; 
     }
 }
 
@@ -5497,7 +5610,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.restore();
  }
     // ─── HIT EFFECT ────────────────────────────────────────────
-	ctx.restore();// nodig om te vermijden dat 2 dezelfde vechters het donkere kleur geven aan de TEKST
+	ctx.restore();
     const hitEffectImg = hitEffectImages[this.charId];
     if (this.hitTimer > 0 && this.hitTimer > this.flinchTime / 2) {
         ctx.save();
@@ -5512,7 +5625,6 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
             const alpha = progress * 0.8;
             const radius = Math.max(0, (30 + (1 - progress) * 20) * camera.zoom);
             ctx.shadowColor = 'rgba(255,50,50,0.5)';
-            // ctx.shadowBlur = 40;
             ctx.fillStyle = `rgba(255,200,200,${alpha})`;
             ctx.beginPath();
             ctx.arc(sx + w / 2, drawY + this.h / 2 * camera.zoom * scaleY, radius, 0, Math.PI * 2);
@@ -5520,14 +5632,12 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         }
         ctx.restore();
     }
-
     // ─── HERSTEL FLITS ─────────────────────────────────────────
     if (project.settings.showRecoverFlash  && this._recoverFlash > 0) {
         ctx.save();
         const alpha = this._recoverFlash / 15;
         const radius = Math.max(0, 40 * camera.zoom);
         ctx.shadowColor = 'rgba(100,255,100,0.6)';
-        // ctx.shadowBlur = 50;
         ctx.strokeStyle = `rgba(100,255,100,${alpha * 0.8})`;
         ctx.lineWidth = 6 * camera.zoom;
         ctx.beginPath();
@@ -5536,7 +5646,6 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
         ctx.restore();
         this._recoverFlash--;
     }
-
     // ─── DUBBELE SPRONG INDICATOR ─────────────────────────────
     if (this.doubleJump && !this.onGround && this.jumpCount < this.maxJumps) {
         ctx.save();
@@ -5547,9 +5656,6 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
          ctx.fillText('⤊', sx + w / 2, sy - 10 * camera.zoom);
         ctx.restore();
     }
-
-    
-
     // ─── COMBO TEKST ──────────────────────────────────────────
     if (project.settings.showComboText && this.comboCount > 1 && this.comboTimer > 0) {
     ctx.save();
@@ -5569,10 +5675,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
     }
 
     
-}
- 
-
-                playSound(type) {
+}  playSound(type) {
                     if (!project.settings.audioEnabled) return;
 
                     let customBuffer = null;
@@ -5611,7 +5714,7 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
                             audio.volume = 0.3;
                             audio.play().catch(() => {});
                             return;
-                        } catch (e) { /* fallback */ }
+                        } catch (e) {  }
                     }
 
                     if (!audioCtx) return;
@@ -5669,18 +5772,16 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
                     } catch (e) { /* stil blijven bij fouten */ }
                 }
             }
+ 
+ 
 function drawHeadgear(ctx, type, x, y, radius, facing, lightColor, darkColor, camera) {
     const scale = camera.zoom;
     ctx.save();
-    // ctx.shadowBlur = 10;
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
     ctx.translate(x, y);
-
-    // facing = 1: naar rechts, -1: naar links
-    // We tekenen alles alsof we naar rechts kijken, en spiegelen indien nodig
     if (facing < 0) ctx.scale(-1, 1);
 
-    const r = radius * 0.9; // basisgrootte
+    const r = radius * 0.9; 
 
     switch (type) {
         case 'baseball_cap':
@@ -5984,7 +6085,6 @@ function drawHeadgear(ctx, type, x, y, radius, facing, lightColor, darkColor, ca
             break;
 
         default:
-            // fallback: niets
             break;
     }
     ctx.restore();
@@ -6117,8 +6217,6 @@ function playSystemSound(type) {
             }
         };
         playSystemSound.currentSound = soundObj;
-
-        // Automatisch opruimen na afloop
         setTimeout(() => {
             if (playSystemSound.currentSound === soundObj) {
                 playSystemSound.currentSound = null;
@@ -6126,7 +6224,7 @@ function playSystemSound(type) {
         }, duration * 1000 + 50);
 
     } catch (e) {
-        // Stil blijven bij fouten
+
     }
 }
             function playStageAudio(stageId) {
@@ -6153,8 +6251,6 @@ function playSystemSound(type) {
             }
 
             let gamepadIndex = -1;
-
-   // Bewaar de oorspronkelijke functie (als je hem later nog nodig hebt)
 const originalPollGamepad = window.pollGamepad;
 
 window.pollGamepad = function() {
@@ -6166,18 +6262,15 @@ window.pollGamepad = function() {
         if (p && p.connected) connected.push(p);
     }
 
-    // Reset disconnected
     if (p1GamepadIndex !== -1 && !connected.some(g => g.index === p1GamepadIndex)) p1GamepadIndex = -1;
     if (p2GamepadIndex !== -1 && !connected.some(g => g.index === p2GamepadIndex)) p2GamepadIndex = -1;
 
-    // Lees instellingen
     const useP1 = project.settings.useGamepadP1 !== false;
     const useP2 = project.settings.useGamepadP2 !== false;
 
     if (!useP1) p1GamepadIndex = -1;
     if (!useP2) p2GamepadIndex = -1;
 
-    // Toewijzen (alleen als de speler gamepad mag gebruiken)
     if (useP1 && p1GamepadIndex === -1) {
         let chosen = connected.find(g => g.index !== p2GamepadIndex);
         if (chosen) p1GamepadIndex = chosen.index;
@@ -6332,7 +6425,7 @@ if (!local) return;
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = touch.clientX - cx;
-    const dy = -(touch.clientY - cy); // <-- omgekeerd: omhoog = positief
+    const dy = -(touch.clientY - cy); 
     const dist = Math.sqrt(dx * dx + dy * dy);
     const deadzone = 15;
     if (dist < deadzone) return null;
@@ -6345,22 +6438,17 @@ if (!local) return;
     return dirs[idx];
 }
 
-
-    // Stel de input in voor P1 en werk visuele feedback bij
     function setDirection(dir) {
 	
 	const local = getLocalPlayer();
 if (!local) return;
 
         if (!local) return;
-
-        // Zet alle richtingen uit
         local.input.left = false;
         local.input.right = false;
         local.input.up = false;
         local.input.down = false;
 
-        // Activeer de gevonden richting (rekening houdend met activeDirections)
         if (dir) {
             const active = local.activeDirections || { up: true, down: true, left: true, right: true };
             if (dir === 'right' && active.right) local.input.right = true;
@@ -6381,8 +6469,6 @@ if (!local) return;
                 local.input.down = true;
             }
         }
-
-        // Visuele feedback: highlight de juiste knop
         document.querySelectorAll('.dpad-btn').forEach(btn => btn.classList.remove('active'));
         if (dir) {
             const btn = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
@@ -6391,7 +6477,6 @@ if (!local) return;
         currentDir = dir;
     }
 
-    // Event listeners
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.changedTouches[0];
@@ -6472,17 +6557,13 @@ const end = (e) => {
     rebuildTouchAttacks(); 
 }
 
-// Hulpfunctie voor het instellen van de richtingen
 function setDirectionInput(fighter, dir, value) {
     if (!fighter || !fighter.activeDirections) return;
-    // Als de richting niet actief is, negeer de input
     if (fighter.activeDirections[dir] === false) return;
-
     if (dir === 'up') fighter.input.up = value;
     else if (dir === 'down') fighter.input.down = value;
     else if (dir === 'left') fighter.input.left = value;
     else if (dir === 'right') fighter.input.right = value;
-    // Diagonale richtingen
     else if (dir === 'leftup') { fighter.input.left = value; fighter.input.up = value; }
     else if (dir === 'rightup') { fighter.input.right = value; fighter.input.up = value; }
     else if (dir === 'leftdown') { fighter.input.left = value; fighter.input.down = value; }
@@ -6494,12 +6575,10 @@ function rebuildTouchAttacks() {
     const local = getLocalPlayer();
     if (!local) return;
 
-    // FIX 1: Gebruik local.charId in plaats van p1.charId zodat de joiner zijn eigen move-namen krijgt
     const charData = project.characters[local.charId] || project.characters.fighter;
     const moves = charData.moves || DEFAULT_MOVES;
     const activeButtons = charData.activeButtons || [true, true, true, true, true, true];
 
-    // Helper om het knopnummer uit een command te halen (bv. "d+2" → 2)
     function getButtonFromCommand(cmd) {
         if (!cmd) return null;
         const parts = cmd.split('+');
@@ -6512,7 +6591,6 @@ function rebuildTouchAttacks() {
         return null;
     }
 
-    // Bepaal welke knoppen (0..5) zichtbaar moeten zijn
     const visibleIndices = [];
     for (let idx = 0; idx < 6; idx++) {
         if (!activeButtons[idx]) continue;
@@ -6528,7 +6606,6 @@ function rebuildTouchAttacks() {
         }
     }
 
-    // Bouw de knoppen
     for (const idx of visibleIndices) {
         const move = moves[idx] || { name: 'Move ' + (idx + 1), damage: '?' };
         const btn = document.createElement('div');
@@ -6547,7 +6624,6 @@ const triggerAttack = () => {
             const buttonCode = String(idx + 1);
             const now = performance.now();
 
-            // Richting toevoegen aan lokale geschiedenis zodat combo-buffers kloppen
             const dir = getCurrentDir(localTarget);
             if (dir !== 'idle') {
                 const last = localTarget._history[localTarget._history.length - 1];
@@ -6572,7 +6648,6 @@ const triggerAttack = () => {
 
             // --- DE NETWERK FIX VOOR DE JOINER ---
             if (networkMode && networkRole === 'joiner') {
-                // Voer NIET lokaal uit! Stuur het direct als een actie naar de host.
                 ws.send(JSON.stringify({
                     type: 'input',
                     input: {
@@ -6582,7 +6657,6 @@ const triggerAttack = () => {
                     }
                 }));
             } else {
-                // Ben je de Host of speel je offline? Dan wel gewoon direct lokaal uitvoeren.
                 localTarget.startAttackByCommand(buttonCode, localTarget._history);
             }
         };
@@ -6608,12 +6682,10 @@ const triggerAttack = () => {
     if (!p1 || !p2) return;
     const centerX = (p1.cx + p2.cx) / 2;
     const centerY = (p1.cy + p2.cy) / 2;
-    // Voeg de offset toe (in wereldcoördinaten)
     const offsetX = project.settings.cameraOffsetX || 0;
     const offsetY = project.settings.cameraOffsetY || 0;
     camera.offsetX = (centerX + offsetX) - W / (2 * camera.zoom);
     camera.offsetY = (centerY + offsetY) - H / (2 * camera.zoom);
-    // Begrenzing (optioneel)
     camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
     camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
 }
@@ -6622,9 +6694,7 @@ function drawDefaultTravelcube(ctx, x, y, w, h) {
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.shadowColor = 'rgba(0,200,255,0.5)';
-    // ctx.shadowBlur = 20;
     ctx.fillRect(x, y, w, h);
-    // ctx.shadowBlur = 0;
     ctx.strokeStyle = '#00ccff';
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, w, h);
@@ -6653,8 +6723,6 @@ else if (theme === 'warm') ctx.filter = 'sepia(0.3) hue-rotate(-20deg) brightnes
 else if (theme === 'cold') ctx.filter = 'hue-rotate(180deg) saturate(0.8) brightness(0.9)';
 else if (theme === 'negative') ctx.filter = 'invert(1) brightness(1.2)';
 else ctx.filter = 'none';
-
-
 
                 for (const item of activeFallingItems) {
                     const sx = (item.x - camera.offsetX) * camera.zoom;
@@ -6703,8 +6771,7 @@ if (isVideoStage) {
         const ky = canvas.clientHeight / H;
         bgVideoEl.style.transform =
             `translate(${-camera.offsetX * camera.zoom * kx}px, ${-camera.offsetY * camera.zoom * ky}px) scale(${camera.zoom})`;
-			        ctx.drawImage(bgVideoEl, 0, 0, W, H);// req. for video recolored with theme
-
+			        ctx.drawImage(bgVideoEl, 0, 0, W, H);
     }
  } else if (bgImg) {
     ctx.drawImage(bgImg, 0, 0, W, H);
@@ -6779,9 +6846,7 @@ for (const tc of travelCubes) {
     const sw = tc.width * camera.zoom;
     const sh = tc.height * camera.zoom;
 
-    // Als er een afbeelding is, teken die
     if (tc.imageData) {
-        // Maak een Image object en teken (caching mogelijk)
         if (!tc._img) {
             tc._img = new Image();
             tc._img.src = tc.imageData;
@@ -6789,7 +6854,6 @@ for (const tc of travelCubes) {
         if (tc._img.complete && tc._img.naturalWidth > 0) {
             ctx.drawImage(tc._img, sx, sy, sw, sh);
         } else {
-            // Fallback tekenen
             drawDefaultTravelcube(ctx, sx, sy, sw, sh);
         }
     } else {
@@ -6805,7 +6869,6 @@ for (const cube of textCubes) {
     const sw = cube.width * camera.zoom;
     const sh = cube.height * camera.zoom;
 
-    // Teken de cube zelf (altijd)
     if (cube.image && cube.image.complete && cube.image.naturalWidth > 0) {
         ctx.drawImage(cube.image, sx, sy, sw, sh);
     } else {
@@ -6816,7 +6879,6 @@ for (const cube of textCubes) {
         ctx.strokeRect(sx, sy, sw, sh);
     }
 
-    // Tekst alleen als actief
     if (cube.active) {
         ctx.save();
         const fontSize = (cube.fontSize || 20) * camera.zoom;
@@ -6825,7 +6887,6 @@ for (const cube of textCubes) {
         ctx.textBaseline = 'bottom';
         const textX = sx + sw / 2;
         const textY = sy - 8 * camera.zoom;
-        // Achtergrond voor leesbaarheid
         const metrics = ctx.measureText(cube.text || '');
         const tw = metrics.width;
         const th = fontSize * 1.2;
@@ -6884,7 +6945,7 @@ var timeToJumpTONextLane=0;
         if ((oppMove && oppMove.height === 'low' )|| Math.random() < params.blockChance) {
             fighter.input.down = true;
         }
- fighter.BlockCounter=20; console.log("jj")
+ fighter.BlockCounter=20; 
         return;
     }  else if(  fighter.BlockCounter ==0){
     fighter.input.up = false;
@@ -6939,7 +7000,6 @@ var timeToJumpTONextLane=0;
  if (opponent.onGround  && opponent.groundY === GROUND_Y && fighter.groundY !== GROUND_Y) {
          const chance =0.3;// params.dropThroughChance || 0.3;
         if (Math.random() < chance) {
-            // Start de drop-down sequentie
             if (!fighter._dropDownFrames || fighter._dropDownFrames <= 0) {
                 fighter._dropDownFrames = 3; // drie frames down ingedrukt houden
             }
@@ -6953,7 +7013,6 @@ var timeToJumpTONextLane=0;
     fighter.input.forward = false;
     fighter.input.back = false;
     fighter._dropDownFrames--;
-    // Alle andere AI‑acties overslaan
     return;
 }
  
@@ -6970,10 +7029,8 @@ var timeToJumpTONextLane=0;
 		jumpPower = fighter.superJumpPower +( fighter.superJumpPower*0.6);//9); => happens direct, would be too crazy
 		}
 
-       // fighter.input.up = true;
         if (opponent.cx > fighter.cx) fighter.input.right = true;
         else fighter.input.left = true;
-       // fighter.input.forward = true;
         fighter.vy = jumpPower;
         fighter.onGround = false;
         fighter._aiJumpCooldown = 100;
@@ -6986,10 +7043,7 @@ var timeToJumpTONextLane=0;
     if (fighter.onGround && !opponent.onGround && dist < 300 && Math.random() < params.superJumpChance) {
         fighter._aiTimer = 55;  
         return;
-    }
-
-
-  
+    }  
 	
     // ─── FLINCH HERSTEL ──────────────────────────────────────────
     if (fighter.state === 'hit' || fighter.state === 'swept' || fighter.state === 'ko') {
@@ -7025,11 +7079,7 @@ var timeToJumpTONextLane=0;
             aiPerformAttack(fighter, counterMoves);
             return;
         }
-    }
-
-
-   
-	
+    }	
 	
 // ─── RANDVERMIJDING + AGGRESSIE BIJ DE RAND ────────────────
     const borderBuffer = 70;
@@ -7127,10 +7177,7 @@ var timeToJumpTONextLane=0;
         fighter.input.back = true;
         if (fighter.onGround && Math.random() < 0.3) fighter.input.up = true;
         return;
-    }
-  
-
- 
+    } 
 
     // 3) AANVALLEN (hoofd)
     if (dist < 150 && Math.random() < params.attackChance) {
@@ -7242,7 +7289,7 @@ else{
     timerDisplay.style.display = isSoloLevel ? 'none' : '';
 	
 	
-	    const show = project.settings.showHUD !== false; // standaard true
+	    const show = project.settings.showHUD !== false; 
     const hud = document.getElementById('hudOverlay');
     const sP1 = document.getElementById('sP1');
     const sP2 = document.getElementById('sP2');
@@ -7252,8 +7299,6 @@ else{
 
  
 }
-
-// Roep deze functie aan in render() en na elke modus‑/stage‑wissel
 function isAdventureSolo() {
     if (currentMode !== 'adventure') return false;
     const stage = project.stages.find(s => s.id === project.currentStageId);
@@ -7262,7 +7307,7 @@ function isAdventureSolo() {
             function setMode(mode) {
                 currentMode = mode;
                 modeSelect.value = mode;
-                if (timerInterval) clearInterval(timerInterval);
+ timerFrameCounter = 0;
                 if (gamePaused  ) { togglePause();}
 
 if (mode === 'network') {
@@ -7276,14 +7321,9 @@ if (mode === 'network') {
 				
 				if (mode === 'adventure') {
     singlePlayer.active = false;
-    document.getElementById('singlePlayerInfo').style.display = 'none';
-    // timer wordt later door de stage bepaald
-  //  gameTimer = 0; // wordt niet gebruikt
- 
-    timerDisplay.textContent = '∞'; // of verborgen
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
-        if (project.settings.adventureCurrentStageId) {
+    document.getElementById('singlePlayerInfo').style.display = 'none'; 
+    timerDisplay.textContent = '∞'; 
+         if (project.settings.adventureCurrentStageId) {
         const savedStage = project.stages.find(s => s.id === project.settings.adventureCurrentStageId);
         if (savedStage) {
             setStage(savedStage.id);
@@ -7295,9 +7335,6 @@ if (mode === 'network') {
             project.selectedP1Char = savedChar.id;
         }
     }
-
-  //  fullReset();
-
 }
 
 				
@@ -7340,58 +7377,42 @@ if (mode === 'network') {
                     p2.health = p2.maxHealth;
                     p2.speed = char2.speed || 4;
                     gameTimer = project.settings.timerSeconds || 99;
-                    timerDisplay.textContent = gameTimer;
-                    timerInterval = setInterval(() => {
-                        if (roundActive && gameTimer > 0) {
-                            gameTimer -= 0.5;
-                            if (gameTimer < 0) gameTimer = 0;
                             timerDisplay.textContent = Math.ceil(gameTimer);
-                        }
-                    }, 500);
                 }
                 fullReset();
             }
 
           function updateProjectilesAndMines() {
-    // Projectielen
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
-        if (!proj) continue; // veiligheid
+        if (!proj) continue; 
 
         proj.update();
 
-        // Als projectiel inactief is, verwijder en ga door
         if (!proj.active) {
             projectiles.splice(i, 1);
             continue;
         }
 
-        // Target bepalen: de tegenstander van de eigenaar
         const target = (proj.owner === p1) ? p2 : p1;
         if (!target || target.health <= 0 || isSoloLevel) continue;
 
-        // Startdistance check
         if (proj.startDistance > 0 && proj.owner) {
             const ownerDist = Math.abs(proj.x - proj.owner.cx);
             if (ownerDist < proj.startDistance) continue;
         }
 
-        // Hit detectie
         const dx = Math.abs(target.cx - proj.x);
         const dy = Math.abs(target.cy - proj.y);
         const hitRadius = 40;
         if (dx < hitRadius && dy < hitRadius ) {
-            // Schade toepassen
             target.takeDamage(proj.damage || 10, proj.dir);
 
-            // Teleportatie van target
             const tx = proj.teleportX || 0;
             const ty = proj.teleportY || 0;
             if (tx !== 0 || ty !== 0) {
-                // Teleporteer target
                 target.x += tx * (-target.facing);
                 target.y -= ty;
-                // Begrenzing
                 const leftBound = project.settings.ringOutLeft ?? -100;
                 const rightBound = project.settings.ringOutRight ?? (1280 + 100);
                 if (target.x < leftBound) target.x = leftBound;
@@ -7414,18 +7435,15 @@ if (mode === 'network') {
                 }
             }
 
-            // Projectiel verwijderen
             proj.active = false;
             projectiles.splice(i, 1);
         }
     }
 
-    // Mijnen
     for (let i = mines.length - 1; i >= 0; i--) {
         const mine = mines[i];
         if (!mine) continue;
 
-        // Opponents array voor de mine
         const opponents = [p1, p2];
         mine.update(opponents);
 
@@ -7508,8 +7526,9 @@ function getRandomDifficulty() {
 			
  			
 				frameSaveTimer++;
+		 
 				
-	if(frameSaveTimer ==7 || frameSaveTimer==14   ){// Travelcube teleport check
+	if(frameSaveTimer ==7 || frameSaveTimer==14   ){
      if (p1 && p2 && travelCubes.length > 0) {
         if (p1._teleportCooldown > 0) p1._teleportCooldown--;
         if (p2._teleportCooldown > 0) p2._teleportCooldown--;
@@ -7620,7 +7639,6 @@ function getRandomDifficulty() {
                 mines = [];
             }
 
-            // Teleport posities toepassen
             const groundY = laneMode ? LANE_Y[1] - PLAYER_H : GROUND_Y - PLAYER_H;
             if (activeTravelcube.teleportX1 !== undefined) {
                 p1.x = activeTravelcube.teleportX1;
@@ -7705,7 +7723,6 @@ if (eBar1 && eBar2) {
     eBar1.classList.toggle('full', energy1 >= 100);
     eBar2.classList.toggle('full', energy2 >= 100);
 
-    // Kleuren toepassen
     const ec = project.settings.energyColor || '#3498db';
     const ef = project.settings.energyFullColor || '#f1c40f';
     eBar1.style.background = `linear-gradient(90deg, ${ec}, ${energy1 >= 100 ? ef : '#2ecc71'})`;
@@ -7748,9 +7765,28 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
             }
      }
 }
- if (currentMode !== 'training') { 
+ if (currentMode !== 'training') {  
 
-if (roundActive && winner === null && project.settings.fatalityEnabled) {
+if (roundActive && winner === null && project.settings.fatalityEnabled ){ 
+
+    const maxRounds = project.settings.roundCount || 3;
+
+    let roundWinner = null;
+	let matchWillEnd = false;
+    if (p1.health <= 0 && !p1.ringOut) roundWinner = 'p2';
+    else if (p2.health <= 0 && !p2.ringOut) roundWinner = 'p1';
+    else if (p1.health <= 0 && p2.health <= 0) roundWinner = 'draw';
+    if (roundWinner) {
+	        let newP1Wins = p1Wins;
+        let newP2Wins = p2Wins;
+        if (roundWinner === 'p1') newP1Wins++;
+        else if (roundWinner === 'p2') newP2Wins++;
+
+	          matchWillEnd = (newP1Wins >= maxRounds || newP2Wins >= maxRounds);
+
+	}
+
+if(matchWillEnd){
 
          if (p2.health <= 0 && p1.health <= 0) {
              winner = 'draw';
@@ -7764,18 +7800,18 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
             }
 			}
 						else if (p1.health <= 0 && !p1.ringOut) {
-        // P2 wint, start fatality voor P1 (verliezer)
         winner = 'p2';
         fatalityActive = true;
         fatalityTimer = project.settings.fatalityDuration * 60;
-        // Zet de verliezer op een kleine health, en in hit state
         p1.health = 0.1;
         p1.state = 'hit';
         p1.hitTimer = 999;
+					 p2.comboTimer = 999; 
+p1.comboCount=0;
+p2.comboCount=0;  
         p1.onGround = true;
         p1.vx = 0;
         p1.vy = 0;
-        // We moeten de verliezer zijn input uitschakelen
         p1.input = { up: false, down: false, left: false, right: false };
     } else if (p2.health <= 0 && !p2.ringOut) {
         winner = 'p1';
@@ -7784,13 +7820,19 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
         p2.health = 0.1;
         p2.state = 'hit';
         p2.hitTimer = 999;
+							 p1.comboTimer = 999; 
+p1.comboCount=0;
+p2.comboCount=0; 
         p2.onGround = true;
         p2.vx = 0;
         p2.vy = 0;
         p2.input = { up: false, down: false, left: false, right: false };
     }
-} else     if (roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
-             // DRAW: beide dood
+	
+	
+	}
+}  
+     if (roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
             winner = 'draw';
             roundActive = false;
             p1.state = 'ko';
@@ -7824,7 +7866,6 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
                             handleRoundEnd('p1')
                         }
                     }
-    // Timer (time-out) check (bestaand, maar pas aan)
     if (gameTimer <= 0 && roundActive) {
       roundActive = false;
     winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
@@ -7844,16 +7885,24 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
 				
 				}
   
-      // Fatality timer update
-    if (fatalityActive) {
+    if (fatalityActive) { 
         fatalityTimer--;
-        // Verlam de verliezer
         if (winner === 'p1') {
-            p2.input = { up: false, down: false, left: false, right: false };
+            p2.input = { 
+   up: false, down: false, left: false, right: false, forward: false, back: false 
+			};
+			  p2.attackActive = false;
+			    p2.attackHit = false;
+    p2.state = 'hit';
+
 			 	if (fatalityTimer <= 1) {p2.state = 'ko'; } 
-            // Optioneel: p2.vx = 0; p2.vy = 0;
         } else if (winner === 'p2') {
-            p1.input = { up: false, down: false, left: false, right: false };
+            p1.input = { 
+    up: false, down: false, left: false, right: false, forward: false, back: false 
+			};
+			    p1.attackHit = false;
+				 p1.attackActive = false;
+    p1.state = 'hit';
 					if (fatalityTimer <= 1) {p1.state = 'ko'; }
 
         }
@@ -7861,7 +7910,6 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
         if (fatalityTimer <= 0) {
             fatalityActive = false;
             roundActive = false;
-            // Roep de round-end handlers aan
             if (singlePlayer.active) {
                 handleSinglePlayerRoundEnd(winner);
             } else {
@@ -7877,26 +7925,24 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
     if (startFightTimer === 0 ) {
         roundActive = true;
         playSystemSound('startFight');
-        fightDisplayTimer = 30;   // "FIGHT!" zichtbaar gedurende 30 frames
+        fightDisplayTimer = 30;   
         startFightSoundPlayed = true;
+     }
+}
 
-        // Start de rondetimer
-        if (currentMode !== 'training' && !isSoloLevel ) {
-            gameTimer = project.settings.timerSeconds || 99;
-            timerDisplay.textContent = gameTimer;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (roundActive && gameTimer > 0) {
-                    gameTimer -= 0.5;
-                    if (gameTimer < 0) gameTimer = 0;
-                    timerDisplay.textContent = Math.ceil(gameTimer);
-                }
-            }, 500);
-        } else {
-            timerDisplay.textContent = '∞';
+ if (roundActive && !gamePaused && currentMode !== 'training' && !isSoloLevel) {
+    timerFrameCounter++;
+    if (timerFrameCounter >= TIMER_STEP_FRAMES) {
+        timerFrameCounter = 0;
+        if (gameTimer > 0) {
+            gameTimer -= 0.5;
+            if (gameTimer < 0) gameTimer = 0;
+            timerDisplay.textContent = Math.ceil(gameTimer);
         }
     }
-}
+}else {
+         //   timerDisplay.textContent = '∞';
+        }
 
                  if (!roundActive) return;
  
@@ -7930,7 +7976,6 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
                         }
                     }
                 }
-
                 for (let i = activeFallingItems.length - 1; i >= 0; i--) {
                     const item = activeFallingItems[i];
                     item.ttl--;
@@ -7962,7 +8007,6 @@ if (roundActive && winner === null && project.settings.fatalityEnabled) {
                             continue;
                         }
                     }
-
                     const fighters = [p1, p2];
                     for (const fighter of fighters) {
                         if (!fighter || fighter.health <= 0) continue;
@@ -8038,10 +8082,8 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
             }
             receivedInput = null;
         }
-        // Simuleren
         p1.update(p2);
         p2.update(p1);
-        // Stuur state om de 6 frames (minder data)
         networkSendCounter++;
         if (networkSendCounter >= 1) {
             networkSendCounter = 0;
@@ -8049,18 +8091,14 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'state', state }));
         }
     } else if (networkRole === 'joiner') {
-        // Stuur input
         const input = collectJoinerInput();
         ws.send(JSON.stringify({ type: 'input', input }));
-        // Pas state toe
         if (receivedState) {
             deserializeGameStateCompact(receivedState);
             receivedState = null;
         }
-        // Geen lokale update
     }
 } else {
-    // Offline
     p1.update(p2);
     p2.update(p1);
 }
@@ -8079,16 +8117,8 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
             var isOutrRendered = false;
 
             function render() {
-          //      ctx.clearRect(0, 0, W, H);
                 drawBackground(); 
     drawWeather(ctx, camera);
-
-            /*    ctx.save();
-                ctx.translate(-camera.offsetX * camera.zoom, -camera.offsetY * camera.zoom);
-                ctx.scale(camera.zoom, camera.zoom);
- 
-    ctx.restore();*/
-
 
                 for (const proj of projectiles) {
                     proj.draw(ctx, camera);
@@ -8134,7 +8164,6 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                     const sh = item.height * camera.zoom;
 
                     ctx.shadowColor = 'rgba(0,0,0,0.4)';
-                    // ctx.shadowBlur = 15;
                     ctx.shadowOffsetY = 5;
 
                     if (item.image && item.image.complete && item.image.naturalWidth > 0) {
@@ -8146,9 +8175,7 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                             item.image = img;
                         }
                         ctx.fillStyle = item.type === 'bomb' ? 'rgba(255,50,50,0.8)' : 'rgba(50,255,50,0.8)';
-                        // ctx.shadowBlur = 20;
                         ctx.fillRect(sx, sy, sw, sh);
-                        // ctx.shadowBlur = 0;
                         ctx.fillStyle = '#fff';
                         ctx.font = `${Math.min(sw, sh) * 0.6}px sans-serif`;
                         ctx.textAlign = 'center';
@@ -8156,16 +8183,13 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                         ctx.fillText(item.type === 'bomb' ? '💣' : '❤️', sx + sw / 2, sy + sh / 2);
                     } else {
                         ctx.fillStyle = item.type === 'bomb' ? 'rgba(255,0,0,0.7)' : 'rgba(0,255,0,0.7)';
-                        // ctx.shadowBlur = 20;
                         ctx.fillRect(sx, sy, sw, sh);
-                        // ctx.shadowBlur = 0;
                         ctx.fillStyle = '#fff';
                         ctx.font = `${Math.min(sw, sh) * 0.6}px sans-serif`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(item.type === 'bomb' ? '💣' : '❤️', sx + sw / 2, sy + sh / 2);
                     }
-                    // ctx.shadowBlur = 0;
                     ctx.shadowOffsetY = 0;
                 }
 
@@ -8181,11 +8205,6 @@ if (fatalityActive) {
     ctx.fillStyle = project.settings.fatalityColor || '#ff0000';
     ctx.shadowColor = 'rgba(255,0,0,0.5)';
      ctx.fillText(project.settings.fatalityText || 'FATALITY!', W / 2, H / 2 - 120);
-    // Toon timer (seconden)
- //   const seconds = Math.ceil(fatalityTimer / 60);
-  //  ctx.font = `bold 32px ${font}`;
-  //  ctx.fillStyle = '#ffffff';
-  //  ctx.fillText(seconds + 's', W/2, H/2.9);
     ctx.restore();
 }
 
@@ -8277,7 +8296,6 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     ctx.fillText(seconds.toString(), W / 2, H / 2.5 - 40);
     ctx.restore();
 } else if (fightDisplayTimer > 0 &&!isSoloLevel) {
-    // Toon "FIGHT!"
     ctx.save();
      ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -8287,16 +8305,12 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.fillText(project.settings.startFightText || 'FIGHT!', W / 2, H / 2.5 - 40);
     ctx.restore();
-    // Verlaag fightDisplayTimer
     fightDisplayTimer--;
 }
-// Ring Out
 ctx.fillStyle = project.settings.ringOutColor || '#ff4444';
-// Start Fight
              }
 
 function resetFighterUI() {
-    // Health
     healthP1.style.width = '100%';
     healthP2.style.width = '100%';
     healthP1.classList.remove('bad');
@@ -8306,7 +8320,6 @@ function resetFighterUI() {
     healthP1.style.background = `linear-gradient(90deg, ${c1}, ${c1})`;
     healthP2.style.background = `linear-gradient(90deg, ${c2}, ${c2})`;
 
-    // Energy
     if (p1) {
         p1.energy = 0;
         document.getElementById('energyP1').style.width = '0%';
@@ -8318,7 +8331,6 @@ function resetFighterUI() {
         document.getElementById('energyP2').classList.remove('full');
     }
 
-    // Status en combo (optioneel, maar hier ook handig)
     if (p1) { p1.statusMessage = ''; p1.statusTimer = 0; p1.comboCount = 0; p1.comboTimer = 0; }
     if (p2) { p2.statusMessage = ''; p2.statusTimer = 0; p2.comboCount = 0; p2.comboTimer = 0; }
 	
@@ -8361,6 +8373,7 @@ if (now - lastFpsTime >= 1000) {
 				flawlessVictory = false;
 				fatalityActive = false;
 fatalityTimer = 0; 
+timerFrameCounter = 0; 
 				startFightTimer = 180;
 				startFightSoundPlayed = false;
 resetFighterUI();
@@ -8390,14 +8403,7 @@ updateHUDVisibility();
                 mines = [];
                 if (currentMode !== 'training') {
                     gameTimer = project.settings.timerSeconds || 99; 
-                    if (timerInterval) clearInterval(timerInterval);
-                    timerInterval = setInterval(() => {
-                        if (roundActive && gameTimer > 0) {
-                            gameTimer -= 0.5;
-                            if (gameTimer < 0) gameTimer = 0;
                             timerDisplay.textContent = Math.ceil(gameTimer);
-                        }
-                    }, 500);
                 } else {
                     timerDisplay.textContent = '∞';
                     p2.health = 9999;
@@ -8413,8 +8419,7 @@ updateHUDVisibility();
             }
 
             function fullReset() {
-                if (timerInterval) clearInterval(timerInterval);
-				timerInterval=null
+   timerFrameCounter = 0; 
                 if (gamePaused) togglePause();
                 ringOutOccurred = false;
 				startFightTimer = 180;
@@ -8460,25 +8465,13 @@ updateHUDVisibility();
 				
 				
     if (networkMode) {
-        // In netwerkmodus wordt de timer later via de 'start' melding gestart
         timerDisplay.textContent = '∞';
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = null;
-    } else if (currentMode === 'training') {
+     } else if (currentMode === 'training') {
         timerDisplay.textContent = '∞';
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = null;
-    } else {
+     } else {
         gameTimer = project.settings.timerSeconds || 99;
         timerDisplay.textContent = gameTimer;
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (roundActive && gameTimer > 0) {
-                gameTimer -= 0.5;
-                if (gameTimer < 0) gameTimer = 0;
                 timerDisplay.textContent = Math.ceil(gameTimer);
-            }
-        }, 500);
     }  
 
                 p1.input = { up: false, down: false, left: false, right: false, forward: false, back: false };
@@ -8516,7 +8509,6 @@ updateHUDVisibility();
                 toastTimeout = setTimeout(() => { toast.className = 'toast'; }, 2500);
             }
 
-// Scrollknoppen voor modal
 document.getElementById('scrollTopBtn')?.addEventListener('click', () => {
   const modal = document.getElementById('modalContent');
   if (modal && modal.scrollHeight > modal.clientHeight) {
@@ -8531,7 +8523,7 @@ document.getElementById('scrollBottomBtn')?.addEventListener('click', () => {
 });
 			// ─── FALLBACK ICON (eerste letter op cirkel) ──────
 function createFallbackIcon(fighter) {
-    if (!fighter) return ''; // veiligheid
+    if (!fighter) return ''; 
     const canvas = document.createElement('canvas');
     canvas.width = 40;
     canvas.height = 40;
@@ -8613,7 +8605,6 @@ function processProjectData(jsonString) {
         var data = JSON.parse(jsonString);
         if (!data.characters) throw new Error('Invalid projectfile: no characters');
 
-        // --- Karakters ---
         project.characters = data.characters;
         project.currentBg = data.currentBg || 'dojo';
         project.selectedP1Char = data.selectedP1Char || 'fighter';
@@ -8672,11 +8663,11 @@ fatalityColor: '#ff0000',
  adventurePlayerChar : '',     
      victoryPoints: 0,         
     vpPerWin: 1,
-    healthColorP1: '#b1c40f',      // primaire kleur P1 (groen/geel)
-    healthColorP2: '#b1c40f',      // primaire kleur P2
-    healthBadColor: '#e74c3c',     // kleur bij lage HP (rood)
-    energyColor: '#3498db',        // energiebalk kleur
-    energyFullColor: '#f1c40f',    // energiebalk bij 100% (goud)
+    healthColorP1: '#b1c40f',     
+    healthColorP2: '#b1c40f',      
+    healthBadColor: '#e74c3c',     
+    energyColor: '#3498db',        
+    energyFullColor: '#f1c40f',   
     timerColor: '#ffffff',
     introOutroColor: '#ffffff',
     ringOutColor: '#ff4444',
@@ -8728,10 +8719,7 @@ project.publish = data.publish || {
     videoData: null
 };
 try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.publish)); } catch(e) {}
-
-        // Zorg dat controls bestaan
         if (!project.settings.controls) project.settings.controls = getDefaultControls();
-        // Zorg voor ontbrekende tekstvelden
         if (!project.settings.ringOutText) project.settings.ringOutText = "RING OUT!";
 		        if (!project.settings.flawlessVictoryText) project.settings.flawlessVictoryText = "PERFECT!";
 						        if (!project.settings.fatalityEnabled) project.settings.fatalityEnabled = false;
@@ -8874,7 +8862,6 @@ if (project.settings.showMoveNamesInTraining === undefined) {
 // ---------- IMPORT FUNCTIE (ondersteunt File en string) ----------
 function importProject(source) {
     if (typeof source === 'string') {
-        // JSON-string
         processProjectData(source);
     } else if (source instanceof File) {
         var reader = new FileReader();
@@ -8910,7 +8897,6 @@ function importProject(source) {
         const mediaIcon = stage.imageData ? (isVideo ? ' 🎬' : ' 🖼') : '';
         opt.textContent = lockIcon + stage.name + mediaIcon + (stage.hasSpringPlatform ? ' 🏗️' : '') + (vpReq > 0 ? ` (VP:${vpReq})` : '');
         if (stage.id === project.currentStageId) opt.selected = true;
-        // Optioneel: disabled attribuut zetten, maar dan kunnen gebruikers hem niet selecteren (we doen het al in de change)
         stageSelect.appendChild(opt);
     });
 }
@@ -8924,7 +8910,6 @@ function importProject(source) {
     const platforms = [];
     let yValues = [];
 
-    // Genereer y‑waarden met minimale afstand (zoals voorheen)
     if (count === 1) {
         const mid = (minY + maxY) / 2;
         yValues.push(mid + (Math.random() - 0.5) * (maxY - minY) * 0.3);
@@ -8947,7 +8932,6 @@ function importProject(source) {
         yValues = yValues.map(y => Math.max(minY, Math.min(maxY, y)));
     }
 
-    // Helper om overlapping van twee rechthoeken te detecteren
     function rectsOverlap(a, b) {
         return a.x < b.x + b.w && a.x + a.w > b.x &&
                a.y < b.y + b.h && a.y + a.h > b.y;
@@ -8960,7 +8944,6 @@ function importProject(source) {
         let attempts = 0;
         let x = 30 + Math.floor(Math.random() * (W - w - 60));
 
-        // Probeer maximaal 100 keer een niet‑overlappende x te vinden
         while (attempts < 100) {
             let overlap = false;
             for (const p of platforms) {
@@ -8977,7 +8960,6 @@ function importProject(source) {
             attempts++;
         }
 
-        // Als geen x gevonden, probeer de y iets te verschuiven
         if (!found) {
             let yShift = y;
             let shiftAttempts = 0;
@@ -9126,7 +9108,6 @@ function showGameOverModal(won) {
     modalOverlay.classList.add('open');
     gameOverModalOpen = true;
 
-    // Vorige timers stoppen
     if (gameOverAutoTimer) clearTimeout(gameOverAutoTimer);
     if (gameOverAutoInterval) clearInterval(gameOverAutoInterval);
 
@@ -9134,14 +9115,12 @@ function showGameOverModal(won) {
     const msgEl = document.getElementById('autoCloseMsg');
     if (msgEl) msgEl.textContent = `⏳ Returning to menu in ${remaining}s...`;
 
-    // Elke seconde de teller bijwerken
     gameOverAutoInterval = setInterval(() => {
         remaining--;
         if (msgEl) msgEl.textContent = `⏳ Returning to menu in ${remaining}s...`;
         if (remaining <= 0) {
             clearInterval(gameOverAutoInterval);
             gameOverAutoInterval = null;
-            // Sluit de modal en ga naar menu
             modalOverlay.classList.remove('open');
             gameOverModalOpen = false;
             singlePlayer.active = false;
@@ -9149,7 +9128,6 @@ function showGameOverModal(won) {
         }
     }, 1000);
 
-    // Veiligheids-net: na 5 seconden als de interval niet werkt
     gameOverAutoTimer = setTimeout(() => {
         if (gameOverModalOpen) {
             modalOverlay.classList.remove('open');
@@ -9187,11 +9165,6 @@ function showGameOverModal(won) {
         });
     }
 
-    // ─── Ook stoppen als de modal op een andere manier wordt gesloten ──
-    // We gebruiken een eenmalige listener op de 'open' class change (via MutationObserver)
-    // of we checken in de interval of de modal nog open is (al gedaan)
-    // maar we moeten ook stoppen als de gebruiker op de X of buiten de modal klikt.
-    // Daarvoor voegen we een extra listener toe die de timer stopt bij elke sluiting.
     const originalClose = modalClose.onclick;
     modalClose.onclick = function() {
         stopAutoClose();
@@ -9199,7 +9172,6 @@ function showGameOverModal(won) {
         if (originalClose) originalClose.call(this);
     };
 
-    // Ook de overlay-click (buiten de modal) stoppen we de timer
     const overlayHandler = function(e) {
         if (e.target === modalOverlay) {
             stopAutoClose();
@@ -9207,14 +9179,11 @@ function showGameOverModal(won) {
         }
     };
     modalOverlay.addEventListener('click', overlayHandler);
-    // Bewaar de handler zodat we hem later kunnen verwijderen (optioneel)
-    // maar we kunnen hem ook gewoon laten staan; hij wordt bij de volgende modal overschreven.
 }
 function showMovesList(charId) {
     const char = project.characters[charId];
     if (!char) return;
 
-    // Bouw de moves-tabel
     let movesHtml = '';
     if (char.moves && char.moves.length > 0) {
         movesHtml = `<table style="width:100%; border-collapse:collapse; font-size:13px; color:#c0c0e0;">
@@ -9363,7 +9332,6 @@ document.querySelectorAll('.moves-btn').forEach(el => {
     });
 });
 
-    // Selectie-knoppen met VP-check
     document.querySelectorAll('.select-char').forEach(el => {
         el.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -9379,7 +9347,6 @@ document.querySelectorAll('.moves-btn').forEach(el => {
                 return;
             }
 
-            // Selectie
             if (player === 1) {
                 project.selectedP1Char = charId;
                 p1 = new Fighter(charId, project.settings.startX1, 1, 0);
@@ -9684,7 +9651,6 @@ let moveImages = {};
 let stateImages = {};
 let newMoveImages = {}; 
 
-    // We gebruiken een helper om bestanden te lezen
     function readFileIfSelected(input, field, callback) {
         if (!input || !input.files || !input.files[0]) return;
         if (removalFlags[field]) return;
@@ -9699,7 +9665,6 @@ let newMoveImages = {};
         reader.readAsDataURL(input.files[0]);
     }
 
-    // HTML bouwen
     let html = `
         <h2>✏️ ${char.name}</h2>
         <h3>📋 Base</h3>
@@ -9733,8 +9698,31 @@ let newMoveImages = {};
                     ${HEADGEAR_TYPES.map(h => `<option value="${h}" ${char.headgear === h ? 'selected' : ''}>${h}</option>`).join('')}
                 </select>
             </div>
-            <button class="btn" id="randomizeEditChar" style="margin-left:8px;">🎲 Random</button>
         </div>
+		<div class="form-row-4">
+    <div class="form-group"><label>Shoes</label>
+        <select id="editCharShoes">
+            ${SHOE_TYPES.map(s => `<option value="${s}" ${char.shoes === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+    </div>
+    <div class="form-group"><label>Glasses</label>
+        <select id="editCharGlasses">
+            ${GLASSES_TYPES.map(g => `<option value="${g}" ${char.glasses === g ? 'selected' : ''}>${g}</option>`).join('')}
+        </select>
+    </div>
+    <div class="form-group"><label>Shoulder Pads</label>
+        <select id="editCharShoulderPads">
+            ${SHOULDER_PAD_TYPES.map(s => `<option value="${s}" ${char.shoulderPads === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+    </div>
+    <div class="form-group"><label>Belt</label>
+        <select id="editCharBelt">
+            ${BELT_TYPES.map(b => `<option value="${b}" ${char.belt === b ? 'selected' : ''}>${b}</option>`).join('')}
+        </select>
+    </div>
+</div>
+            <button class="btn" id="randomizeEditChar" style="margin-left:8px;">🎲 Random</button>
+
         <div class="form-row">
             <div class="form-group"><label>Head shape</label>
                 <select id="editCharHeadShape">
@@ -10049,7 +10037,7 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         friendlyFire: false, chipDamage: true, height: 'mid',
         unblockable: false, energyRequired: 0,
         teleportX: 0, teleportY: 0, generatesEnergy: 0, counterType: 'none',
-    fatalityOnly: fatalityOnly
+    fatalityOnly: false
     };
     addMoveRow(moveContainer, idx, defaultMove, [], null);
     setupClearFileListeners();
@@ -10070,7 +10058,11 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
             health: parseInt(document.getElementById('editCharHealth').value) || 100,
             gravity: parseFloat(document.getElementById('editCharGravity').value) || 0.6,
             doubleJump: document.getElementById('editCharDoubleJump').checked,  
-			superJumpPower: parseFloat(document.getElementById('editCharSuperJump').value) || -18 
+			superJumpPower: parseFloat(document.getElementById('editCharSuperJump').value) || -18 ,
+			   shoes: document.getElementById('editCharShoes').value,
+        glasses: document.getElementById('editCharGlasses').value,
+        shoulderPads: document.getElementById('editCharShoulderPads').value,
+        belt:document.getElementById('editCharBelt').value,
 
         };
         randomizeCharacter(tempChar);
@@ -10089,7 +10081,12 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         document.getElementById('editCharHeadShape').value = tempChar.headShape;
         document.getElementById('editCharTorsoShape').value = tempChar.torsoShape;
         document.getElementById('editCharHeadgear').value = tempChar.headgear;
-				        document.getElementById('editCharSuperJump').value =tempChar.superJumpPower
+				        document.getElementById('editCharSuperJump').value =tempChar.superJumpPower;
+						    document.getElementById('editCharShoes').value = tempChar.shoes;
+    document.getElementById('editCharGlasses').value = tempChar.glasses;
+    document.getElementById('editCharShoulderPads').value = tempChar.shoulderPads;
+    document.getElementById('editCharBelt').value = tempChar.belt;
+
 
     });
 
@@ -10114,6 +10111,11 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
     const arm = parseInt(document.getElementById('editCharArm').value) || 30;
     const torso = parseInt(document.getElementById('editCharTorso').value) || 50;
     const headgear = document.getElementById('editCharHeadgear').value || null;
+	const shoes = document.getElementById('editCharShoes').value;
+const glasses = document.getElementById('editCharGlasses').value;
+const shoulderPads = document.getElementById('editCharShoulderPads').value;
+const belt = document.getElementById('editCharBelt').value;
+
     const leg = parseInt(document.getElementById('editCharLeg').value) || 28;
     const headShape = document.getElementById('editCharHeadShape').value;
     const torsoShape = document.getElementById('editCharTorsoShape').value;
@@ -10433,6 +10435,10 @@ const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
             armLength: arm,
             torsoHeight: torso,
             headgear: headgear,
+			shoes: shoes,
+glasses: glasses,
+shoulderPads: shoulderPads,
+belt: belt,
             legLength: leg,
             headShape: headShape,
             torsoShape: torsoShape,
@@ -10487,7 +10493,6 @@ const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
             loadHitEffectImage(id, hitEffectImageData);
         }
 
-        // ─── Als dit personage momenteel in gebruik is, herbouw de fighters ──
         if (p1 && p1.charId === id) {
             p1 = new Fighter(id, p1.x, p1.facing, 0);
             p1.reset(p1.x, p1.facing);
@@ -10510,7 +10515,6 @@ updatePlayerIcons();
 		
     }
 
-    // ─── Als er niets meer te laden valt, meteen opslaan ──
     if (pendingReads === 0) {
         checkAllLoaded();
      }
@@ -10563,6 +10567,10 @@ function createNewCharacter() {
         headShape: 'circle',
         torsoShape: 'rect',
         headgear: 'none',
+		shoes: 'none',
+glasses: 'none',
+shoulderPads: 'none',
+belt: 'none',
         dashEnabled: false,
         dashSpeed: 20,
         dashDuration: 10,
@@ -11032,10 +11040,7 @@ function buildStageOptionsWithNone(selectedId) {
     modalBody.innerHTML = html; 
     modalOverlay.classList.add('open');
 
-     // Na modalBody.innerHTML = html;
-
 // ─── Delegate voor clear/remove knoppen ───────────────────
-// Gebruik een anonieme functie om initialisatieproblemen te voorkomen
 modalBody.addEventListener('click', function(e) {
     // Clear file knoppen (✕)
     const clearBtn = e.target.closest('.clear-file');
@@ -11069,7 +11074,6 @@ modalBody.addEventListener('click', function(e) {
         return;
     }
 
-    // Remove item knop (✕ bij falling items)
     const removeItemBtn = e.target.closest('.remove-item');
     if (removeItemBtn) {
         e.stopPropagation();
@@ -11078,7 +11082,6 @@ modalBody.addEventListener('click', function(e) {
         return;
     }
 
-    // Remove travelcube knop (✕ bij travelcubes)
     const removeTcBtn = e.target.closest('.remove-tc');
     if (removeTcBtn) {
         e.stopPropagation();
@@ -11483,13 +11486,13 @@ const damageP2 = parseFloat(row.querySelector('.tc-dmg2').value) || 0;
 function executeAllPlugins() {
     if (!project.settings.plugins?.length) return;
 
-    console.log(`%c[Plugins] ${project.settings.plugins.length} plugin(s) laden...`, 'color:#8affd0; font-weight:bold');
+    console.log(`%c[Plugins] ${project.settings.plugins.length} plugin(s) loading...`, 'color:#8affd0; font-weight:bold');
 
     project.settings.plugins.forEach((plugin, i) => {
         if (!plugin.enabled || !plugin.code) return;
         try {
             eval(plugin.code);
-            console.log(`%c[Plugin ${i+1}] ${plugin.name} → geladen`, 'color:#8affd0');
+            console.log(`%c[Plugin ${i+1}] ${plugin.name} → loaded`, 'color:#8affd0');
         } catch (err) {
             console.error(`[Plugin Error] ${plugin.name}:`, err);
         }
@@ -11511,19 +11514,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             topMenu.classList.toggle('hidden');
 
-            // Bewaar de toestand (optioneel)
             const isHidden = topMenu.classList.contains('hidden');
             localStorage.setItem('topMenuHidden', isHidden ? 'true' : 'false');
         });
 
-        // Klik buiten de menu sluit hem niet (we willen dat de gebruiker zelf kiest)
-        // Maar als je het menu wilt sluiten bij klikken op de achtergrond, kun je dit toevoegen:
-        // document.addEventListener('click', function(e) {
-        //     if (!topMenu.contains(e.target) && !hamburger.contains(e.target) && !topMenu.classList.contains('hidden')) {
-        //         topMenu.classList.add('hidden');
-        //         localStorage.setItem('topMenuHidden', 'true');
-        //     }
-        // });
     }
 });
 function getDefaultControls() {
@@ -11614,7 +11608,6 @@ function updateControlsUI() {
     const container = document.getElementById('controlsContainer');
     if (container) {
         container.innerHTML = generateControlsHTML();
-        // Herbevestig event listeners op de nieuwe knoppen
         document.querySelectorAll('.remap-key, .remap-gamepad').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 const player = this.dataset.player;
@@ -11662,10 +11655,6 @@ const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX'
 const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) || 0;
 
 
-    // Audio bestanden lezen (zoals in de bestaande code)
-    // ... (houd de bestaande code voor audio‑upload)
-
-    // Sla op in project.settings (behalve controls, die blijven zoals ze zijn via remap)
     project.settings.audioEnabled = audioEnabled;
     project.settings.roundCount = roundCount;
     project.settings.timerSeconds = timerSeconds;
@@ -11684,25 +11673,14 @@ project.settings.cameraOffsetY = cameraOffsetY;
 project.settings.fatalityEnabled = fatalityEnabled;
 project.settings.fatalityDuration = fatalityDuration;
 
-    // Plugins worden elders opgeslagen (in de plugin‑logica)
-
-    // Sla ook op in localStorage
     try {
         localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
     } catch (e) {}
 
-    // Werk de timer etc. bij
     if (currentMode !== 'training') {
+	  timerFrameCounter = 0;
         gameTimer = timerSeconds;
-        timerDisplay.textContent = timerSeconds;
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (roundActive && gameTimer > 0) {
-                gameTimer -= 0.5;
-                if (gameTimer < 0) gameTimer = 0;
                 timerDisplay.textContent = Math.ceil(gameTimer);
-            }
-        }, 500);
     }
 
     showToast('✅ Settings saved!', 'success');
@@ -12138,15 +12116,6 @@ document.getElementById('resetAllDataBtn')?.addEventListener('click', function()
     localStorage.removeItem('fighting_timeattack_highscore');
 }
 
-        // Verwijder game-gerelateerde localStorage keys
-     //   const keysToRemove = ['fighting_settings', 'fighting_timeattack_highscore'];
-       // for (const key of keysToRemove) {
-         //   localStorage.removeItem(key);
-       // }
-        // Optioneel: verwijder ook alle keys die met 'fighting_' beginnen
-        // for (const key of Object.keys(localStorage)) {
-        //     if (key.startsWith('fighting_')) localStorage.removeItem(key);
-        // }
         
         showToast('🗑️ Data removed! Page reload.', 'success');
         setTimeout(() => {
@@ -12154,10 +12123,8 @@ document.getElementById('resetAllDataBtn')?.addEventListener('click', function()
         }, 1500);
     }
 });
-// Binnen openSettingsModal(), na de andere HTML
 let plugins = Array.isArray(project.settings.plugins) ? project.settings.plugins : [];
 
-// Render functie
 function renderPlugins() {
     const container = document.getElementById('pluginsContainer');
     container.innerHTML = '';
@@ -12214,10 +12181,10 @@ document.getElementById('pluginFileUpload').addEventListener('change', (e) => {
 
 // Handmatig toevoegen via textarea
 document.getElementById('addManualPluginBtn').addEventListener('click', () => {
-    const name = prompt("Name for your plugin:", "Custom Plugin " + (plugins.length + 1)); // tijdelijke prompt (kan later mooier)
+    const name = prompt("Name for your plugin:", "Custom Plugin " + (plugins.length + 1));  
     if (!name) return;
 
-    const code = prompt("Paste here your JavaScript code:", "// Je code hier\nconsole.log('Plugin actief!');");
+    const code = prompt("Paste here your JavaScript code:", "// Your code here\nconsole.log('Plugin active!');");
     if (code === null) return;
 
     plugins.push({
@@ -12259,14 +12226,12 @@ renderPlugins();
             const type = this.dataset.type; // 'keyboard' of 'gamepad'
             if (!player || !action || !type) return;
 
-            // Annuleer eventuele eerdere remap
             if (waitingForInput) {
                 if (remapTimeout) clearTimeout(remapTimeout);
                 waitingForInput = null;
             }
 
             waitingForInput = { player, action, type };
-            // Toon een melding
             const inputName = type === 'keyboard' ? 'toets' : 'gamepad‑knop';
             showToast(`Press the desired button ${inputName} for ${player} ${action}...`, 'info');
 
@@ -12510,16 +12475,9 @@ resetRound();
 
 
             if (currentMode !== 'training') {
+			  timerFrameCounter = 0;
                 gameTimer = timerSeconds;
-                timerDisplay.textContent = timerSeconds;
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    if (roundActive && gameTimer > 0) {
-                        gameTimer -= 0.5;
-                        if (gameTimer < 0) gameTimer = 0;
                         timerDisplay.textContent = Math.ceil(gameTimer);
-                    }
-                }, 500);
             }
 
             showToast('✅ Settings saved!', 'success');
@@ -12749,10 +12707,9 @@ resetRound();
             break;
         }
     }
-    // P2 (alleen als het niet door AI wordt bestuurd)
      for (const [action, mappedKey] of Object.entries(p2Mappings)) {
         if (key === mappedKey) {
-            if (isHost) return; // host mag P2 niet besturen
+            if (isHost) return; 
             if (action.startsWith('attack')) {
                 const btn = action.replace('attack', '');
                 if (p2.health > 0) {
@@ -12770,7 +12727,6 @@ resetRound();
 });
 document.addEventListener('keyup', (e) => {
     const key = e.key;
-	 // Pauze (Esc blijft altijd werken)
     if (key === 'Escape') {
         e.preventDefault();
         togglePause();
@@ -12898,7 +12854,6 @@ function openPublishModal() {
         return;
     }
  
-    // Zorg dat project.publish altijd bestaat (bv. bij oudere/geïmporteerde projecten)
     if (!project.publish) {
         project.publish = {
             modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
@@ -13080,12 +13035,10 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         const newVideoData = await readFile(videoInput.files[0]);
         const newWatermarkData = await readFile(watermarkInput.files[0]);
 
-        // Gebruik nieuw bestand als gekozen, anders de bestaande opgeslagen waarde
         const faviconData = newFaviconData || project.publish.faviconData || null;
         const videoData = newVideoData || project.publish.videoData || null;
         const watermarkData = newWatermarkData || project.publish.watermarkData || null;
 
-        // Opslaan in project.publish
         project.publish = {
             modes: selectedModes,
             actions: selectedActions,
@@ -13101,7 +13054,6 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
 			launchMode : launchMode
         };
 		
-        // Bewaren in localStorage (voorzichtig met grote base64-data)
         try {
             localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
             localStorage.setItem('fighting_publish_config', JSON.stringify(project.publish));
@@ -13136,7 +13088,6 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         html = html.replace('</head>', '<link rel="icon" href="' + faviconData + '">' + '</head>');
     }
 
-    // Verberg hamburgerknop indien niet in de UI-lijst
     if (!project.publish.ui.includes('hamburgerBtn')) {
         html = html.replace(/<div[^>]*id="hamburgerBtn"[^>]*>/, '<div id="hamburgerBtn" style="display:none !important;">');
     }
@@ -13156,7 +13107,6 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
 }
 
 
-    // Projectdata in een script stoppen (JSON escapen)
     var projectJson = JSON.stringify(project);
     var escapedJson = projectJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/<\//g, '<\\/');
     var projectDataScript = '<script>' +
@@ -13189,7 +13139,6 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
     }
     html = replaceProjectDefinition(html);
 
-    // Helper functies voor import
     var globalFunctionsScript = '<script>' +
         'window.processProjectData = function(json) {' +
         '  try {' +
@@ -13224,10 +13173,8 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
   </style>
 </div>
 `;
-    // Plak de loading-overlay direct na de opening van <body>
     html = html.replace('<body', '<body>' + loadingHTML);
 
-    // Watermerk HTML (voor de start-overlay)
     var watermarkHTML = '';
     if (watermarkData) {
         watermarkHTML = '<div style="position:absolute; bottom:20px; right:20px; pointer-events:none; opacity:0.7; max-width:100px; max-height:100px;">' +
@@ -13499,16 +13446,9 @@ ws.onmessage = (event) => {
 		
         // Host start timer, joiner krijgt timer via state
         if (networkRole === 'host') {
-            gameTimer = project.settings.timerSeconds || 99;
-            timerDisplay.textContent = gameTimer;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (roundActive && gameTimer > 0) {
-                    gameTimer -= 0.5;
-                    if (gameTimer < 0) gameTimer = 0;
-                    timerDisplay.textContent = Math.ceil(gameTimer);
-                }
-            }, 500);
+			  timerFrameCounter = 0;
+                gameTimer = timerSeconds;
+                        timerDisplay.textContent = Math.ceil(gameTimer);
         }
         // Host stuurt gelijk een eerste state
         if (networkRole === 'host') {
