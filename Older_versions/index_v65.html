@@ -1618,15 +1618,15 @@ const DEFAULT_AI_PARAMS = {
                 { id: 'uppercutL', name: 'Attack L', damage: 7, range: 50, speed: 10, button: 3, command: '4',
                      row: 5,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'uppercut_l'   },
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'jab_l'   },
                 { id: 'uppercutM', name: 'Attack M', damage: 13, range: 65, speed: 16, button: 4, command: '5',
                     row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                      row: 6,projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'uppercut_m'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'jab_m'   },
                 { id: 'uppercutH', name: 'Attack H', damage: 20, range: 90, speed: 26, button: 5, command: '6',
                      row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'uppercut_h'  },
+                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'jab_h'  },
             ];
 
 const DEFAULT_STATES = {
@@ -1709,9 +1709,9 @@ belt: 'none',
         { value: 'punch_l', label: 'Punch Light' },
         { value: 'punch_m', label: 'Punch Mid' },
         { value: 'punch_h', label: 'Punch Heavy' },
-        { value: 'uppercut_l', label: 'Uppercut Light' },
-        { value: 'uppercut_m', label: 'Uppercut Mid' },
-        { value: 'uppercut_h', label: 'Uppercut Heavy' },
+        { value: 'jab_l', label: 'Jab Light' },
+        { value: 'jab_m', label: 'Jab Mid' },
+        { value: 'jab_h', label: 'Jab Heavy' },
         { value: 'smash', label: 'Smash' },
         { value: 'sweep', label: 'Sweep' },
         { value: 'grab', label: 'Grab' },
@@ -1719,48 +1719,75 @@ belt: 'none',
          { value: 'none', label: 'None' }
     ],
 
-     configs: {
-         punch_l:  { angle: 15 * Math.PI/180, swoosh: true, swooshType: 'circle', armLen: 1.0,  fist: true, swooshRadius: 1.5, swooshWidth: 20 },
-        punch_m:  { angle: 5 * Math.PI/180,  swoosh: true, swooshType: 'circle', armLen: 1.3,  fist: true, swooshRadius: 1.6, swooshWidth: 22 },
-        punch_h:  { angle: -10 * Math.PI/180, swoosh: true, swooshType: 'circle', armLen: 1.5,  fist: true, swooshRadius: 1.8, swooshWidth: 25 },
-        uppercut_l: {
-            angle: 20 * Math.PI/180, // rusthoek (wordt niet gebruikt voor boog, maar voor armpositie)
+       configs: {
+        // ─── PUNCHES – cirkel swoosh, vaste arm ──────────
+        punch_l: { angle:  0.6, swoosh: true, swooshType: 'circle', armLen: 1.3, fist: true, swooshRadius: 1.5, swooshWidth: 20 },
+        punch_m: { angle:  0.2, swoosh: true, swooshType: 'circle', armLen: 1.35, fist: true, swooshRadius: 1.6, swooshWidth: 22 },
+        punch_h: { angle: -0.3, swoosh: true, swooshType: 'circle', armLen: 1.1, fist: true, swooshRadius: 1.7, swooshWidth: 23 },
+
+        // ─── UPPERCUTS – boog swoosh, dynamische arm ─────
+        jab_l: {
+            angle: 20 * Math.PI/180,          // wordt niet gebruikt (dynamisch)
             swoosh: true,
             swooshType: 'arc',
-            armLen: 1.1,
+            armLen: 7.5,                       // basis voor maximale lengte
             fist: true,
             swooshStartAngle: -30 * Math.PI/180,
             swooshEndAngle: 70 * Math.PI/180,
             swooshRadius: 1.5,
             swooshWidth: 20
         },
-        uppercut_m: {
+        jab_m: {
             angle: 10 * Math.PI/180,
             swoosh: true,
             swooshType: 'arc',
-            armLen: 1.2,
+            armLen: 2.2,
             fist: true,
-            swooshStartAngle: -40 * Math.PI/180,
+            swooshStartAngle: -30 * Math.PI/180,
             swooshEndAngle: 80 * Math.PI/180,
             swooshRadius: 1.6,
             swooshWidth: 22
         },
-        uppercut_h: {
-            angle: -120,
+        jab_h: {
+            angle:  1.1,
             swoosh: true,
             swooshType: 'arc',
-            armLen: 1.3,
+            armLen: 1.1,
             fist: true,
-            swooshStartAngle: -50 * Math.PI/180,
+            swooshStartAngle: -30 * Math.PI/180,
+            swooshEndAngle: 70 * Math.PI/180,
+            swooshRadius: 2,
+            swooshWidth: 30
+        },
+
+        // ─── SMASH & THROWING – ook boog, dynamisch ────
+        smash: {
+            angle: 90,
+            swoosh: true,
+            swooshType: 'arc',
+            armLen: 2.3,
+            fist: true,
+            swooshStartAngle: 180,
             swooshEndAngle: 90 * Math.PI/180,
             swooshRadius: 1.8,
             swooshWidth: 25
         },
-        smash:   { angle: -30 * Math.PI/180, swoosh: true, swooshType: 'arc', armLen: 1.2, fist: true, swooshRadius: 1.5, swooshWidth: 20 },
-         sweep:      { angle: 50 * Math.PI/180, swoosh: false, armLen: 1.5, fist: true, sweepEffect: true },
-        grab:       { angle: 10 * Math.PI/180, swoosh: false, armLen: 0.5, fist: true },
-        throwing: { angle: 0, swoosh: true, swooshType: 'arc', armLen: 1.3, fist: true , swooshRadius: 1.4, swooshWidth: 16 },
-         none:       { angle: 0, swoosh: false, armLen: 0, fist: false }
+        throwing: {
+            angle: 0,
+            swoosh: true,
+            swooshType: 'arc',
+            armLen: 1.3,
+            fist: true,
+            swooshStartAngle: -20 * Math.PI/180,
+            swooshEndAngle: 20 * Math.PI/180,
+            swooshRadius: 1.4,
+            swooshWidth: 16
+        },
+
+        // ─── GEEN SWOOSH ──────────────────────────────────
+        sweep: { angle: 50 * Math.PI/180, swoosh: false, armLen: 1.5, fist: true, sweepEffect: true },
+        grab:  { angle: 10 * Math.PI/180, swoosh: false, armLen: 0.5, fist: true },
+        none:  { angle: 0, swoosh: false, armLen: 0, fist: false }
     },
 
 
@@ -1773,15 +1800,15 @@ belt: 'none',
 
         // Specifieke detectie
         if (name.includes('light') || name.includes('l')) {
-            if (name.includes('uppercut')) return 'uppercut_l';
+            if (name.includes('uppercut')) return 'jab_l';
             return 'punch_l';
         }
         if (name.includes('mid') || name.includes('m')) {
-            if (name.includes('uppercut')) return 'uppercut_m';
+            if (name.includes('uppercut')) return 'jab_m';
             return 'punch_m';
         }
         if (name.includes('heavy') || name.includes('h')) {
-            if (name.includes('uppercut')) return 'uppercut_h';
+            if (name.includes('uppercut')) return 'jab_h';
             return 'punch_h';
         }
         if (name.includes('punch')) {
@@ -1790,9 +1817,9 @@ belt: 'none',
             return 'punch_m';
         }
 		if (name.includes('uppercut')) {
-    if (name.includes('light') || name.includes('l')) return 'uppercut_l';
-    if (name.includes('heavy') || name.includes('h')) return 'uppercut_h';
-    return 'uppercut_m';
+    if (name.includes('light') || name.includes('l')) return 'jab_l';
+    if (name.includes('heavy') || name.includes('h')) return 'jab_h';
+    return 'jab_m';
 }
 
         if (type === 'sweep') return 'sweep';
@@ -1917,6 +1944,7 @@ fatalityColor: '#ff0000',
     roundDrawText: "DRAW!",
     matchWinText: "{winner} wins the match!", 
 	isStatusTextAbovePlayer:false,
+	isWaitBeforeAfterFightStart:false,
 		 startX1 : 470,    
  startX2 :740,  
   adventureCurrentStageId:'' ,
@@ -4863,7 +4891,12 @@ ctx.fillText(`FPS: ${fps}`, x, y);
  if (project.settings.showCounterShield  &&this.counterActive) {
     ctx.save();
     const alpha = 0.3 + 0.7 * (this.counterTimer / 90);
-    const cx = (this.cx - camera.offsetX) * camera.zoom;
+ 	    var cx = sx + w / 2;
+				if(spriteImages[this.charId])
+				{
+				cx = sx;
+				}
+				
         const cy = (this.cy + visualOffsetWorld - camera.offsetY) * camera.zoom;
     const baseRadius = 60 * camera.zoom;
     let color;
@@ -5768,7 +5801,6 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
     const visual = fighter.getFallbackVisual(move);
     let cfg = FALLBACK_VISUAL_CONFIG.configs[visual];
     if (!cfg) {
-        console.warn('Fallback visual not found:', visual, '→ using punch_l');
         cfg = FALLBACK_VISUAL_CONFIG.configs['punch_l'];
         if (!cfg) return;
     }
@@ -5777,16 +5809,48 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
     const zoom = camera.zoom;
     const scale = zoom * scaleY;
     const armW = 8 * scale;
-    const armLen = (fighter.armLength || 30) * cfg.armLen * scale;
-    const shoulderX = sx + w/2 + f * 10 * scale;
-    const shoulderY = sy + (fighter.h * (1 - scaleY) * zoom) / 2 + 20 * scale + (fighter.torsoHeight || 50) * 0.3 * scale;
-    const angle = cfg.angle;
+
+    // ─── CONSTANTEN VOOR SCHOUDERPOSITIE ──────────────
+    const SHOULDER_X_OFFSET = 15;  
+    const SHOULDER_Y_OFFSET = 15;  
+    const TORSO_FACTOR = 0.4;     
+
+    // ─── MAXIMALE ARMLENGTE (zonder zoom) ──────────────
+    const range = move.range || 60;
+    const shoulderOffset = fighter.w / 2 + SHOULDER_X_OFFSET; // totale offset van centrum
+    const maxArmLenWorld = Math.max(5, (range - shoulderOffset) * (cfg.armLen || 1.0));
+
+    // ─── PROGRESSIE VAN DE AANVAL (0 → 1) ──────────────
+    const progress = 1 - (fighter.attackTimer / move.speed);
+    const p = Math.min(1, Math.max(0, progress));
+
+    // ─── SCHOUDERPOSITIE (in schermcoördinaten) ──────
+    const shoulderX = sx + w/2 + f * SHOULDER_X_OFFSET * scale;
+    const shoulderY = sy + (fighter.h * (1 - scaleY) * zoom) / 2 + SHOULDER_Y_OFFSET * scale + (fighter.torsoHeight || 50) * TORSO_FACTOR * scale;
+
+    let angle, armLenWorld;
+
+    // ─── DYNAMISCHE ARM VOOR UPPERCUTS / ARC ──────────
+    if (cfg.swooshType === 'arc') {
+        const startAngle = cfg.swooshStartAngle || 0;
+        const endAngle = cfg.swooshEndAngle || 0.5;
+        angle = startAngle + (endAngle - startAngle) * p;
+        // lengte groeit van 20% naar 100%
+        const growth = 0.2 + 0.8 * p;
+        armLenWorld = maxArmLenWorld * growth;
+    } else {
+        // ─── VASTE ARM VOOR PUNCHES / OVERIG ──────────
+        angle = cfg.angle || 0;
+        armLenWorld = maxArmLenWorld;
+    }
+
+    const armLen = armLenWorld * zoom;
     const endX = shoulderX + f * armLen * Math.cos(angle);
     const endY = shoulderY + armLen * Math.sin(angle);
 
     ctx.save();
 
-    // ─── ARM (altijd tekenen) ───────────────────
+    // ─── ARM TEKENEN ─────────────────────────────────────
     ctx.lineWidth = armW;
     ctx.strokeStyle = fighter.lightColor;
     ctx.beginPath();
@@ -5794,7 +5858,7 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
     ctx.lineTo(endX, endY);
     ctx.stroke();
 
-    // ─── VUIST (als ingesteld) ─────────────────
+    // ─── VUIST ──────────────────────────────────────────
     if (cfg.fist) {
         ctx.fillStyle = fighter.darkColor;
         ctx.beginPath();
@@ -5802,42 +5866,19 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
         ctx.fill();
     }
 
-    // ─── SWOOSH (alleen als attack actief is) ──
-	if(!isLowPower){
-    if (cfg.swoosh && fighter.attackActive) {
-        const progress = 1 - (fighter.attackTimer / move.speed);
-        const alpha = 0.3 * (1 - progress);
+if(!isLowPower){
+    // ─── SWOOSH ──────────────────────────────────────────
+    if (cfg.swoosh && fighter.attackActive && !isLowPower) {
+        const alpha = 0.3 * (1 - p);
 
-        if (cfg.swooshType === 'circle') {
-            // ─── Cirkel (voor punches) ────────────
-            const fistX = endX;
-            const fistY = endY;
-            const baseRadius = armW * 2.5;
-            const maxRadius = baseRadius * (1.5 + progress * 0.5);
-            const alphaFactor = 1 - progress * 0.6;
-
-             ctx.globalAlpha = 0.08 * alphaFactor;
-            ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
-            ctx.beginPath();
-            ctx.arc(fistX, fistY, maxRadius * 0.9, 0, Math.PI * 2);
-            ctx.fill();
-
-             ctx.globalAlpha = 0.15 * alphaFactor;
-            ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
-            ctx.beginPath();
-            ctx.arc(fistX, fistY, maxRadius * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-
-             ctx.globalAlpha = 1;
-        } else {
-            // ─── Boog (voor uppercuts, projectielen) ──
-            const swooshRadius = armLen * (cfg.swooshRadius || 1.5);
+        if (cfg.swooshType === 'arc') {
+            const startAngle = cfg.swooshStartAngle || 0;
+            const endAngle = cfg.swooshEndAngle || 0.5;
+            // Gebruik de maximale armlengte voor de boogstraal
+            const swooshRadius = maxArmLenWorld * (cfg.swooshRadius || 1.5) * zoom;
             const lineWidth = (cfg.swooshWidth || 20) * scale;
-            const startAngle = angle - 0.8;
-            const endAngle = angle + 0.8;
-            const steps = 10;
+            const steps = 12;
 
-            // Buitenste vage lijn
             ctx.globalAlpha = alpha * 0.5;
             ctx.strokeStyle = 'rgba(160,120,80,0.8)';
             ctx.lineWidth = lineWidth;
@@ -5852,7 +5893,6 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
             }
             ctx.stroke();
 
-            // Kernlijn
             ctx.globalAlpha = alpha * 0.8;
             ctx.strokeStyle = 'rgba(200,160,120,1)';
             ctx.lineWidth = lineWidth * 0.2;
@@ -5867,15 +5907,32 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
             }
             ctx.stroke();
             ctx.globalAlpha = 1;
+        } else {
+            // ─── CIRKEL (voor punches) ──────────────────
+            const fistX = endX;
+            const fistY = endY;
+            const baseRadius = armW * 2.5;
+            const maxRadius = baseRadius * (1.5 + p * 0.5);
+            const alphaFactor = 1 - p * 0.6;
+
+            ctx.globalAlpha = 0.08 * alphaFactor;
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(fistX, fistY, maxRadius * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.globalAlpha = 0.15 * alphaFactor;
+            ctx.fillStyle = 'rgba(180, 200, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(fistX, fistY, maxRadius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
         }
-		
- 
     }
 }
-    
-
     ctx.restore();
 }
+ 
 function drawHeadgear(ctx, type, x, y, radius, facing, lightColor, darkColor, camera) {
     const scale = camera.zoom;
     ctx.save();
@@ -7841,8 +7898,10 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
 				   if (roundActive && project.settings.ringOutEnabled) {
     if (p1.ringOut) {
         winner = 'p2';
-        roundActive = false;
-        ringOutOccurred = true;
+	//	setTimeout(() => {
+            roundActive = false;
+//}, 50);      
+  ringOutOccurred = true;
 		                updateWinIndicators();
 
              if (singlePlayer.active) {
@@ -7853,8 +7912,10 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
             }
      } else if (p2.ringOut) {
         winner = 'p1';
-        roundActive = false;
-        ringOutOccurred = true;
+		//setTimeout(() => {
+            roundActive = false;
+//}, 50);       
+ ringOutOccurred = true;
 		                updateWinIndicators();
 
              if (singlePlayer.active) {
@@ -7890,7 +7951,10 @@ if(matchWillEnd){
 
          if (p2.health <= 0 && p1.health <= 0) {
              winner = 'draw';
+			setTimeout(() => {// time to show the down frame
             roundActive = false;
+}, 50);
+
             p1.state = 'ko';
             p2.state = 'ko';
             if (singlePlayer.active) {
@@ -7934,7 +7998,9 @@ p2.comboCount=0;
 }  
      if (roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
             winner = 'draw';
+			setTimeout(() => {
             roundActive = false;
+}, 50);
             p1.state = 'ko';
             p2.state = 'ko';
             if (singlePlayer.active) {
@@ -7945,7 +8011,9 @@ p2.comboCount=0;
         } 
 		else  if (p1.health <= 0 && winner === null) {
                         winner = 'p2';
-                        roundActive = false;
+			setTimeout(() => {
+            roundActive = false;
+}, 50);
                         p1.state = 'ko';
                         if (singlePlayer.active) {
                   
@@ -7956,7 +8024,9 @@ p2.comboCount=0;
                         }
                     } else if (p2.health <= 0 && winner === null) {
                         winner = 'p1';
-                        roundActive = false;
+			setTimeout(() => {
+            roundActive = false;
+}, 50);
                         p2.state = 'ko';
                         if (singlePlayer.active) {
                         
@@ -8048,7 +8118,7 @@ p2.comboCount=0;
          //   timerDisplay.textContent = '∞';
         }
 
-                 if (!roundActive) return;
+                if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart) return;  
  
  
                 // ─── FALLING ITEMS SPAWNEN ──────────────────────────
@@ -8761,6 +8831,7 @@ fatalityColor: '#ff0000',
     roundDrawText: "DRAW!",
     matchWinText: "{winner} wins the match!", 
 	isStatusTextAbovePlayer:false,
+	isWaitBeforeAfterFightStart:false,
 		 startX1 : 470,    
  startX2 :740,
   adventureCurrentStageId:'' ,
@@ -8827,6 +8898,7 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.ringOutText) project.settings.ringOutText = "RING OUT!";
 		        if (!project.settings.flawlessVictoryText) project.settings.flawlessVictoryText = "PERFECT!";
 						        if (!project.settings.fatalityEnabled) project.settings.fatalityEnabled = false;
+						    if (!project.settings.isWaitBeforeAfterFightStart) project.settings.isWaitBeforeAfterFightStart = false;  
 		        if (!project.settings.fatalityDuration) project.settings.fatalityDuration = 5; 
 						        if (!project.settings.fatalityText) project.settings.fatalityText = "FATALITY!";  
 						        if (!project.settings.fatalityColor) project.settings.fatalityColor ='#ff0000'; 
@@ -11880,36 +11952,40 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     </div>
 </div>
 <h3>🎨 Visual Effects</h3>
-<div class="form-row-2">
+<div class="form-row-4">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-        <label>🛡️ Block shield</label>
+        <label>Block shield</label>
         <input type="checkbox" id="settingsShowBlock" ${settings.showBlockEffect !== false ? 'checked' : ''} />
     </div>
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-        <label>🌀 Counter shield</label>
+        <label>Counter shield</label>
         <input type="checkbox" id="settingsShowCounter" ${settings.showCounterShield !== false ? 'checked' : ''} />
     </div>
+	    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>Recover flash</label>
+        <input type="checkbox" id="settingsShowRecover" ${settings.showRecoverFlash !== false ? 'checked' : ''} />
+    </div>
+
 	<div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-    <label>🖥️ Show HUD (health, energy, names, icons)</label>
+    <label>Show interface</label>
     <input type="checkbox" id="settingsShowHUD" ${settings.showHUD !== false ? 'checked' : ''} />
 </div>
 
 </div>
-<div class="form-row-2">
+<div class="form-row-4">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-        <label>✨ Recover flash</label>
-        <input type="checkbox" id="settingsShowRecover" ${settings.showRecoverFlash !== false ? 'checked' : ''} />
-    </div>
-    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-        <label>🔥 Combo text</label>
+        <label>Combo text</label>
         <input type="checkbox" id="settingsShowCombo" ${settings.showComboText !== false ? 'checked' : ''} />
     </div>
-</div>
- <div class="form-row-2">
-     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+      <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
         <label>Info above player?</label>
         <input type="checkbox" id="settingsisStatusTextAbovePlayer" ${settings.isStatusTextAbovePlayer !== false ? 'checked' : ''} />
     </div>
+	    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>Immobile not in match</label>
+        <input type="checkbox" id="settingsisWaitBeforeAfterFightStart" ${settings.isWaitBeforeAfterFightStart !== false ? 'checked' : ''} />
+    </div>
+
 </div>
 <h3>🖥️ Screen filter</h3>
 <div class="form-group">
@@ -12456,7 +12532,7 @@ const energyRadius = parseInt(document.getElementById('settingsEnergyRadius').va
 
  const showRingOut = document.getElementById('settingsShowRingOut').checked;
 const settingsisStatusTextAbovePlayer = document.getElementById('settingsisStatusTextAbovePlayer').checked;
-
+const isWaitBeforeAfterFightStart= document.getElementById('settingsisWaitBeforeAfterFightStart').checked
 const useP1Gamepad = document.getElementById('settingsP1Gamepad').checked;
 const useP2Gamepad = document.getElementById('settingsP2Gamepad').checked;
 
@@ -12537,6 +12613,7 @@ project.settings.energyBarHeight = energyHeight;
 project.settings.energyBarBorderRadius = energyRadius;
  project.settings.showRingOutText = showRingOut;
   project.settings.isStatusTextAbovePlayer = settingsisStatusTextAbovePlayer;
+  project.settings.isWaitBeforeAfterFightStart= isWaitBeforeAfterFightStart; 
 project.settings.autoFreezeOnBlock = autoFreeze;
 project.settings.showMoveNamesInTraining = showMoveNames;
 project.settings.adventureCurrentStageId = adventureStage;
