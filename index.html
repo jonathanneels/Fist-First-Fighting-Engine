@@ -1640,7 +1640,8 @@ const DEFAULT_STATES = {
   block:     { row:11, startFrame: 0, endFrame: 7, image: null },
   block_crouch: { row:11, startFrame: 0, endFrame: 7, image: null },
   ko:        { row:10, startFrame: 0, endFrame: 7, image: null },
-  swept:     { row: 9, startFrame: 0, endFrame: 7, image: null }
+  swept:     { row: 9, startFrame: 0, endFrame: 7, image: null },
+  victory:   { row:12, startFrame: 0, endFrame: 7, image: null } 
 };
 
             const DEFAULT_CHARACTER = {
@@ -1933,6 +1934,7 @@ const TIMER_STEP_FRAMES = 30;
                     timerSeconds: 99,
                     aiDifficulty: 'easy',
                     ringOutEnabled: true,
+					    instantRoundReset: false, 
                     ringOutLeft: 60,
                     ringOutRight: 1220,
 					flawlessVictoryText: 'PERFECT!',
@@ -2314,6 +2316,51 @@ function drawWeather(ctx, camera) {
         el.style.opacity = '0';
     }, 3000);
 }
+function resetSinglePlayerRound() {
+    const p1Char = project.selectedP1Char || 'fighter';
+    const p2Char = singlePlayer.currentOpponentId || 'fighter';
+
+    let oldP1Health = null;
+    let oldP1MaxHealth = null;
+    if (singlePlayer.mode === 'survival' && p1) {
+        oldP1Health = p1.health;
+        oldP1MaxHealth = p1.maxHealth;
+    }
+
+    p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
+    p1.spriteImg = spriteImages[p1Char] || null;
+    p2.spriteImg = spriteImages[p2Char] || null;
+
+    if (singlePlayer.mode === 'survival' && oldP1Health !== null) {
+        p1.health = Math.min(oldP1Health, p1.maxHealth);
+        p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
+    }
+
+    winner = null;
+    roundActive = true;
+    projectiles = [];
+    mines = [];
+    matchOver = false;
+        startFightTimer = project.settings.instantRoundReset ? 60 : 180;
+
+    startFightSoundPlayed = false;
+    ringOutOccurred = false;
+    timerFrameCounter = 0;
+
+    const introP1 = getRandomText(p1.introText);
+    const introP2 = getRandomText(p2.introText);
+    if (introP1) showIntroOutroText(1, introP1, true);
+    if (introP2) showIntroOutroText(2, introP2, true);
+
+    gameTimer = project.settings.timerSeconds || 99;
+    timerDisplay.textContent = gameTimer;
+    timerDisplay.textContent = Math.ceil(gameTimer);
+    resetFighterUI();
+    updatePlayerIcons();
+    updateSinglePlayerHUD();
+    resetPositions();
+}
 
             function handleSinglePlayerRoundEnd(winnerId) {
                 if (singlePlayer.gameOver) return;
@@ -2365,54 +2412,14 @@ else flawlessVictory = false;
                     showGameOverModal(false);
                     return;
                 }
- setTimeout(() => {
-                resetSinglePlayerRound();}, 2000);
+if (project.settings.instantRoundReset) {
+    resetSinglePlayerRound();
+} else {
+    setTimeout(() => { resetSinglePlayerRound(); }, 2000);
+}
             }
 
- function resetSinglePlayerRound() {
-    const p1Char = project.selectedP1Char || 'fighter';
-    const p2Char = singlePlayer.currentOpponentId || 'fighter';
-
-    let oldP1Health = null;
-    let oldP1MaxHealth = null;
-    if (singlePlayer.mode === 'survival' && p1) {
-        oldP1Health = p1.health;
-        oldP1MaxHealth = p1.maxHealth;
-    }
-
-    p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
-    p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
-    p1.spriteImg = spriteImages[p1Char] || null;
-    p2.spriteImg = spriteImages[p2Char] || null;
-
-    if (singlePlayer.mode === 'survival' && oldP1Health !== null) {
-        p1.health = Math.min(oldP1Health, p1.maxHealth);
-        p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
-    }
-
-    winner = null;
-    roundActive = true;
-    projectiles = [];
-    mines = [];
-    matchOver = false;
-    startFightTimer = 180;
-    startFightSoundPlayed = false;
-    ringOutOccurred = false;
-    timerFrameCounter = 0;
-
-    const introP1 = getRandomText(p1.introText);
-    const introP2 = getRandomText(p2.introText);
-    if (introP1) showIntroOutroText(1, introP1, true);
-    if (introP2) showIntroOutroText(2, introP2, true);
-
-    gameTimer = project.settings.timerSeconds || 99;
-    timerDisplay.textContent = gameTimer;
-    timerDisplay.textContent = Math.ceil(gameTimer);
-    resetFighterUI();
-    updatePlayerIcons();
-    updateSinglePlayerHUD();
-    resetPositions();
-}
+ 
 
  function getRandomBossCharacter() {
     const bossIds = [];
@@ -2483,7 +2490,7 @@ function startNextSinglePlayerMatch() {
     singlePlayer.matchNumber++;
     singlePlayer.matchRoundsWon = 0;
     singlePlayer.matchRoundsLost = 0;
-    startFightTimer = 180;
+        startFightTimer = 180;//project.settings.instantRoundReset ? 60 : 180; 
     startFightSoundPlayed = false;
     ringOutOccurred = false;
     timerFrameCounter = 0;
@@ -2704,7 +2711,11 @@ else flawlessVictory = false;
                     }, 2000);
                 } else {
 				playSystemSound('roundEnd'); 
-                   setTimeout(() => { resetRound();  }, 2000);
+                 if (project.settings.instantRoundReset) {
+                     resetRound();
+                } else {
+                    setTimeout(() => { resetRound(); }, 2000);
+                }
                 }
             }
 			
@@ -3567,7 +3578,8 @@ getStateConfig(state) {
 _defaultRow(state) {
     const map = {
         'idle': 0, 'walk': 1, 'jump': 2, 'crouch': 3,
-        'hit': 10, 'block': 11, 'block_crouch': 11, 'ko': 10, 'swept': 9
+        'hit': 10, 'block': 11, 'block_crouch': 11, 'ko': 10, 'swept': 9,
+    'victory': 12  
     };
     return map[state] || 0;
 }
@@ -4263,7 +4275,8 @@ if (move.generatesEnergy) {
                     // ─── BEWEGING & BLOK ──────────────────────────────────────
                     if (this._dashTimer === 0) {
                         if (!laneMode) {
-                            // ─── NORMALE MODUS ──────────────────
+                            // ─── NORMALE MODUS ────────────────── 
+
                             if (this.state !== 'attack' && this.state !== 'hit' && this.state !== 'ko') {
                                 let moving = false;
 
@@ -4773,7 +4786,8 @@ while (this._history.length > 0 && now - this._historyTimes[0] > 500) {
                         'block': 11,
                         'block_crouch': 11,
                         'ko': 10,
-                        'swept': 9
+                        'swept': 9,
+    'victory': 12
                     };
                     let row = map[this.state] || 0;
                     if (this.state === 'attack' && this.attackIdx >= 0) {
@@ -5180,8 +5194,7 @@ const cfg = this._cachedStateConfig;
    
  
     ctx.restore();
-     }
-	
+     } 
 	else if (this.state === 'hit') { 
     const intensity = Math.max(0, Math.min(1, this.hitTimer / this.flinchTime));
     const headBendX = this.facing * intensity * 8 * camera.zoom;
@@ -5577,7 +5590,35 @@ const move = this.getMove(this.attackIdx);
 if (move && this.state === 'attack') {
     drawFallbackAttack(ctx, camera, this, move, sx, sy, w, h, scaleY, offsetY);
 }
+ if (this.state === 'victory' || (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p"+(this.playerIdx+1).toString() )) {
+    const scale = camera.zoom * scaleY;
+    const drawY2 = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + offsetY;
+    const torsoY = drawY2 + 20 * camera.zoom * scaleY;
+    const cx = sx + w / 2;
+    const armLen = (this.armLength || 30) * scale;
 
+    // Rechterarm (aan de kant van de facing)
+    const shoulderX = cx + w * 0.25;
+    const shoulderY = torsoY + 6 * scale;
+    const endX = shoulderX + 4 * scale;
+    const endY = shoulderY - armLen * 1.2;
+
+    ctx.save();
+    ctx.strokeStyle = this.lightColor;
+    ctx.lineWidth = 12 * scale;
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.moveTo(shoulderX, shoulderY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // Vuist
+    ctx.fillStyle = this.darkColor;
+    ctx.beginPath();
+    ctx.arc(endX, endY, 8 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
 
 			 
             ctx.restore();
@@ -7915,6 +7956,8 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
 				   if (roundActive && project.settings.ringOutEnabled) {
     if (p1.ringOut) {
         winner = 'p2';
+		 	p2.state= 'victory';
+
 	//	setTimeout(() => {
             roundActive = false;
 //}, 50);      
@@ -7929,6 +7972,8 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
             }
      } else if (p2.ringOut) {
         winner = 'p1';
+		 	p1.state= 'victory';
+
 		//setTimeout(() => {
             roundActive = false;
 //}, 50);       
@@ -8032,6 +8077,7 @@ p2.comboCount=0;
             roundActive = false;
 }, 50);
                         p1.state = 'ko';
+						p2.state= 'victory';
                         if (singlePlayer.active) {
                   
        handleSinglePlayerRoundEnd('p2'); 
@@ -8045,6 +8091,7 @@ p2.comboCount=0;
             roundActive = false;
 }, 50);
                         p2.state = 'ko';
+						 	p1.state= 'victory';
                         if (singlePlayer.active) {
                         
        handleSinglePlayerRoundEnd('p1'); 
@@ -8081,7 +8128,7 @@ p2.comboCount=0;
 			  p2.attackActive = false;
 			    p2.attackHit = false;
  
-			 	if (fatalityTimer <= 30) {		        p2.health = 0.0; p2.state = 'ko'; } else{
+			 	if (fatalityTimer <= 30) {		        p2.health = 0.0; p2.state = 'ko';	 	p1.state= 'victory'; } else{
 						        p2.health = 0.1; 
 
 				}
@@ -8091,7 +8138,7 @@ p2.comboCount=0;
 			};
 			    p1.attackHit = false;
 				 p1.attackActive = false;
- 					if (fatalityTimer <= 30) {p1.health = 0.0; p1.state = 'ko'; }
+ 					if (fatalityTimer <= 30) {p1.health = 0.0; p1.state = 'ko'; 						p2.state= 'victory';}
 					else{		        p1.health = 0.1; 
 
 					}
@@ -8135,9 +8182,8 @@ p2.comboCount=0;
          //   timerDisplay.textContent = '∞';
         }
 
-                if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart) return;  
- 
- 
+                if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart){ return;  }
+  
                 // ─── FALLING ITEMS SPAWNEN ──────────────────────────
                 if (roundActive && !gamePaused) {
                     const stage = project.stages.find(s => s.id === project.currentStageId);
@@ -8301,7 +8347,13 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                 updateCamera();
 
               
-
+if ( (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p2" )) {// status = 'victory', but when char Moves
+							p2.state  = 'victory';
+						console.log("here")
+							} 	else if ( (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p1" )) {
+							p1.state  = 'victory';
+						console.log("here")
+							}
 
              
 }
@@ -8565,7 +8617,8 @@ if (now - lastFpsTime >= 1000) {
 				fatalityActive = false;
 fatalityTimer = 0; 
 timerFrameCounter = 0; 
-				startFightTimer = 180;
+				    startFightTimer = project.settings.instantRoundReset ? 60 : 180;
+
 				startFightSoundPlayed = false;
 resetFighterUI();
 applyBarStyles();
@@ -8613,7 +8666,8 @@ updateHUDVisibility();
    timerFrameCounter = 0; 
                 if (gamePaused) togglePause();
                 ringOutOccurred = false;
-				startFightTimer = 180;
+				    startFightTimer = 180;//project.settings.instantRoundReset ? 60 : 180;
+
 startFightSoundPlayed = false;
 matchEndSoundPlayed = false;
 flawlessVictory = false;
@@ -9969,7 +10023,7 @@ let newMoveImages = {};
         <h3>🎞️ Per‑state animation</h3>
         <div style="display:grid; grid-template-columns: 80px 50px 50px 50px 1fr; gap:4px; align-items:center; background:#0f0f1e; padding:6px; border-radius:6px; font-size:12px; margin-bottom:8px;">
             <span>State</span><span>Row</span><span>Start</span><span>End</span><span>Image</span>
-            ${['idle','walk','jump','crouch','hit','block','block_crouch','ko','swept'].map(st => {
+            ${['idle','walk','jump','crouch','hit','block','block_crouch','ko','swept','victory'].map(st => {
                 const cfg = (char.states && char.states[st]) ? char.states[st] : {};
                 const row = cfg.row !== undefined ? cfg.row : '';
                 const start = cfg.startFrame !== undefined ? cfg.startFrame : '';
@@ -12010,6 +12064,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <label>Immobile not in match</label>
         <input type="checkbox" id="settingsisWaitBeforeAfterFightStart" ${settings.isWaitBeforeAfterFightStart !== false ? 'checked' : ''} />
     </div>
+	<div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+    <label> Instant round reset </label>
+    <input type="checkbox" id="settingsInstantReset" ${settings.instantRoundReset ? 'checked' : ''} />
+</div>
+
 
 </div>
 <h3>🖥️ Screen filter</h3>
@@ -12525,6 +12584,7 @@ const fatalityText = document.getElementById('settingsFatalityText').value;
 const fatalityColor = document.getElementById('settingsFatalityColor').value;
 
 const screenFilter = document.getElementById('settingsScreenFilter').value;
+const instantRoundReset = document.getElementById('settingsInstantReset').checked;
 
 const winStyle = document.getElementById('settingsWinStyle').value;
 const winIndicatorColor = document.getElementById('settingswinIndicatorColor').value;
@@ -12656,6 +12716,7 @@ project.settings.introOutroFont = introOutroFont;
 project.settings.showHUD = showHUD;
 project.settings.fatalityText = fatalityText;
 project.settings.fatalityColor = fatalityColor;
+project.settings.instantRoundReset = instantRoundReset;
 
 project.settings.winIndicatorStyle = winStyle;
 project.settings.winIndicatorColor = winIndicatorColor;
