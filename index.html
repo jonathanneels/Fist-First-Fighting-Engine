@@ -1910,6 +1910,7 @@ const FONT_LIST = [
 
 let timerFrameCounter = 0;         
 const TIMER_STEP_FRAMES = 30;        
+let travelCubeStartTime = 0;
 
             let project = {
                 characters: { fighter: { ...DEFAULT_CHARACTER, id: 'fighter' } },
@@ -7054,11 +7055,16 @@ for (const p of springPlatforms) {
 
 
 for (const tc of travelCubes) {
+    if (tc._phase === 'hidden' || tc._phase === 'expired') continue;
+   let alpha = 1;
+    if (tc._phase === 'blinking') alpha = tc._blinkAlpha || 0.5;
+
     const sx = (tc.x - camera.offsetX) * camera.zoom;
     const sy = (tc.y - camera.offsetY) * camera.zoom;
     const sw = tc.width * camera.zoom;
     const sh = tc.height * camera.zoom;
 
+    ctx.globalAlpha = alpha;
     if (tc.imageData) {
         if (!tc._img) {
             tc._img = new Image();
@@ -7072,8 +7078,8 @@ for (const tc of travelCubes) {
     } else {
         drawDefaultTravelcube(ctx, sx, sy, sw, sh);
     }
+    ctx.globalAlpha = 1;
 }
-
 
 // ─── Textcubes tekenen ──────────────────────────────
 for (const cube of textCubes) {
@@ -7736,6 +7742,9 @@ function getRandomDifficulty() {
 }
  var frameSaveTimer=0;
             function update() {
+			
+			 updateTravelCubes() ;
+			 
  				frameSaveTimer++;
 		 
 				
@@ -7744,10 +7753,13 @@ function getRandomDifficulty() {
         if (p1._teleportCooldown > 0) p1._teleportCooldown--;
         if (p2._teleportCooldown > 0) p2._teleportCooldown--;
 
+
         let activeTravelcube = null;
         const currentVP = project.settings.victoryPoints || 0;
 
         for (const tc of travelCubes) {
+		        if (tc._phase !== 'active') continue;
+
             const p1Overlap = (p1.x + p1.w > tc.x && p1.x < tc.x + tc.width &&
                                p1.y + p1.h > tc.y && p1.y < tc.y + tc.height);
             const p2Overlap = (p2.x + p2.w > tc.x && p2.x < tc.x + tc.width &&
@@ -8677,7 +8689,8 @@ fatalityTimer = 0;
 isSoloLevel=isAdventureSolo()
 applyBarStyles();
 updatePlayerIcons();
-
+   resetTravelCubes();
+   
        diffKey = project.settings.aiDifficulty || 'normal'; 
     params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
 
@@ -9069,6 +9082,13 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         for (var s = 0; s < project.stages.length; s++) {
             var st = project.stages[s];
             if (st.imageData) loadStageMedia(st.id, st.imageData);
+			st.travelcubeConfigs.forEach(cfg => {
+    if (cfg.timeToLive === undefined) cfg.timeToLive = 0;
+    if (cfg.spawnAfterXSeconds === undefined) cfg.spawnAfterXSeconds = 0;
+	    if (cfg.spawnOnce === undefined) cfg.spawnOnce = false;
+
+});
+
         }
 
         // --- UI bijwerken ---
@@ -9276,11 +9296,76 @@ function importProject(source) {
                 return stage.platforms;
             }
 
+function resetTravelCubes() {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+    if (!stage) return;
+    travelCubes = (stage.travelcubeConfigs || []).map(cfg => {
+        const hasTiming = cfg.timeToLive > 0 && cfg.spawnAfterXSeconds !== undefined;
+        return {
+            ...cfg,
+            _phase: hasTiming ? 'hidden' : 'active',
+            _nextSpawnTime: hasTiming ? performance.now() + cfg.spawnAfterXSeconds * 1000 : 0,
+            _expireTime: 0,
+            _blinkStart: 0,
+            _blinkAlpha: 0.5,
+            _img: null
+        };
+    });
+}
+
+function updateTravelCubes() {
+    const now = performance.now();
+    for (const tc of travelCubes) {
+        const ttl = tc.timeToLive || 0;
+        const spawn = tc.spawnAfterXSeconds || 0;
+        const spawnOnce = tc.spawnOnce || false;
+        const blink = tc.blinkBeforeSpawn !== false; // default true
+
+        if (ttl <= 0) {
+            tc._phase = 'active';
+            continue;
+        }
+        if (tc._phase === 'expired') continue;
+
+        switch (tc._phase) {
+            case 'hidden':
+                if (now >= tc._nextSpawnTime) {
+                    if (blink) {
+                        tc._phase = 'blinking';
+                        tc._blinkStart = now;
+                    } else {
+                        tc._phase = 'active';
+                        tc._expireTime = now + ttl * 1000;
+                    }
+                }
+                break;
+            case 'blinking':
+                if (now - tc._blinkStart >= 2000) {
+                    tc._phase = 'active';
+                    tc._expireTime = now + ttl * 1000;
+                } else {
+                    const p = (now - tc._blinkStart) / 2000;
+                    tc._blinkAlpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(p * Math.PI * 8));
+                }
+                break;
+            case 'active':
+                if (now >= tc._expireTime) {
+                    if (spawnOnce) {
+                        tc._phase = 'expired';
+                    } else {
+                        tc._phase = 'hidden';
+                        tc._nextSpawnTime = now + spawn * 1000;
+                    }
+                }
+                break;
+        }
+    }
+}
            function setStage(stageId) {
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
     project.currentStageId = stageId;
-    travelCubes = (stage.travelcubeConfigs || []).map(c => ({ ...c }));
+   resetTravelCubes();// nota no reset between rounds (only after full reset)
  textCubes = (stage.textcubeConfigs || []).map(cfg => {
     const cube = { ...cfg, active: false, image: null };
     if (cfg.imageData) {
@@ -11235,18 +11320,24 @@ function buildStageTargetOptions(selected) {
                 return `
                 <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                        <label style="font-size:10px;color:#7a7a9a;">telep. x</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+                     
+					 <label style="font-size:10px;color:#7a7a9a;">Cube pos. x</label>
                         <input type="number" class="tc-x" value="${cfg.x || 0}" placeholder="x" style="width:60px;" />
-                        <label style="font-size:10px;color:#7a7a9a;">telep. y</label>
+                        <label style="font-size:10px;color:#7a7a9a;">Cube pos. y</label>
                         <input type="number" class="tc-y" value="${cfg.y || 0}" placeholder="y" style="width:60px;" />
-                        <label style="font-size:10px;color:#7a7a9a;">size x</label>
+                        <label style="font-size:10px;color:#7a7a9a;">Cube size x</label>
                         <input type="number" class="tc-w" value="${cfg.width || 60}" placeholder="breedte" style="width:60px;" />
-                        <label style="font-size:10px;color:#7a7a9a;">size y</label>
+                        <label style="font-size:10px;color:#7a7a9a;">Cube size y</label>
                         <input type="number" class="tc-h" value="${cfg.height || 60}" placeholder="hoogte" style="width:60px;" />
                         <label style="font-size:10px;color:#7a7a9a;">To</label>
                         <select class="tc-target">
                             ${buildStageTargetOptions(cfg.targetStageId || 'none')}
                         </select>
+												      </div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+
                         <label style="font-size:10px;color:#7a7a9a;">Set mode</label>
                         <select class="tc-mode" style="width:100px;">
                             ${buildModeOptions(cfg.mode || '')}
@@ -11263,7 +11354,8 @@ function buildStageTargetOptions(selected) {
                         <select class="tc-ai" style="width:80px;">
                             ${buildAIOptions(cfg.aiDifficulty || '')}
                         </select>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#0a0a16;padding:4px 6px;border-radius:6px;">
+						      </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
                             <label style="font-size:10px;color:#7a7a9a;">P1 spawn x</label>
                             <input type="number" class="tc-tx1" value="${tx1}" placeholder="start" style="width:55px;" />
                             <label style="font-size:10px;color:#7a7a9a;">P1 spawn y</label>
@@ -11272,12 +11364,23 @@ function buildStageTargetOptions(selected) {
                             <input type="number" class="tc-tx2" value="${tx2}" placeholder="start" style="width:55px;" />
                             <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
                             <input type="number" class="tc-ty2" value="${ty2}" placeholder="start" style="width:55px;" />
-                        </div>
-						<label style="font-size:10px;color:#7a7a9a;">Damaging P1</label>
+													<label style="font-size:10px;color:#7a7a9a;">Damaging P1</label>
 <input type="number" class="tc-dmg1" value="${cfg.damageP1 || 0}" step="1" style="width:55px;" />
 <label style="font-size:10px;color:#7a7a9a;">Damaging P2</label>
 <input type="number" class="tc-dmg2" value="${cfg.damageP2 || 0}" step="1" style="width:55px;" />
 
+                        </div>
+						                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+
+						<label style="font-size:10px;color:#7a7a9a;">Time to live (s)</label>
+<input type="number" class="tc-ttl" value="${cfg.timeToLive || 99999}" step="0.5" style="width:60px;" />
+<label style="font-size:10px;color:#7a7a9a;">Spawn after (s)</label>
+<input type="number" class="tc-spawn" value="${cfg.spawnAfterXSeconds || 0}" step="0.5" style="width:60px;" />
+<label style="font-size:10px;color:#7a7a9a;">Spawn once</label>
+<input type="checkbox" class="tc-spawnonce" ${cfg.spawnOnce ? 'checked' : ''} /> 
+<label style="font-size:10px;color:#7a7a9a;">Blink before spawn</label>
+<input type="checkbox" class="tc-blink" ${cfg.blinkBeforeSpawn !== false ? 'checked' : ''} />
+</div>
                         <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">
                             ${cfg.imageData ? '🖼️' : ''}
                         </span>
@@ -11288,6 +11391,8 @@ function buildStageTargetOptions(selected) {
                         <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
                     </div>
                 </div>
+				                        
+
 					
                 `;
             }).join('')}
@@ -11403,18 +11508,24 @@ modalBody.addEventListener('click', function(e) {
         div.style.cssText = 'background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;';
         div.innerHTML = `
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <label style="font-size:10px;color:#7a7a9a;">telep. x</label>
+							                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+
+                <label style="font-size:10px;color:#7a7a9a;">Cube pos. x</label>
                 <input type="number" class="tc-x" value="0" placeholder="x" style="width:60px;" />
-                <label style="font-size:10px;color:#7a7a9a;">telep. y</label>
+                <label style="font-size:10px;color:#7a7a9a;">Cube pos. y</label>
                 <input type="number" class="tc-y" value="500" placeholder="y" style="width:60px;" />
-                <label style="font-size:10px;color:#7a7a9a;">size x</label>
+                <label style="font-size:10px;color:#7a7a9a;">Cube size x</label>
                 <input type="number" class="tc-w" value="60" placeholder="breedte" style="width:60px;" />
-                <label style="font-size:10px;color:#7a7a9a;">size y</label>
+                <label style="font-size:10px;color:#7a7a9a;">Cube size y</label>
                 <input type="number" class="tc-h" value="60" placeholder="hoogte" style="width:60px;" />
                 <label style="font-size:10px;color:#7a7a9a;">To</label>
                 <select class="tc-target">
                     ${buildStageTargetOptions('none')}
                 </select>
+				                </div>
+
+				                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+
                 <label style="font-size:10px;color:#7a7a9a;">Set mode</label>
                 <select class="tc-mode" style="width:100px;">
                     ${buildModeOptions('')}
@@ -11431,7 +11542,9 @@ modalBody.addEventListener('click', function(e) {
                 <select class="tc-ai" style="width:80px;">
                     ${buildAIOptions('')}
                 </select>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#0a0a16;padding:4px 6px;border-radius:6px;">
+				                </div>
+
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
                     <label style="font-size:10px;color:#7a7a9a;">P1 spawn x</label>
                     <input type="number" class="tc-tx1" value="" placeholder="start" style="width:55px;" />
                     <label style="font-size:10px;color:#7a7a9a;">P1 spawn y</label>
@@ -11440,18 +11553,32 @@ modalBody.addEventListener('click', function(e) {
                     <input type="number" class="tc-tx2" value="" placeholder="start" style="width:55px;" />
                     <label style="font-size:10px;color:#7a7a9a;">P2 spawn y</label>
                     <input type="number" class="tc-ty2" value="" placeholder="start" style="width:55px;" />
-                </div>
+					
  <label style="font-size:10px;color:#7a7a9a;">Damaging P1</label>
 <input type="number" class="tc-dmg1" value="0" step="1" style="width:55px;" />
 <label style="font-size:10px;color:#7a7a9a;">Damaging P2</label>
 <input type="number" class="tc-dmg2" value="0" step="1" style="width:55px;" />
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-radius:6px;">
+				
+				<label style="font-size:10px;color:#7a7a9a;">Time to live (s)</label>
+<input type="number" class="tc-ttl" value="99999" step="0.5" style="width:60px;" />
+<label style="font-size:10px;color:#7a7a9a;">Spawn after (s)</label>
+<input type="number" class="tc-spawn" value="0" step="0.5" style="width:60px;" />
+<label style="font-size:10px;color:#7a7a9a;">Spawn once</label>
+<input type="checkbox" class="tc-spawnonce" />
+<label style="font-size:10px;color:#7a7a9a;">Blink before spawn</label>
+<input type="checkbox" class="tc-blink" checked />
+  </div>
+
                 <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
                 <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                     <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
                     <button class="clear-file" data-field="tcImage_${idx}" type="button">✕</button>
                 </div>
                 <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
-            </div> 
+            </div>               
+
         `;
         container.appendChild(div);
          div.querySelector('.remove-tc').addEventListener('click', function() {
@@ -11605,6 +11732,10 @@ const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item'
                 const teleportY2 = parseFloat(row.querySelector('.tc-ty2').value) || undefined;
 				const damageP1 = parseFloat(row.querySelector('.tc-dmg1').value) || 0;
 const damageP2 = parseFloat(row.querySelector('.tc-dmg2').value) || 0;
+const timeToLive = parseFloat(row.querySelector('.tc-ttl').value) || 0;
+const spawnAfterXSeconds = parseFloat(row.querySelector('.tc-spawn').value) || 0;
+const spawnOnce = row.querySelector('.tc-spawnonce').checked;
+const blinkBeforeSpawn = row.querySelector('.tc-blink').checked;
 
                 const field = 'tcImage_' + i;
                 let imageData = null;
@@ -11619,7 +11750,9 @@ const damageP2 = parseFloat(row.querySelector('.tc-dmg2').value) || 0;
                 travelcubeConfigs.push({
                     x, y, width, height, targetStageId, mode, charP1, charP2, aiDifficulty, imageData,
                     teleportX1, teleportY1, teleportX2, teleportY2,
-    damageP1, damageP2 
+    damageP1, damageP2 ,    timeToLive,
+    spawnAfterXSeconds,    spawnOnce ,     blinkBeforeSpawn
+
                 });
             });
 			
