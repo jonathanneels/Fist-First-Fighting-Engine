@@ -60,6 +60,22 @@
             z-index: 10;
             margin-top: 5px;
         }
+		.guard-track {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    margin-top: 2px;
+    overflow: hidden;
+    transition: border-radius 0.2s;
+}
+.guard-bar {
+    height: 100%;
+    width: 100%;
+    transition: width 0.1s ease-out, background 0.2s, border-radius 0.2s;
+}
+#guardTrackP1{
+
+ }
+
         .hud-health {
             position: absolute;
             top: 2%;
@@ -121,15 +137,15 @@
             color: white;
         }
 		
-        #healthP1 {
-            position: absolute;
-            right: 0;
-            top: 0;
+        #wrapP1 {
+    display: flex;
+    flex-direction: column-reverse;
+    transform: rotate(180deg);
+    transform-origin: center center;
         }
         #winIndP1 {
             margin-left: 25vw;
-            margin-top: 3.6vh;
-        }
+         }
         #winIndP2 {
             margin-left: -25vw;
         }
@@ -1152,16 +1168,25 @@
 <div id="textP1" style="position:absolute; left:20px; top:25vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line;"></div>
 <div id="textP2" style="position:absolute; right:20px; top:25vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line; text-align:right;"></div>
 
-        <div class="hud-health">
-            <div class="health-bar-wrap">
-                <div class="health-bar" id="healthP1" style="width:100%"></div>
-                <div class="win-indicator" id="winIndP1"></div>
-            </div>
-            <div class="health-bar-wrap">
-                <div class="health-bar p2" id="healthP2" style="width:100%"></div>
-                <div class="win-indicator" id="winIndP2"></div>
-            </div>
+<div class="hud-health">
+    <div class="health-bar-wrap ">
+	<div id='wrapP1'>
+        <div class="health-bar" id="healthP1" style="width:100%"></div>
+        <div class="guard-track" id="guardTrackP1" style="height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:2px; overflow:hidden;">
+            <div class="guard-bar" id="guardP1" style="height:100%; width:100%; background:#66ccff; border-radius:2px;"></div>
         </div>
+		        </div>
+
+        <div class="win-indicator" id="winIndP1"></div>
+    </div>
+    <div class="health-bar-wrap">
+        <div class="health-bar p2" id="healthP2" style="width:100%"></div>
+        <div class="guard-track" id="guardTrackP2" style="height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:2px; overflow:hidden;">
+            <div class="guard-bar" id="guardP2" style="height:100%; width:100%; background:#66ccff; border-radius:2px;"></div>
+        </div>
+        <div class="win-indicator" id="winIndP2"></div>
+    </div>
+</div>
         <div class="hud-timer" id="timerDisplay">99</div>
         <div id="singlePlayerInfo" style="position:absolute; top:8%; left:50%; transform:translateX(-50%); color:#fff; font-size:clamp(14px,2vh,20px); text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:4px 16px; border-radius:8px;"></div>
 
@@ -1699,7 +1724,11 @@ belt: 'none',
         down: true,
         left: true,
         right: true
-    }
+    },
+	guardEnabled: false,
+guardMax: 100,
+guardCost: 10,
+guardRecoveryRate: 5
 
 					
             };
@@ -1992,6 +2021,8 @@ winIndicatorColor :'#f1c40f',
 winIndicatorEmptyColor :'#444',
 borderWithoutRingOUTLeft: 20,
 borderWithoutRingOUTRight: 20,
+guardColor: '#66ccff',
+guardShape: 'rounded',
 aiParams: DEFAULT_AI_PARAMS
                  },
                 stages: DEFAULT_STAGES.map(s => ({ ...s })),
@@ -3281,6 +3312,11 @@ this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
 this.autoReturnDelay = charData.autoReturnDelay || 2;
 this._autoReturnTimer = 0;
 this.BlockCounter=0;
+this.guardEnabled = charData.guardEnabled || false;
+this.guardMax = charData.guardMax || 100;
+this.guardCost = charData.guardCost || 10;           
+this.guardRecoveryRate = charData.guardRecoveryRate || 5;  
+this.guardMeter = this.guardMax;
 
 this.profilePic = charData.profilePic || null;
 
@@ -3446,6 +3482,11 @@ this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
 this.autoReturnDelay = charData.autoReturnDelay || 2;
 this._autoReturnTimer = 0;
 this.BlockCounter=0;
+this.guardEnabled = charData.guardEnabled || false;
+this.guardMax = charData.guardMax || 100;
+this.guardCost = charData.guardCost || 10;         
+this.guardRecoveryRate = charData.guardRecoveryRate || 5;  
+this.guardMeter = this.guardMax;
 
                     this.x = x;
                     this.y = GROUND_Y - PLAYER_H;
@@ -4051,6 +4092,18 @@ else if (p2) {
     wrap2.style.visibility = p2.hasEnergy ? 'visible' : 'hidden';
 }
 
+                    // ─── Guard opladen ────────────────────────────────────── 
+				
+ if (this.guardEnabled) {
+    // Herstel
+    this.guardMeter = Math.min(this.guardMax, this.guardMeter + this.guardRecoveryRate / 60);
+    // Verbruik tijdens blok
+    if (this.state === 'block' || this.state === 'block_crouch') {
+        this.guardMeter = Math.max(0, this.guardMeter - this.guardCost / 60);
+    }
+}
+
+
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
     var flatHeight =65
@@ -4229,16 +4282,23 @@ opponent.statusTimer = 30;
                                             let blocked = false;
                                             let dmg = move.damage || 10;
 
-                                            if (isBlocking && !move.unblockable) {
-                                                if (move.height === 'low' && opponent.state === 'block') {
-                                                    blocked = false;
-                                                } else if (move.height === 'high' && opponent.state ===
-                                                    'block_crouch') {
-                                                    blocked = false;
-                                                } else {
-                                                    blocked = true;
-                                                }
-                                            }
+                          if (isBlocking && !move.unblockable) {
+     let canBlock = true;
+    if (opponent.guardEnabled && opponent.guardMeter <= 0) {
+        canBlock = false;
+    }
+    if (canBlock) {
+        if (move.height === 'low' && opponent.state === 'block') {
+            blocked = false;
+        } else if (move.height === 'high' && opponent.state === 'block_crouch') {
+            blocked = false;
+        } else {
+            blocked = true;
+        }
+    } else {
+        blocked = false; 
+    }
+}
 
                                             if (blocked) {
                                                 const chip = move.chipDamage !== false ? Math.max(1, Math.floor(dmg *
@@ -7955,6 +8015,42 @@ if (eBar1 && eBar2) {
     eBar1.style.background = `linear-gradient(90deg, ${ec}, ${energy1 >= 100 ? ef : '#2ecc71'})`;
     eBar2.style.background = `linear-gradient(90deg, ${ec}, ${energy2 >= 100 ? ef : '#2ecc71'})`;
 }
+// ─── Guard bars bijwerken ───────────────────────────────
+const guardP1 = document.getElementById('guardP1');
+const guardP2 = document.getElementById('guardP2');
+const guardTrackP1 = document.getElementById('guardTrackP1');
+const guardTrackP2 = document.getElementById('guardTrackP2');
+
+if (p1.guardEnabled) {
+    const pct = Math.max(0, (p1.guardMeter / p1.guardMax) * 100);
+    guardP1.style.width = pct + '%';
+    guardP1.style.display = 'block';
+    guardTrackP1.style.display = 'block';
+} else {
+    guardP1.style.display = 'none';
+    guardTrackP1.style.display = 'none';
+}
+if (p2.guardEnabled) {
+    const pct = Math.max(0, (p2.guardMeter / p2.guardMax) * 100);
+    guardP2.style.width = pct + '%';
+    guardP2.style.display = 'block';
+    guardTrackP2.style.display = 'block';
+} else {
+    guardP2.style.display = 'none';
+    guardTrackP2.style.display = 'none';
+}
+
+// Kleur en vorm uit settings
+const guardColor = project.settings.guardColor || '#66ccff';
+const guardShape = project.settings.guardShape || 'rounded';
+const radius = guardShape === 'rounded' ? '3px' : '0px';
+guardP1.style.background = guardColor;
+guardP1.style.borderRadius = radius;
+guardTrackP1.style.borderRadius = radius;
+guardP2.style.background = guardColor;
+guardP2.style.borderRadius = radius;
+guardTrackP2.style.borderRadius = radius;
+
 
 timerDisplay.style.color = project.settings.timerColor || '#ffffff';
 
@@ -8195,6 +8291,7 @@ p2.comboCount=0;
         }
 
                 if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart){ return;  }
+				
   
                 // ─── FALLING ITEMS SPAWNEN ──────────────────────────
                 if (roundActive && !gamePaused) {
@@ -8961,8 +9058,9 @@ winIndicatorColor :'#f1c40f',
 winIndicatorEmptyColor :'#444',
  aiParams: DEFAULT_AI_PARAMS,
 borderWithoutRingOUTLeft: 20,
-borderWithoutRingOUTRight: 20
-
+borderWithoutRingOUTRight: 20,
+guardColor: '#66ccff',
+guardShape: 'rounded'
 
         };
 project.publish = data.publish || {
@@ -10023,6 +10121,19 @@ let newMoveImages = {};
             <div class="form-group"><label>❤️ Health</label><input type="number" id="editCharHealth" value="${char.health}" /></div>
             <div class="form-group"><label>⚡ Speed</label><input type="number" id="editCharSpeed" value="${char.speed}" step="0.5" /></div>
 		</div>
+		<h3>🛡️ Guard</h3>
+<div class="form-row">
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+        <label>Enable guard</label>
+        <input type="checkbox" id="editCharGuardEnabled" ${char.guardEnabled ? 'checked' : ''} />
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group"><label>Guard max (%)</label><input type="number" id="editCharGuardMax" value="${char.guardMax || 100}" min="1" max="100" /></div>
+    <div class="form-group"><label>Guard cost per sec (%)</label><input type="number" id="editCharGuardCost" value="${char.guardCost || 10}" min="0" max="100" step="0.5" /></div>
+    <div class="form-group"><label>Guard recovery per sec (%)</label><input type="number" id="editCharGuardRecovery" value="${char.guardRecoveryRate || 5}" min="0" max="100" step="0.5" /></div>
+</div>
+
         <h3>🎨 Vanity</h3>
         <div class="form-row">
             <div class="form-group"><label>Color</label><input type="color" id="editCharColor" value="${char.color}" /></div>
@@ -10473,6 +10584,10 @@ const belt = document.getElementById('editCharBelt').value;
 	const superJumpPower = parseFloat(document.getElementById('editCharSuperJump').value) || -18;
 const autoReturn = document.getElementById('editCharAutoReturn').checked;
 const returnDelay = parseFloat(document.getElementById('editCharReturnDelay').value) || 2;
+const guardEnabled = document.getElementById('editCharGuardEnabled').checked;
+const guardMax = parseInt(document.getElementById('editCharGuardMax').value) || 100;
+const guardCost = parseFloat(document.getElementById('editCharGuardCost').value) || 10;
+const guardRecoveryRate = parseFloat(document.getElementById('editCharGuardRecovery').value) || 5;
 
 	const isBoss = document.getElementById('editCharBoss').checked;
  const vpRequired = parseInt(document.getElementById('editCharVP').value) || 0;
@@ -10808,7 +10923,11 @@ belt: belt,
 				superJumpPower:superJumpPower ,
 			    vpRequired: vpRequired,
 				    activeButtons,
-    activeDirections
+    activeDirections,
+	    guardEnabled,
+    guardMax,
+    guardCost,
+    guardRecoveryRate
         };
 
         // ─── Sprite verwerken ──────────────────────────────────
@@ -10936,7 +11055,11 @@ belt: 'none',
 		superJumpPower: parseInt(-14 - Math.random() * 10), 
         profilePic: null,
         activeButtons: [true, true, true, true, true, true],
-        activeDirections: { up: true, down: true, left: true, right: true }
+        activeDirections: { up: true, down: true, left: true, right: true },
+		guardEnabled: false,
+guardMax: 100,
+guardCost: 10,
+guardRecoveryRate: 5
     };
 
      randomizeCharacter(newChar);
@@ -12070,6 +12193,8 @@ const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY'
 project.settings.cameraOffsetY = cameraOffsetY;
 project.settings.fatalityEnabled = fatalityEnabled;
 project.settings.fatalityDuration = fatalityDuration;
+project.settings.guardColor = document.getElementById('settingsGuardColor').value;
+project.settings.guardShape = document.getElementById('settingsGuardShape').value;
 
     try {
         localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
@@ -12220,7 +12345,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     </select>
 </div>
 
-<h3>📊 Bar style</h3>
+<h3>📊 HP & energy bar style</h3>
 <div class="form-row">
    <!-- <div class="form-group"  >  bug css, later check. For consistency also off @ energy
         <label hidden>Health bar height (px)</label>
@@ -12239,6 +12364,16 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <div class="form-group">
         <label>Energy bar border-radius (px)</label>
         <input type="number" id="settingsEnergyRadius" value="${settings.energyBarBorderRadius || 4}" min="1" max="90" />
+    </div>
+</div>
+<h3>🛡️ Guard Block</h3>
+<div class="form-row">
+    <div class="form-group"><label>Color</label><input type="color" id="settingsGuardColor" value="${settings.guardColor || '#66ccff'}" /></div>
+    <div class="form-group"><label>Shape</label>
+        <select id="settingsGuardShape">
+            <option value="rounded" ${settings.guardShape === 'rounded' ? 'selected' : ''}>Rounded</option>
+            <option value="square" ${settings.guardShape === 'square' ? 'selected' : ''}>Square</option>
+        </select>
     </div>
 </div>
 <h3>🎨 Colors</h3>
