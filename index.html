@@ -2000,8 +2000,8 @@ fatalityColor: '#ff0000',
     showCounterShield: true,
     showRecoverFlash: true,
     showComboText: true,
-     healthBarHeight: 16,
-    healthBarBorderRadius: 12,
+     healthBarHeight: 20,
+    healthBarBorderRadius: 0,
     energyBarHeight: 10,
     energyBarBorderRadius: 4, 
 	useGamepadP1:true,
@@ -2692,10 +2692,10 @@ function updateWinIndicators() {
     winIndP2.innerHTML = p2Str;
 }
 function awardVictoryPoints() {
-    if (!project.settings.vpPerWin) return;
+    if (!project.settings.vpPerWin || project.settings.vpPerWin==0) return;
     if (!VP_ALLOWED_MODES.includes(currentMode)) return;
 
-    const vp = (project.settings.victoryPoints || 0) + project.settings.vpPerWin;
+    const vp = (project.settings.victoryPoints ?? 0) + project.settings.vpPerWin;
     project.settings.victoryPoints = vp;
     localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
     showToast(`🏆 +${project.settings.vpPerWin} VP!`, 'success');
@@ -2826,7 +2826,7 @@ const BIO_TRAITS = [
                 char.darkColor = `hsl(${hue}, ${sat-10}%, ${light-20}%)`;
                 char.speed = 3 + Math.floor(Math.random() * 4);
                 char.health = 80 + Math.floor(Math.random() * 60);
-                char.gravity = 0.4 + Math.random() * 0.5;
+                char.gravity =parseFloat( 0.4 + Math.random() * 0.5).toFixed(2);
                 char.doubleJump = Math.random() > 0.5;
                  char.flinchTime = 10 + Math.floor(Math.random() * 12);
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
@@ -3295,6 +3295,43 @@ function applyBarStyles() {
         bar.style.borderRadius = energyRadius + 'px';
     });
 	
+	    const healthHeight = project.settings.healthBarHeight ?? 20;
+    document.getElementById('healthP1').style.height = healthHeight + 'px';
+    document.getElementById('healthP2').style.height = healthHeight + 'px';
+    const energyHeight = project.settings.energyBarHeight ?? 10;
+    document.getElementById('energyP1').style.height = energyHeight + 'px';
+    document.getElementById('energyP2').style.height = energyHeight + 'px';
+    document.querySelectorAll('.energy-track').forEach(el => {
+        el.style.height = energyHeight + 'px';
+    });
+
+
+
+	
+ 	if (p1) {
+    const opacity1 = p1.hudOpacity ?? 1;
+    document.getElementById('energyP1').style.opacity = opacity1;
+   // document.getElementById('textP1').style.opacity = opacity1;
+    document.getElementById('iconP1').style.opacity = opacity1;
+    document.getElementById('nameP1').style.opacity = opacity1;
+	document.getElementById('healthP1').style.opacity = opacity1;
+ document.getElementById('guardP1').style.opacity = opacity1;
+document.getElementById('winIndP1').style.opacity = opacity1;
+
+}
+if (p2) {
+    const opacity2 = p2.hudOpacity ?? 1;
+    document.getElementById('energyP2').style.opacity = opacity2;
+   // document.getElementById('textP2').style.opacity = opacity2;
+    document.getElementById('iconP2').style.opacity = opacity2;
+    document.getElementById('nameP2').style.opacity = opacity2;
+	document.getElementById('guardP2').style.opacity = opacity2;
+document.getElementById('healthP2').style.opacity = opacity2;
+document.getElementById('winIndP2').style.opacity = opacity2; 
+
+}
+
+	
 }
             // ─── FIGHTER CLASS ────────────────────────────────────
             class Fighter {
@@ -3309,17 +3346,17 @@ this._lastAttackTime = 0;
 this._aiActionCooldown = 0;
 this._aiJumpCooldown=0; 
 this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
-this.autoReturnDelay = charData.autoReturnDelay || 2;
+this.autoReturnDelay = charData.autoReturnDelay ?? 2;
 this._autoReturnTimer = 0;
 this.BlockCounter=0;
 this.guardEnabled = charData.guardEnabled || false;
-this.guardMax = charData.guardMax || 100;
-this.guardCost = charData.guardCost || 10;           
-this.guardRecoveryRate = charData.guardRecoveryRate || 5;  
-this.guardMeter = this.guardMax;
-
+this.guardMax = charData.guardMax ?? 100;
+this.guardCost = charData.guardCost ?? 10;           
+this.guardRecoveryRate = charData.guardRecoveryRate ?? 5;  
+this.guardMeter = this.guardMax ;
+this.hudOpacity =charData.hudOpacity ?? 1;  
 this.profilePic = charData.profilePic || null;
-
+this.ignorePhysics = charData.ignorePhysics || false;
                     this.charId = charId;
 					this.activeButtons = charData.activeButtons || [true, true, true, true, true, true];
 this.activeDirections = charData.activeDirections || { up: true, down: true, left: true, right: true };
@@ -3423,9 +3460,9 @@ this._currentMoveHeight = 'mid';
                     this.color = charData.color || '#3a7ad8';
                     this.lightColor = charData.lightColor || '#6a9af8';
                     this.darkColor = charData.darkColor || '#1a4a8a';
-                    this.gravity = charData.gravity || 0.6;
+                    this.gravity = charData.gravity ?? 0.6;
                     this.doubleJump = charData.doubleJump || false;
-                     this.flinchTime = charData.flinchTime || 12;
+                     this.flinchTime = charData.flinchTime ?? 12;
                     this.headSize = charData.headSize !== undefined ? charData.headSize : 20;
                     this.armLength = charData.armLength !== undefined ? charData.armLength : 30;
                     this.torsoHeight = charData.torsoHeight !== undefined ? charData.torsoHeight : 50;
@@ -3442,9 +3479,9 @@ this._currentMoveHeight = 'mid';
                     this.canRecoverFromFlinch = charData.canRecoverFromFlinch || false;
 
                     this.dashEnabled = charData.dashEnabled || false;
-                    this.dashSpeed = charData.dashSpeed || 20;
-                    this.dashDuration = charData.dashDuration || 10;
-                    this.dashCooldown = charData.dashCooldown || 1;
+                    this.dashSpeed = charData.dashSpeed ?? 20;
+                    this.dashDuration = charData.dashDuration ?? 10;
+                    this.dashCooldown = charData.dashCooldown ?? 1;
 
 this._history = [];
 this._historyTimes = [];
@@ -3479,14 +3516,16 @@ this.profilePic = charData.profilePic || null;
 
 this.superJumpPower = charData.superJumpPower !== undefined ? charData.superJumpPower : -18;
 this.autoReturnToMiddleLane = charData.autoReturnToMiddleLane || false;
-this.autoReturnDelay = charData.autoReturnDelay || 2;
+this.autoReturnDelay = charData.autoReturnDelay ?? 2;
 this._autoReturnTimer = 0;
 this.BlockCounter=0;
 this.guardEnabled = charData.guardEnabled || false;
-this.guardMax = charData.guardMax || 100;
-this.guardCost = charData.guardCost || 10;         
-this.guardRecoveryRate = charData.guardRecoveryRate || 5;  
+this.guardMax = charData.guardMax ?? 100;
+this.guardCost = charData.guardCost ?? 10;         
+this.guardRecoveryRate = charData.guardRecoveryRate ?? 5;  
 this.guardMeter = this.guardMax;
+this.hudOpacity =charData.hudOpacity ?? 1;  
+this.ignorePhysics = charData.ignorePhysics || false;
 
                     this.x = x;
                     this.y = GROUND_Y - PLAYER_H;
@@ -3494,7 +3533,7 @@ this.guardMeter = this.guardMax;
                     this.health = charData.health || 100;
                     this.maxHealth = this.health;
                     this.speed = charData.speed || 4;
-                    this.gravity = charData.gravity || 0.6;
+                    this.gravity = charData.gravity ?? 0.6;
 					this.headgear = charData.headgear || null;
 					this.shoes = charData.shoes || 'none';
 this.glasses = charData.glasses || 'none';
@@ -3504,7 +3543,7 @@ this.belt = charData.belt || 'none';
                     this._currentMoveHeight = 'mid';
                     this._currentMoveUnblockable = false;
                     this.doubleJump = charData.doubleJump || false;
-                     this.flinchTime = charData.flinchTime || 12;
+                     this.flinchTime = charData.flinchTime ?? 12;
                     this.headSize = charData.headSize !== undefined ? charData.headSize : 20;
                     this.armLength = charData.armLength !== undefined ? charData.armLength : 30;
                     this.torsoHeight = charData.torsoHeight !== undefined ? charData.torsoHeight : 50;
@@ -3512,9 +3551,9 @@ this.belt = charData.belt || 'none';
                     this.headShape = charData.headShape || 'circle';
                     this.torsoShape = charData.torsoShape || 'rect';
                     this.dashEnabled = charData.dashEnabled || false;
-                    this.dashSpeed = charData.dashSpeed || 20;
-                    this.dashDuration = charData.dashDuration || 10;
-                    this.dashCooldown = charData.dashCooldown || 1;
+                    this.dashSpeed = charData.dashSpeed ?? 20;
+                    this.dashDuration = charData.dashDuration ?? 10;
+                    this.dashCooldown = charData.dashCooldown ?? 1;
                     this.canRecoverFromFlinch = charData.canRecoverFromFlinch || false;
                     this._recoverFlash = 0;
 this.hasEnergy = charData.hasEnergy !== undefined ? charData.hasEnergy : true;
@@ -4095,10 +4134,8 @@ else if (p2) {
                     // ─── Guard opladen ────────────────────────────────────── 
 				
  if (this.guardEnabled) {
-    // Herstel
-    this.guardMeter = Math.min(this.guardMax, this.guardMeter + this.guardRecoveryRate / 60);
-    // Verbruik tijdens blok
-    if (this.state === 'block' || this.state === 'block_crouch') {
+     this.guardMeter = Math.min(this.guardMax, this.guardMeter + this.guardRecoveryRate / 60);
+     if (this.state === 'block' || this.state === 'block_crouch') {
         this.guardMeter = Math.max(0, this.guardMeter - this.guardCost / 60);
     }
 }
@@ -5143,7 +5180,11 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
 	
  
 			
-        // ─── STATE‑SPECIFIEKE AFBEELDING (niet attack) ─────
+        // ─── STATE‑SPECIFIEKE AFBEELDING (niet attack) ───── 
+		              
+ if (  !fatalityActive && winner == "p"+(this.playerIdx+1).toString()  ) { 
+							this.state  = 'victory';  
+ 							}
         if (this._lastCachedState !== this.state) {
     this._cachedStateConfig = this.getStateConfig(this.state);
     this._lastCachedState = this.state;
@@ -5197,6 +5238,8 @@ const cfg = this._cachedStateConfig;
             if (scaleY !== 1) ctx.scale(1, scaleY);
             ctx.drawImage(spriteImg, colToUse * fw, rowToUse * fh, fw, fh, -w / 2, -h / 2, w, h);
             ctx.restore();
+
+
         } else {
             // ─── FALLBACK: GEOMETRISCHE VORMEN ─────────────
 			
@@ -5651,8 +5694,10 @@ const move = this.getMove(this.attackIdx);
 if (move && this.state === 'attack') {
     drawFallbackAttack(ctx, camera, this, move, sx, sy, w, h, scaleY, offsetY);
 }
- if (this.state === 'victory' || (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p"+(this.playerIdx+1).toString() )) {
-    const scale = camera.zoom * scaleY;
+
+ 
+ if (!fatalityActive &&  winner == "p"+(this.playerIdx+1).toString()  ) {
+     const scale = camera.zoom * scaleY;
     const drawY2 = sy + (this.h * (1 - scaleY) * camera.zoom) / 2 + offsetY;
     const torsoY = drawY2 + 20 * camera.zoom * scaleY;
     const cx = sx + w / 2;
@@ -7191,7 +7236,7 @@ function aiPerformAttack(fighter, moveList) {
 
 var timeToJumpTONextLane=0;
   function updateAIFor(fighter, opponent, isAIvsAI) {
-    if ((fatalityActive   && fighter.health <= 0.1 ) ||fighter.health <= 0 || opponent.health <= 0) {
+    if ((fatalityActive   && fighter.health <= 0.1 ) ||fighter.health <= 0 || opponent.health <= 0 || !roundActive) {
         fighter.input.up = false;
         fighter.input.down = false;
         fighter.input.left = false;
@@ -7809,6 +7854,8 @@ function getRandomDifficulty() {
 		 
 				
 	if(frameSaveTimer ==7 || frameSaveTimer==14   ){
+	
+
      if (p1 && p2 && travelCubes.length > 0) {
         if (p1._teleportCooldown > 0) p1._teleportCooldown--;
         if (p2._teleportCooldown > 0) p2._teleportCooldown--;
@@ -8058,8 +8105,7 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
                     timerDisplay.textContent = Math.ceil(gameTimer);
                 }
                 updateSinglePlayerHUD();
-                updateWinIndicators();
-				
+                updateWinIndicators(); 
 				
 				   if (roundActive && project.settings.ringOutEnabled) {
     if (p1.ringOut) {
@@ -8289,6 +8335,7 @@ p2.comboCount=0;
 }else {
          //   timerDisplay.textContent = '∞';
         }
+		
 
                 if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart){ return;  }
 				
@@ -8449,20 +8496,40 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
     p2.update(p1);
 }
 
+
+	if (p1.ignorePhysics) { 
+     p1.vx = 0;
+    p1.vy = 0;
+    if (p1.input.left) p1.x -= p1.speed;
+    if (p1.input.right) p1.x += p1.speed;
+    if (p1.input.up) p1.y -= p1.speed;
+    if (p1.input.down) p1.y += p1.speed;
+     p1.x = Math.max(0, Math.min(W - p1.w, p1.x));
+    p1.y = Math.max(0, Math.min(H - p1.h, p1.y));
+    p1.onGround = false;  
+	p1.gravity=0.00;
+ }
+
+
+	if (p2.ignorePhysics) {
+     p2.vx = 0;
+    p2.vy = 0;
+    if (p2.input.left) p2.x -= p2.speed;
+    if (p2.input.right) p2.x += p2.speed;
+    if (p2.input.up) p2.y -= p2.speed;
+    if (p2.input.down) p2.y += p2.speed;
+     p2.x = Math.max(0, Math.min(W - p2.w, p2.x));
+    p2.y = Math.max(0, Math.min(H - p2.h, p2.y));
+    p2.onGround = false;  
+	p2.gravity=0.00;
+ }
             
 				
                 updateProjectilesAndMines();
 				updateWeather();
                 updateCamera();
 
-              
-if ( (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p2" )) {// status = 'victory', but when char Moves
-							p2.state  = 'victory';
-						console.log("here")
-							} 	else if ( (!roundActive &&  !project.settings.isWaitBeforeAfterFightStart && winner == "p1" )) {
-							p1.state  = 'victory';
-						console.log("here")
-							}
+
 
              
 }
@@ -8695,6 +8762,9 @@ if (p1) {
 if (p2) {
     wrap2.style.visibility = p2.hasEnergy ? 'visible' : 'hidden';
 }
+
+
+
 	  
 
 }
@@ -9037,8 +9107,8 @@ fatalityColor: '#ff0000',
     showCounterShield: true,
     showRecoverFlash: true,
     showComboText: true,
-     healthBarHeight: 16,
-    healthBarBorderRadius: 12,
+     healthBarHeight: 20,
+    healthBarBorderRadius: 0,
     energyBarHeight: 10,
     energyBarBorderRadius: 4,
 	useGamepadP1:true,
@@ -10116,23 +10186,49 @@ let newMoveImages = {};
     <label>VP Required to unlock</label>
     <input type="number" id="editCharVP" value="${char.vpRequired || 0}" min="0" />
 </div>
+	<div class="form-row-2 form-group">
+    <label>Bio (who?)</label>
+    <textarea id="editCharBio" rows="2" style="width:100%;">${char.bio || ''}</textarea>
 
-        <div class="form-row">
+<div class="form-group">
+    <label>🖼️ Profile picture </label>
+    <div class="file-input-wrap">
+        <input type="file" id="editCharProfilePic" accept="image/*" />
+        <button class="clear-file" data-target="profilePic" type="button">✕</button>
+    </div>
+    <div id="profilePicPreview" style="margin-top:4px;">
+        ${char.profilePic ? `<img src="${char.profilePic}" style="max-height:60px;border:1px solid #2a2a4a;border-radius:4px;" />` : ''}
+    </div>
+    <span id="profilePicStatus" style="font-size:10px;color:#5a5a8a;">
+        ${char.profilePic ? '🖼️' : 'No image'}
+    </span>
+</div>
+ 	</div>
+
+		<div class="form-row-2 form-group">
+
+         <div class="form-group"><label>Intro (split by comma)</label><input type="text" id="editCharIntro" value="${char.introText || ''}" /></div>
+        <div class="form-group"><label>Outro (split by comma)</label><input type="text" id="editCharOutro" value="${char.outroText || ''}" /></div>
+	</div>
+		<div class="form-row-2">
+		   
             <div class="form-group"><label>❤️ Health</label><input type="number" id="editCharHealth" value="${char.health}" /></div>
             <div class="form-group"><label>⚡ Speed</label><input type="number" id="editCharSpeed" value="${char.speed}" step="0.5" /></div>
-		</div>
-		<h3>🛡️ Guard</h3>
-<div class="form-row">
-    <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-        <label>Enable guard</label>
+
+         <div class="form-group">
+            <label>Energy bar</label><input type="checkbox" id="editCharEnergy" ${char.hasEnergy !== false ? 'checked' : ''} />
+        </div>
+  <div class="form-group">        <label>Enable guard</label>
         <input type="checkbox" id="editCharGuardEnabled" ${char.guardEnabled ? 'checked' : ''} />
     </div>
 </div>
 <div class="form-row">
-    <div class="form-group"><label>Guard max (%)</label><input type="number" id="editCharGuardMax" value="${char.guardMax || 100}" min="1" max="100" /></div>
-    <div class="form-group"><label>Guard cost per sec (%)</label><input type="number" id="editCharGuardCost" value="${char.guardCost || 10}" min="0" max="100" step="0.5" /></div>
-    <div class="form-group"><label>Guard recovery per sec (%)</label><input type="number" id="editCharGuardRecovery" value="${char.guardRecoveryRate || 5}" min="0" max="100" step="0.5" /></div>
-</div>
+    <div class="form-group"><label>Guard max (%)</label><input type="number" id="editCharGuardMax" value="${char.guardMax ?? 100}" min="1" max="100" /></div>
+    <div class="form-group"><label>Guard cost</label><input type="number" id="editCharGuardCost" value="${char.guardCost ?? 10}" min="0" max="100" step="0.5" /></div>
+    <div class="form-group"><label>Guard recovery</label><input type="number" id="editCharGuardRecovery" value="${char.guardRecoveryRate ?? 5}" min="0" max="100" step="0.5" /></div>
+</div> 
+
+<hr>
 
         <h3>🎨 Vanity</h3>
         <div class="form-row">
@@ -10173,9 +10269,8 @@ let newMoveImages = {};
         </select>
     </div>
 </div>
-            <button class="btn" id="randomizeEditChar" style="margin-left:8px;">🎲 Random</button>
 
-        <div class="form-row">
+		<div class="form-row-4">
             <div class="form-group"><label>Head shape</label>
                 <select id="editCharHeadShape">
                     <option value="circle" ${char.headShape === 'circle' ? 'selected' : ''}>Cirkel</option>
@@ -10191,84 +10286,45 @@ let newMoveImages = {};
                     <option value="triangle" ${char.torsoShape === 'triangle' ? 'selected' : ''}>Triangular</option>
                 </select>
             </div>
-        </div>
-        <h3>🧩 Animation & Sprites</h3>
-        <div class="form-row">
-            <div class="form-group"><label>Frame width</label><input type="number" id="editCharFW" value="${char.spriteFrameWidth || 64}" /></div>
-            <div class="form-group"><label>Frame height</label><input type="number" id="editCharFH" value="${char.spriteFrameHeight || 64}" /></div>
-        </div>
-        <div class="form-row">
-            <div class="form-group"><label>Columns</label><input type="number" id="editCharCols" value="${char.spriteCols || 8}" /></div>
-            <div class="form-group"><label>Rows</label><input type="number" id="editCharRows" value="${char.spriteRows || 12}" /></div>
-        </div>
-        <div class="form-group">
-            <label>Spritesheet</label>
-            <div class="file-input-wrap">
-                <input type="file" id="editCharSprite" accept="image/*" />
-                <button class="clear-file" data-target="sprite" type="button">✕</button>
-            </div>
-            <div id="spritePreview" style="margin-top:4px;">
-                ${project.sprites[id] ? `<img src="${project.sprites[id]}" style="max-height:60px;border:1px solid #2a2a4a;border-radius:4px;" />` : ''}
-            </div>
-            <span style="font-size:10px;color:#5a5a8a;" id="spriteStatus">
-                ${project.sprites[id] ? '🖼️ Sprite present' : 'No sprite'}
-            </span>
-        </div>
 
-        <!-- NIEUW: Per-state animation -->
-        <h3>🎞️ Per‑state animation</h3>
-        <div style="display:grid; grid-template-columns: 80px 50px 50px 50px 1fr; gap:4px; align-items:center; background:#0f0f1e; padding:6px; border-radius:6px; font-size:12px; margin-bottom:8px;">
-            <span>State</span><span>Row</span><span>Start</span><span>End</span><span>Image</span>
-            ${['idle','walk','jump','crouch','hit','block','block_crouch','ko','swept','victory'].map(st => {
-                const cfg = (char.states && char.states[st]) ? char.states[st] : {};
-                const row = cfg.row !== undefined ? cfg.row : '';
-                const start = cfg.startFrame !== undefined ? cfg.startFrame : '';
-                const end = cfg.endFrame !== undefined ? cfg.endFrame : '';
-                const hasImg = cfg.image ? '🖼️' : '';
-                return `
-                <span style="font-weight:600;">${st}</span>
-                <input type="number" class="state-row" data-state="${st}" value="${row}" style="width:45px;" />
-                <input type="number" class="state-start" data-state="${st}" value="${start}" style="width:45px;" />
-                <input type="number" class="state-end" data-state="${st}" value="${end}" style="width:45px;" />
-                <div class="file-input-wrap" style="display:flex; gap:2px; align-items:center;">
-                    <input type="file" class="state-img" data-state="${st}" accept="image/*" style="width:70px; font-size:8px;" />
-                    <button class="clear-file" data-target="stateImg_${st}" type="button">✕</button>
-                    <span id="stateImg_${st}Status" style="font-size:10px;color:#5a5a8a;">${hasImg}</span>
-                </div>
-                `;
-            }).join('')}
         </div>
+					            <button class="btn" id="randomizeEditChar" style="margin-left:8px;padding-bottom:5px;">🎲 Random</button> 
+
+     
+<hr>
 
         <h3>⚙️ Physics & movement</h3>
-        <div class="form-row">
-            <div class="form-group"><label>Gravity</label><input type="number" id="editCharGravity" value="${char.gravity || 0.9}" step="0.05" /></div>
+		<div class="form-row-4">
+            <div class="form-group"><label>Gravity</label><input type="number" id="editCharGravity" value="${char.gravity ?? 0.9}" step="0.05" /></div>
             <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
                 <label>Double jump</label><input type="checkbox" id="editCharDoubleJump" ${char.doubleJump ? 'checked' : ''} />
             </div>
+			 <div class="form-group">
+    <label>Cursor-mode (no physics)</label>
+    <input type="checkbox" id="editCharIgnorePhysics" ${char.ignorePhysics ? 'checked' : ''} />
+</div>
+
         </div>
         <div class="form-row">
-            <div class="form-group"><label>Flinch time</label><input type="number" id="editCharFlinch" value="${char.flinchTime || 12}" /></div>
+            <div class="form-group"><label>Flinch time</label><input type="number" id="editCharFlinch" value="${char.flinchTime ?? 12}" /></div>
             <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
                 <label>Recover from flinch</label><input type="checkbox" id="editCharRecover" ${char.canRecoverFromFlinch ? 'checked' : ''} />
             </div>
         </div>
-         <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-            <label>Energy bar</label><input type="checkbox" id="editCharEnergy" ${char.hasEnergy !== false ? 'checked' : ''} />
-        </div>
-
-        <h3>💨 Dash</h3>
-        <div class="form-row">
+         <div class="form-row">
             <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
                 <label>Dash</label><input type="checkbox" id="editCharDash" ${char.dashEnabled ? 'checked' : ''} />
             </div>
-            <div class="form-group"><label>Dash speed</label><input type="number" id="editCharDashSpeed" value="${char.dashSpeed || 20}" step="1" /></div>
-            <div class="form-group"><label>Dash length (frames)</label><input type="number" id="editCharDashDuration" value="${char.dashDuration || 10}" /></div>
-            <div class="form-group"><label>Dash cooldown (frames)</label><input type="number" id="editCharDashCooldown" value="${char.dashCooldown || 1}" /></div>
+            <div class="form-group"><label>Dash speed</label><input type="number" id="editCharDashSpeed" value="${char.dashSpeed ?? 20}" step="1" /></div>
+            <div class="form-group"><label>Dash length (frames)</label><input type="number" id="editCharDashDuration" value="${char.dashDuration ?? 10}" /></div>
+            <div class="form-group"><label>Dash cooldown (frames)</label><input type="number" id="editCharDashCooldown" value="${char.dashCooldown ?? 1}" /></div>
         </div>
 		<div class="form-group">
     <label>Super jump power (neg. = up)</label>
-    <input type="number" id="editCharSuperJump" value="${char.superJumpPower || -18}" step="0.5" />
+    <input type="number" id="editCharSuperJump" value="${char.superJumpPower ?? -18}" step="0.5" />
 </div>
+<hr>
+
 <h3>🔄 Lane behavior (only in lane mode)</h3>
 <div class="form-row">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -10277,9 +10333,10 @@ let newMoveImages = {};
     </div>
     <div class="form-group">
         <label>Return delay (seconds)</label>
-        <input type="number" id="editCharReturnDelay" value="${char.autoReturnDelay || 2}" step="0.5" min="0.5" />
+        <input type="number" id="editCharReturnDelay" value="${char.autoReturnDelay ?? 2}" step="0.5" min="0.5" />
     </div>
 </div>
+<hr>
 
         <h3>🔊 Sounds</h3>
         <div class="form-row-3">
@@ -10334,6 +10391,8 @@ let newMoveImages = {};
                 </span>
             </div>
         </div>
+		<hr>
+
         <h3>🩸 Blood & Hit Effect</h3>
         <div class="form-row">
             <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -10369,28 +10428,54 @@ let newMoveImages = {};
                 </span>
             </div>
         </div>
-		 <div class="form-group">
-    <h3>📝 Bio (who?)</h3>
-    <textarea id="editCharBio" rows="2" style="width:100%;">${char.bio || ''}</textarea>
-</div>
-<div class="form-group">
-    <label>🖼️ Profile picture </label>
-    <div class="file-input-wrap">
-        <input type="file" id="editCharProfilePic" accept="image/*" />
-        <button class="clear-file" data-target="profilePic" type="button">✕</button>
-    </div>
-    <div id="profilePicPreview" style="margin-top:4px;">
-        ${char.profilePic ? `<img src="${char.profilePic}" style="max-height:60px;border:1px solid #2a2a4a;border-radius:4px;" />` : ''}
-    </div>
-    <span id="profilePicStatus" style="font-size:10px;color:#5a5a8a;">
-        ${char.profilePic ? '🖼️' : 'No image'}
-    </span>
-</div>
+		<hr>
 
 
-        <h3>📝 Intro / Outro</h3>
-        <div class="form-group"><label>Intro (split by comma)</label><input type="text" id="editCharIntro" value="${char.introText || ''}" /></div>
-        <div class="form-group"><label>Outro (split by comma)</label><input type="text" id="editCharOutro" value="${char.outroText || ''}" /></div>
+   <h3>🧩 Animation & Sprites</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Frame width</label><input type="number" id="editCharFW" value="${char.spriteFrameWidth || 64}" /></div>
+            <div class="form-group"><label>Frame height</label><input type="number" id="editCharFH" value="${char.spriteFrameHeight || 64}" /></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Columns</label><input type="number" id="editCharCols" value="${char.spriteCols || 8}" /></div>
+            <div class="form-group"><label>Rows</label><input type="number" id="editCharRows" value="${char.spriteRows || 12}" /></div>
+        </div>
+        <div class="form-group">
+            <label>Spritesheet</label>
+            <div class="file-input-wrap">
+                <input type="file" id="editCharSprite" accept="image/*" />
+                <button class="clear-file" data-target="sprite" type="button">✕</button>
+            </div>
+            <div id="spritePreview" style="margin-top:4px;">
+                ${project.sprites[id] ? `<img src="${project.sprites[id]}" style="max-height:60px;border:1px solid #2a2a4a;border-radius:4px;" />` : ''}
+            </div>
+            <span style="font-size:10px;color:#5a5a8a;" id="spriteStatus">
+                ${project.sprites[id] ? '🖼️ Sprite present' : 'No sprite'}
+            </span>
+        </div>
+        <h3>🎞️ Per‑state animation</h3>
+        <div style="display:grid; grid-template-columns: 80px 50px 50px 50px 1fr; gap:4px; align-items:center; background:#0f0f1e; padding:6px; border-radius:6px; font-size:12px; margin-bottom:8px;">
+            <span>State</span><span>Row</span><span>Start</span><span>End</span><span>Image</span>
+            ${['idle','walk','jump','crouch','hit','block','block_crouch','ko','swept','victory'].map(st => {
+                const cfg = (char.states && char.states[st]) ? char.states[st] : {};
+                const row = cfg.row !== undefined ? cfg.row : '';
+                const start = cfg.startFrame !== undefined ? cfg.startFrame : '';
+                const end = cfg.endFrame !== undefined ? cfg.endFrame : '';
+                const hasImg = cfg.image ? '🖼️' : '';
+                return `
+                <span style="font-weight:600;">${st}</span>
+                <input type="number" class="state-row" data-state="${st}" value="${row}" style="width:45px;" />
+                <input type="number" class="state-start" data-state="${st}" value="${start}" style="width:45px;" />
+                <input type="number" class="state-end" data-state="${st}" value="${end}" style="width:45px;" />
+                <div class="file-input-wrap" style="display:flex; gap:2px; align-items:center;">
+                    <input type="file" class="state-img" data-state="${st}" accept="image/*" style="width:70px; font-size:8px;" />
+                    <button class="clear-file" data-target="stateImg_${st}" type="button">✕</button>
+                    <span id="stateImg_${st}Status" style="font-size:10px;color:#5a5a8a;">${hasImg}</span>
+                </div>
+                `;
+            }).join('')}
+        </div>
+		<hr>
 <h3>   Active controls  </h3>
 <div class="form-row-4">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -10409,15 +10494,19 @@ let newMoveImages = {};
         <label> Right</label>
         <input type="checkbox" class="dir-active" data-dir="right" ${char.activeDirections?.right !== false ? 'checked' : ''} />
     </div>
-</div>
-<div class="form-row-4">
-    ${[1,2,3,4,5,6].map(i => `
+     ${[1,2,3,4,5,6].map(i => `
         <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
             <label>Btn ${i}</label>
             <input type="checkbox" class="btn-active" data-btn="${i}" ${char.activeButtons?.[i-1] !== false ? 'checked' : ''} />
         </div>
     `).join('')}
-</div>       
+</div>  
+<div class="form-group">
+    <label>HUD transparantie (0–1)</label>
+    <input type="number" id="editCharHudOpacity" value="${char.hudOpacity ?? 1}" step="0.05" min="0" max="1" />
+</div>
+
+     <hr>
 	   <h3>⚔️ Moves</h3>
         <div id="editCharMoves"></div>
         <div class="btn-group"><button class="btn" id="editAddMove">➕ Add move</button></div>
@@ -10508,7 +10597,7 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
             darkColor: document.getElementById('editCharDark').value,
             speed: parseFloat(document.getElementById('editCharSpeed').value) || 4,
             health: parseInt(document.getElementById('editCharHealth').value) || 100,
-            gravity: parseFloat(document.getElementById('editCharGravity').value) || 0.6,
+            gravity: parseFloat(document.getElementById('editCharGravity').value) ?? 0.6,
             doubleJump: document.getElementById('editCharDoubleJump').checked,  
 			superJumpPower: parseFloat(document.getElementById('editCharSuperJump').value) || -18 ,
 			   shoes: document.getElementById('editCharShoes').value,
@@ -10556,9 +10645,9 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
     const fh = parseInt(document.getElementById('editCharFH').value) || 64;
     const cols = parseInt(document.getElementById('editCharCols').value) || 8;
     const rows = parseInt(document.getElementById('editCharRows').value) || 12;
-    const gravity = parseFloat(document.getElementById('editCharGravity').value) || 0.6;
+    const gravity = parseFloat(document.getElementById('editCharGravity').value) ?? 0.6;
     const doubleJump = document.getElementById('editCharDoubleJump').checked;
-     const flinch = parseInt(document.getElementById('editCharFlinch').value) || 12;
+     const flinch = parseInt(document.getElementById('editCharFlinch').value) ?? 12;
     const head = parseInt(document.getElementById('editCharHead').value) || 20;
     const arm = parseInt(document.getElementById('editCharArm').value) || 30;
     const torso = parseInt(document.getElementById('editCharTorso').value) || 50;
@@ -10567,27 +10656,29 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
 const glasses = document.getElementById('editCharGlasses').value;
 const shoulderPads = document.getElementById('editCharShoulderPads').value;
 const belt = document.getElementById('editCharBelt').value;
+const ignorePhysics = document.getElementById('editCharIgnorePhysics').checked;
 
     const leg = parseInt(document.getElementById('editCharLeg').value) || 28;
     const headShape = document.getElementById('editCharHeadShape').value;
     const torsoShape = document.getElementById('editCharTorsoShape').value;
     const dashEnabled = document.getElementById('editCharDash').checked;
-    const dashSpeed = parseFloat(document.getElementById('editCharDashSpeed').value) || 20;
-    const dashDuration = parseInt(document.getElementById('editCharDashDuration').value) || 10;
-    const dashCooldown = parseInt(document.getElementById('editCharDashCooldown').value) || 1;
-    const introText = document.getElementById('editCharIntro').value || '';
-    const outroText = document.getElementById('editCharOutro').value || '';
+    const dashSpeed = parseFloat(document.getElementById('editCharDashSpeed').value) ?? 20;
+    const dashDuration = parseInt(document.getElementById('editCharDashDuration').value) ?? 10;
+    const dashCooldown = parseInt(document.getElementById('editCharDashCooldown').value) ?? 1;
+    const introText = document.getElementById('editCharIntro').value.trim() || ',';
+    const outroText = document.getElementById('editCharOutro').value.trim() || ',';
     const canRecover = document.getElementById('editCharRecover')?.checked || false;
     const bloodEnabled = document.getElementById('editBloodEnabled').checked;
     const hasEnergy = document.getElementById('editCharEnergy').checked;
 	const bio = document.getElementById('editCharBio').value || '';
-	const superJumpPower = parseFloat(document.getElementById('editCharSuperJump').value) || -18;
+	const superJumpPower = parseFloat(document.getElementById('editCharSuperJump').value) ?? -18;
 const autoReturn = document.getElementById('editCharAutoReturn').checked;
-const returnDelay = parseFloat(document.getElementById('editCharReturnDelay').value) || 2;
-const guardEnabled = document.getElementById('editCharGuardEnabled').checked;
-const guardMax = parseInt(document.getElementById('editCharGuardMax').value) || 100;
-const guardCost = parseFloat(document.getElementById('editCharGuardCost').value) || 10;
-const guardRecoveryRate = parseFloat(document.getElementById('editCharGuardRecovery').value) || 5;
+const returnDelay = parseFloat(document.getElementById('editCharReturnDelay').value) ?? 2;
+const guardEnabled = document.getElementById('editCharGuardEnabled').checked || false;
+const guardMax = parseInt(document.getElementById('editCharGuardMax').value) ?? 100;
+const guardCost = parseFloat(document.getElementById('editCharGuardCost').value) ?? 10;
+const guardRecoveryRate = parseFloat(document.getElementById('editCharGuardRecovery').value) ?? 5;
+const hudOpacityT = parseFloat(document.getElementById('editCharHudOpacity').value) ?? 1;
 
 	const isBoss = document.getElementById('editCharBoss').checked;
  const vpRequired = parseInt(document.getElementById('editCharVP').value) || 0;
@@ -10922,12 +11013,16 @@ belt: belt,
 			    isBoss: isBoss,
 				superJumpPower:superJumpPower ,
 			    vpRequired: vpRequired,
-				    activeButtons,
-    activeDirections,
-	    guardEnabled,
-    guardMax,
-    guardCost,
-    guardRecoveryRate
+				    activeButtons:activeButtons,
+    activeDirections:activeDirections,
+	    guardEnabled:guardEnabled,
+    guardMax:guardMax,
+    guardCost:guardCost,
+    guardRecoveryRate:guardRecoveryRate,
+	hudOpacity : hudOpacityT,
+	ignorePhysics:ignorePhysics
+
+
         };
 
         // ─── Sprite verwerken ──────────────────────────────────
@@ -10971,6 +11066,7 @@ belt: belt,
         modalOverlay.classList.remove('open');
         openCharacterEditor();
 updatePlayerIcons();
+applyBarStyles() ;
         // cleanup flags
         Object.keys(removalFlags).forEach(k => removalFlags[k] = false);
 		
@@ -11059,7 +11155,10 @@ belt: 'none',
 		guardEnabled: false,
 guardMax: 100,
 guardCost: 10,
-guardRecoveryRate: 5
+guardRecoveryRate: 5,
+ hudOpacity :1 ,
+ ignorePhysics:false
+
     };
 
      randomizeCharacter(newChar);
@@ -12161,8 +12260,8 @@ function saveSettingsFromModal() {
     const timerSeconds = parseInt(document.getElementById('settingsTimer').value) || 99;
     const aiDifficulty = document.getElementById('settingsAIDifficulty').value;
     const ringOutEnabled = document.getElementById('settingsRingOut').checked;
-    const ringOutLeft = parseInt(document.getElementById('settingsRingLeft').value) || 60;
-    const ringOutRight = parseInt(document.getElementById('settingsRingRight').value) || 1220;
+    const ringOutLeft = parseInt(document.getElementById('settingsRingLeft').value) ?? 60;
+    const ringOutRight = parseInt(document.getElementById('settingsRingRight').value) ?? 1220;
     const ringOutText = document.getElementById('settingsRingOutText').value;
     const startFightText = document.getElementById('settingsStartFightText').value;
     const roundWinText = document.getElementById('settingsRoundWinText').value;
@@ -12170,10 +12269,10 @@ function saveSettingsFromModal() {
     const matchWinText = document.getElementById('settingsMatchWinText').value;
 	const flawlessText = document.getElementById('settingsFlawlessText').value;
 const fatalityEnabled = document.getElementById('settingsFatalityEnabled').checked;
-const fatalityDuration = parseInt(document.getElementById('settingsFatalityDuration').value) || 5;
+const fatalityDuration = parseInt(document.getElementById('settingsFatalityDuration').value) ?? 5;
 
-const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX').value) || 0;
-const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) || 0;
+const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX').value) ?? 0;
+const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) ?? 0;
 
 
     project.settings.audioEnabled = audioEnabled;
@@ -12347,23 +12446,23 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 
 <h3>📊 HP & energy bar style</h3>
 <div class="form-row">
-   <!-- <div class="form-group"  >  bug css, later check. For consistency also off @ energy
-        <label hidden>Health bar height (px)</label>
-        <input hidden type="number" id="settingsHealthHeight" value="${settings.healthBarHeight || 16}" min="4" max="60" />
-    </div>-->
+    <div class="form-group"  >   
+        <label  >Health bar height (px)</label>
+        <input   type="number" id="settingsHealthHeight" value="${settings.healthBarHeight ?? 20}" min="1" max="60" />
+    </div> 
     <div class="form-group">
         <label>Health bar border-radius (px)</label>
-        <input type="number" id="settingsHealthRadius" value="${settings.healthBarBorderRadius || 12}" min="1" max="90" />
+        <input type="number" id="settingsHealthRadius" value="${settings.healthBarBorderRadius ?? 0}" min="1" max="90" />
     </div>
 </div>
 <div class="form-row">
-    <!--  <div class="form-group">
+    <div class="form-group">
         <label>Energy bar height (px)</label>
-        <input type="number" id="settingsEnergyHeight" value="${settings.energyBarHeight || 6}" min="2" max="20" />
-    </div>-->
+        <input type="number" id="settingsEnergyHeight" value="${settings.energyBarHeight ?? 10}" min="2" max="20" />
+    </div> 
     <div class="form-group">
         <label>Energy bar border-radius (px)</label>
-        <input type="number" id="settingsEnergyRadius" value="${settings.energyBarBorderRadius || 4}" min="1" max="90" />
+        <input type="number" id="settingsEnergyRadius" value="${settings.energyBarBorderRadius ?? 4}" min="1" max="90" />
     </div>
 </div>
 <h3>🛡️ Guard Block</h3>
@@ -12413,11 +12512,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <div class="form-row">
     <div class="form-group">
         <label>Current VP</label>
-        <input type="number" id="settingsVP" value="${settings.victoryPoints || 0}" min="0" />
+        <input type="number" id="settingsVP" value="${settings.victoryPoints ?? 0}" min="0" />
     </div>
     <div class="form-group">
         <label>VP per win</label>
-        <input type="number" id="settingsVPPerWin" value="${settings.vpPerWin || 1}" min="1" />
+        <input type="number" id="settingsVPPerWin" value="${settings.vpPerWin ?? 1}" min="0" />
     </div>
 </div>
  <h3>❄️Auto‑freeze</h3>
@@ -12431,11 +12530,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <div class="form-row">
     <div class="form-group">
         <label>Start X P1</label>
-        <input type="number" id="settingsStartX1" value="${settings.startX1 || 470}" />
+        <input type="number" id="settingsStartX1" value="${settings.startX1 ?? 470}" />
     </div>
     <div class="form-group">
         <label>Start X P2</label>
-        <input type="number" id="settingsStartX2" value="${settings.startX2 || 740}" />
+        <input type="number" id="settingsStartX2" value="${settings.startX2 ?? 740}" />
     </div>
 </div>
 
@@ -12493,7 +12592,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     </div>
     <div class="form-group">
         <label>Duration (seconds)</label>
-        <input type="number" id="settingsFatalityDuration" value="${settings.fatalityDuration || 5}" min="1" max="30" />
+        <input type="number" id="settingsFatalityDuration" value="${settings.fatalityDuration ?? 5}" min="1" max="30" />
     </div>
 </div>
    <h3>📝 Text</h3>
@@ -12826,15 +12925,15 @@ if (filterSelect) {
         const timerSeconds = parseInt(document.getElementById('settingsTimer').value) || 99;
         const aiDifficulty = document.getElementById('settingsAIDifficulty').value;
         const ringOutEnabled = document.getElementById('settingsRingOut').checked;
-        const ringOutLeft = parseInt(document.getElementById('settingsRingLeft').value) || 60;
-        const ringOutRight = parseInt(document.getElementById('settingsRingRight').value) || 1220;
+        const ringOutLeft = parseInt(document.getElementById('settingsRingLeft').value) ?? 60;
+        const ringOutRight = parseInt(document.getElementById('settingsRingRight').value) ?? 1220;
         const ringOutText = document.getElementById('settingsRingOutText').value;
         const startFightText = document.getElementById('settingsStartFightText').value;
         const roundWinText = document.getElementById('settingsRoundWinText').value;
         const roundDrawText = document.getElementById('settingsRoundDrawText').value;
         const matchWinText = document.getElementById('settingsMatchWinText').value;
-const startX1 = parseInt(document.getElementById('settingsStartX1').value) || 470;
-const startX2 = parseInt(document.getElementById('settingsStartX2').value) || 740;
+const startX1 = parseInt(document.getElementById('settingsStartX1').value) ?? 470;
+const startX2 = parseInt(document.getElementById('settingsStartX2').value) ?? 740;
 const healthColorP1 = document.getElementById('settingsHealthP1').value;
 const healthColorP2 = document.getElementById('settingsHealthP2').value;
 const healthBadColor = document.getElementById('settingsHealthBad').value;
@@ -12878,10 +12977,10 @@ const showRecover = document.getElementById('settingsShowRecover').checked;
 const showCombo = document.getElementById('settingsShowCombo').checked;
  
 // Bar style
-const healthHeight =16;// parseInt(document.getElementById('settingsHealthHeight').value) ; => bug to fix!
-const healthRadius = parseInt(document.getElementById('settingsHealthRadius').value) ||12
-const energyHeight =10;// parseInt(document.getElementById('settingsEnergyHeight').value) ;
-const energyRadius = parseInt(document.getElementById('settingsEnergyRadius').value) || 4
+const healthHeight =  parseInt(document.getElementById('settingsHealthHeight').value) ?? 16
+const healthRadius = parseInt(document.getElementById('settingsHealthRadius').value) ??12
+const energyHeight = parseInt(document.getElementById('settingsEnergyHeight').value) ??10 ;
+const energyRadius = parseInt(document.getElementById('settingsEnergyRadius').value) ?? 4
 
  const showRingOut = document.getElementById('settingsShowRingOut').checked;
 const settingsisStatusTextAbovePlayer = document.getElementById('settingsisStatusTextAbovePlayer').checked;
@@ -12889,8 +12988,8 @@ const isWaitBeforeAfterFightStart= document.getElementById('settingsisWaitBefore
 const useP1Gamepad = document.getElementById('settingsP1Gamepad').checked;
 const useP2Gamepad = document.getElementById('settingsP2Gamepad').checked;
 
-const borderWithoutRingOUTLeft = parseFloat(document.getElementById('settingsBorderLeft').value) || 20;
-const borderWithoutRingOUTRight = parseFloat(document.getElementById('settingsBorderRight').value) || 20;
+const borderWithoutRingOUTLeft = parseFloat(document.getElementById('settingsBorderLeft').value) ?? 20;
+const borderWithoutRingOUTRight = parseFloat(document.getElementById('settingsBorderRight').value) ?? 20;
 
 const aiParams = {};
 document.querySelectorAll('.ai-param').forEach(input => {
@@ -12901,8 +13000,8 @@ document.querySelectorAll('.ai-param').forEach(input => {
 });
 
 
-    const victoryPoints = parseInt(document.getElementById('settingsVP').value) || 0;
-    const vpPerWin = parseInt(document.getElementById('settingsVPPerWin').value) || 1;
+    const victoryPoints = parseInt(document.getElementById('settingsVP').value) ?? 0;
+    const vpPerWin = parseInt(document.getElementById('settingsVPPerWin').value) ?? 1;
  
         // Audio bestanden lezen
         let pendingReads = 0;
@@ -13016,7 +13115,7 @@ pollGamepad()
 
             updateWinIndicators();
 executeAllPlugins();
-resetRound();
+fullReset();//resetRound();
 
 
             if (currentMode !== 'training') {
