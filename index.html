@@ -3814,7 +3814,7 @@ if( move.mineImage || sprite  )
 
     const proj = new Projectile(
         projX,
-        this.cy - 8,
+        this.cy - 8 + (move.spawnYOffset ?? 0), 
         this.facing,
         move.damage || 10,
         move.speed || 10,
@@ -3873,7 +3873,7 @@ if( move.mineImage || sprite  )
       mineX = this.x +     (offsetX*this.facing);
 
 }
-const mineY = this.y + this.h - 10;     
+const mineY = this.y + this.h - 10 + (move.spawnYOffset ?? 0);
  const mineLife = move.speed ? move.speed : 300;
 
     const mine = new Mine(
@@ -10055,14 +10055,20 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
                 </div>
             </div>
             <div class="form-group projectile-mine-only" style="display:none;">
-                <label>Start distance</label>
+                <label>Start distance X</label>
                 <input type="number" class="move-startdist" value="${data.startDistance || 0}" step="1" />
             </div>
+					<div class="form-group projectile-mine-only" style="display:none;">
+    <label>Start distance Y</label>
+    <input type="number" class="move-spawnyoffset" value="${data.spawnYOffset ?? 0}" step="1" />
+</div>
+
             <div class="form-group mine-only" style="display:none; flex-direction:row; align-items:center; gap:6px;">
                 <label>Friendly Fire</label>
                 <input type="checkbox" class="move-friendly" ${data.friendlyFire ? 'checked' : ''} />
             </div>
             <div class="form-group projectile-mine-only" style="display:none; flex-direction:row; align-items:center; gap:6px;">
+	
                 <label>Teleport Back</label>
                 <input type="number" class="move-teleport-back" value="${data.teleportX || 0}" step="1" />
                 <label>Teleport Up</label>
@@ -10574,7 +10580,7 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
         name: 'Extra', damage: 10, range: 60, speed: 18,
         command: '', startFrame: 0, endFrame: 3, type: 'normal',
         throwPower: 8, throwHeight: -10, attackImage: null,
-        projectileImage: null, mineImage: null, startDistance: 0,
+        projectileImage: null, mineImage: null, startDistance: 0,spawnYOffset: 0, 
         friendlyFire: false, chipDamage: true, height: 'mid',
         unblockable: false, energyRequired: 0,
         teleportX: 0, teleportY: 0, generatesEnergy: 0, counterType: 'none',
@@ -10851,6 +10857,7 @@ function collectMoves() {
         const mThrowPower = parseFloat(row.querySelector('.move-throwpower')?.value) || 8;
         const mThrowHeight = parseFloat(row.querySelector('.move-throwheight')?.value) || -10;
         const mStartDist = parseFloat(row.querySelector('.move-startdist')?.value) || 0;
+		const mSpawnYOffset = parseFloat(row.querySelector('.move-spawnyoffset')?.value) ?? 0;
         const mFriendly = row.querySelector('.move-friendly')?.checked || false;
         const mChip = row.querySelector('.move-chipdamage')?.checked ?? true;
         const mHeight = row.querySelector('.move-height')?.value || 'mid';
@@ -10921,7 +10928,8 @@ const fallbackVisual = row.querySelector('.move-fallback')?.value || 'auto';
             teleportY: mteleportY,
             generatesEnergy: mGainEnergy,
             counterType: counterType,
-			fallbackVisual:fallbackVisual
+			fallbackVisual:fallbackVisual,
+			    spawnYOffset: mSpawnYOffset
         });
     });
     return moves;
