@@ -203,7 +203,9 @@
         }
 	#energyWrapP1 .energy-track {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column-reverse;
+    transform: rotate(180deg);
+    transform-origin: center center;
 }
 #energyP1 {
     background: linear-gradient(270deg, #3498db, #2ecc71);
@@ -1159,10 +1161,20 @@
 <span id="sP1" style="position:absolute; left: 5px; top:3vh; color:white; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:13px; font-weight:600;">
     <img id="iconP1" style="width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); object-fit:cover;" />
     <span id="nameP1">P1</span>
+	    <div id="tagInfoP1" style="font-size:10px; opacity:0.7; display:flex; align-items:center; gap:4px;">
+        <img id="iconP1_tag" style="width:20px;height:20px;border-radius:50%;" />
+        <span id="nameP1_tag"></span>
+    </div>
+
 </span>
 <span id="sP2" style="position:absolute; right: 5px; top:3vh; color:white; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:13px; font-weight:600;">
     <img id="iconP2" style="width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); object-fit:cover;" />
     <span id="nameP2">P2</span>
+	    <div id="tagInfoP2" style="font-size:10px; opacity:0.7; display:flex; align-items:center; gap:4px;">
+        <img id="iconP2_tag" style="width:20px;height:20px;border-radius:50%;" />
+        <span id="nameP2_tag"></span>
+    </div>
+
 </span>
     <div id="hudOverlay">
 <div id="textP1" style="position:absolute; left:20px; top:25vh; color:#fff; font-size:24px; text-shadow:0 0 20px rgba(0,0,0,0.8); pointer-events:none; padding:8px 16px; border-radius:8px; opacity:0; transition: opacity 0.3s; white-space:pre-line;"></div>
@@ -1172,6 +1184,8 @@
     <div class="health-bar-wrap ">
 	<div id='wrapP1'>
         <div class="health-bar" id="healthP1" style="width:100%"></div>
+		    <div class="health-bar" id="healthP1_tag" style="width:100%; height:8px; background:#ff69b4;"></div>
+
         <div class="guard-track" id="guardTrackP1" style="height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:2px; overflow:hidden;">
             <div class="guard-bar" id="guardP1" style="height:100%; width:100%; background:#66ccff; border-radius:2px;"></div>
         </div>
@@ -1181,6 +1195,8 @@
     </div>
     <div class="health-bar-wrap">
         <div class="health-bar p2" id="healthP2" style="width:100%"></div>
+		    <div class="health-bar" id="healthP2_tag" style="width:100%; height:8px; background:#ff69b4;"></div>
+
         <div class="guard-track" id="guardTrackP2" style="height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:2px; overflow:hidden;">
             <div class="guard-bar" id="guardP2" style="height:100%; width:100%; background:#66ccff; border-radius:2px;"></div>
         </div>
@@ -1328,6 +1344,7 @@ const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
             const FALLING_ITEM_GRAVITY = 0.2;
 let isSoloLevel= false;
 let isFreeLook = false;
+let tagCooldown = { p1: 0, p2: 0 };
 
             let p1Wins = 0;
             let p2Wins = 0;
@@ -1347,6 +1364,57 @@ let remapTimeout = null;
 let fps = 0;
 let frameCount = 0;
 let lastFpsTime = performance.now();
+
+// Bovenaan je script (bij de andere variabelen)
+const LOADING_HTML = `
+<div id="loadingOverlay" style="
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:#000; z-index:99999;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; color:#fff; font-family:sans-serif;
+">
+  <h1 style="font-size:48px; font-weight:300; margin:0;">Loading…</h1>
+  <div style="
+    width:40px; height:40px; margin-top:20px;
+    border:4px solid #555; border-top-color:#fff;
+    border-radius:50%; animation: spin 0.8s linear infinite;
+  "></div>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</div>
+`;
+
+
+var lTimeout;
+
+			function showLoadingScreen() {
+    if (document.getElementById('loadingOverlay')) return;
+	 clearTimeout(lTimeout);
+
+    const overlayDiv = document.createElement('div');
+    overlayDiv.innerHTML = LOADING_HTML;
+    const overlay = overlayDiv.firstElementChild;
+    if (overlay) document.body.prepend(overlay);
+	
+         overlay.style.display = 'flex';
+     
+} 
+
+ function hideLoadingScreen(time) {
+ if(!time){time = 1000}
+ 
+ clearTimeout(lTimeout);
+  lTimeout= setTimeout(() => {
+ var overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+	}, time);
+
+}
+showLoadingScreen();
+hideLoadingScreen(100);
 // ─── Netwerk synchronisatie ──────────────────────────────
 
 function serializeFighterCompact(fighter) {
@@ -1878,25 +1946,25 @@ let textCubes=[];
             const DEFAULT_STAGES = [
                 { id: 'dojo', name: 'Dojo', bg: 'dojo', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null, gameOverStageId: null,   platformColor: '#66ccff',    platformImage: null,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'street', name: 'Street', bg: 'street', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'arena', name: 'Arena', bg: 'arena', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'sunset', name: 'Sunset', bg: 'sunset', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'cyber', name: 'Cyber', bg: 'cyber', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'jungle', name: 'Jungle', bg: 'jungle', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
                 { id: 'lava', name: 'Lava', bg: 'lava', audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,gameOverStageId: null,    platformColor: '#66ccff',    platformImage: null ,
-					platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
             ];
 
             const canvas = document.getElementById('gameCanvas');
@@ -1928,6 +1996,7 @@ let textCubes=[];
             let currentMode = 'training';
             let laneMode = false;
             let camera = { zoom: 1.0, offsetX: 0, offsetY: 0 };
+			let cameraAnim = null;
 
 const FONT_LIST = [
     'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Verdana',
@@ -1940,12 +2009,20 @@ const FONT_LIST = [
 let timerFrameCounter = 0;         
 const TIMER_STEP_FRAMES = 30;        
 let travelCubeStartTime = 0;
+const assetCache = {
+    sprites: new Map(),      // charId → Image / ImageBitmap
+    stageBg: new Map(),      // stageId → Image / ImageBitmap
+    audio: new Map(),        // audioId → HTMLAudioElement (of AudioBuffer)
+};
 
             let project = {
+			    projectId : 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                 characters: { fighter: { ...DEFAULT_CHARACTER, id: 'fighter' } },
                 currentBg: 'dojo',
                 selectedP1Char: 'fighter',
                 selectedP2Char: 'fighter',
+				selectedP1TagChar: 'fighter',
+selectedP2TagChar: 'fighter', 
                 audio: {},
                 sprites: {},
 				    publish : {
@@ -2023,27 +2100,40 @@ borderWithoutRingOUTLeft: 20,
 borderWithoutRingOUTRight: 20,
 guardColor: '#66ccff',
 guardShape: 'rounded',
+tagMatch: false, 
+tagHealthColor: '#ff69b4',
+tagHealthBadColor : '#ff0000',
+tagHealthBorderRadius : 12,
 aiParams: DEFAULT_AI_PARAMS
                  },
                 stages: DEFAULT_STAGES.map(s => ({ ...s })),
                 currentStageId: 'dojo',
                 laneMode: false,
                 cameraZoom: 1.0,
-            };
-			
+            }; 
 			
 			if (!project.isPublished) {
     localStorage.clear();
  } else{
 
-	try {
+  try {
     const saved = localStorage.getItem('fighting_settings');
     if (saved) {
         const parsed = JSON.parse(saved);
-        Object.assign(project.settings, parsed);
+        // Alleen inladen als de projectId matcht (of als er geen projectId is opgeslagen)
+        if (parsed.projectId && parsed.projectId === project.projectId) {
+            delete parsed.projectId; // niet overschrijven
+            delete parsed.screenFilter; // filter apart bewaren
+            Object.assign(project.settings, parsed);
+        } else {
+             console.warn('Found settings are from a different project, ignored.');
+         }
     }
+     const projectFilter = project.settings.screenFilter || 'none';
+    applyScreenFilter(projectFilter);
 } catch (e) {
-    console.warn("LocalStorage load failed, using defaults", e);
+    console.warn('LocalStorage laden mislukt, gebruik standaardwaarden', e);
+    applyScreenFilter('none');
 }
 }
 
@@ -2086,6 +2176,8 @@ if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object')
 }
             let p1 = null,
                 p2 = null;
+				let p1_tag = null;
+let p2_tag = null; 
             const spriteImages = {};
             let audioCtx = null,
                 audioBuffers = {};
@@ -2132,7 +2224,7 @@ let networkUID  = null
 
             document.getElementById('pauseBtn').addEventListener('click', togglePause);
             document.getElementById('resumeBtn').addEventListener('click', togglePause);
- 
+  
             function togglePause() {
                 gamePaused = !gamePaused;
                 const overlay = document.getElementById('pauseOverlay');
@@ -2149,6 +2241,53 @@ let networkUID  = null
                 }
             }
 			  
+			  function freeUnusedSprites() {
+    const activeIds = new Set();
+    if (p1) activeIds.add(p1.charId);
+    if (p2) activeIds.add(p2.charId);
+
+    for (const [id, img] of assetCache.sprites) {
+        if (!activeIds.has(id)) {
+            // Ontlaad de afbeelding
+            if (img.close) img.close(); // voor ImageBitmap
+            else if (img.src) img.src = ''; // voor HTMLImageElement
+            assetCache.sprites.delete(id);
+        }
+    }
+}
+function freeUnusedStageBg() {
+    const activeId = project.currentStageId;
+    for (const [id, img] of assetCache.stageBg) {
+        if (id !== activeId) {
+            // Alleen als img een geldig object is
+            if (img && typeof img === 'object') {
+                if (typeof img.close === 'function') {
+                    img.close(); // voor ImageBitmap
+                } else if (img instanceof HTMLImageElement && img.src) {
+                    img.src = ''; // voor HTMLImageElement
+                }
+            }
+            assetCache.stageBg.delete(id);
+        }
+    }
+}
+function freeStageAudio() {
+    if (stageAudio) {
+        stageAudio.pause();
+        stageAudio.src = ''; // forceert vrijgave
+        stageAudio = null;
+        currentStageAudioId = null;
+    }
+    // Verwijder ook uit cache
+    const key = 'stage_' + project.currentStageId;
+    if (assetCache.audio.has(key)) {
+        const el = assetCache.audio.get(key);
+        el.pause();
+        el.src = '';
+        assetCache.audio.delete(key);
+    }
+}
+
 function toggleScanlines(show) {
     let overlay = document.getElementById('scanlineOverlay');
     if (show) {
@@ -2351,12 +2490,17 @@ function drawWeather(ctx, camera) {
 function resetSinglePlayerRound() {
     const p1Char = project.selectedP1Char || 'fighter';
     const p2Char = singlePlayer.currentOpponentId || 'fighter';
+    const tagMatch = project.settings.tagMatch || false;
 
-    let oldP1Health = null;
-    let oldP1MaxHealth = null;
+    let oldP1Health = null, oldP1MaxHealth = null;
+    let oldP1TagHealth = null, oldP1TagMaxHealth = null;
     if (singlePlayer.mode === 'survival' && p1) {
         oldP1Health = p1.health;
         oldP1MaxHealth = p1.maxHealth;
+        if (p1_tag) {
+            oldP1TagHealth = p1_tag.health;
+            oldP1TagMaxHealth = p1_tag.maxHealth;
+        }
     }
 
     p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
@@ -2369,16 +2513,34 @@ function resetSinglePlayerRound() {
         p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
     }
 
+    if (tagMatch) {
+        const tagX1 = project.settings.startX1 - 50;
+        const tagX2 = project.settings.startX2 + 50;
+        p1_tag = new Fighter(project.selectedP1TagChar || 'fighter', tagX1, 1, 0);
+        p2_tag = new Fighter(project.selectedP2TagChar || 'fighter', tagX2, -1, 1);
+        p1_tag.spriteImg = spriteImages[p1_tag.charId] || null;
+        p2_tag.spriteImg = spriteImages[p2_tag.charId] || null;
+        p1_tag.isTag = true;
+        p2_tag.isTag = true;
+        if (singlePlayer.mode === 'survival' && oldP1TagHealth !== null) {
+            p1_tag.health = Math.min(oldP1TagHealth, p1_tag.maxHealth);
+            p1_tag.maxHealth = oldP1TagMaxHealth || p1_tag.maxHealth;
+        }
+    } else {
+        p1_tag = null;
+        p2_tag = null;
+    }
+
     winner = null;
     roundActive = true;
     projectiles = [];
     mines = [];
     matchOver = false;
-        startFightTimer = project.settings.instantRoundReset ? 60 : 180;
-
+    startFightTimer = project.settings.instantRoundReset ? 60 : 180;
     startFightSoundPlayed = false;
     ringOutOccurred = false;
     timerFrameCounter = 0;
+    tagCooldown = { p1: 0, p2: 0 };
 
     const introP1 = getRandomText(p1.introText);
     const introP2 = getRandomText(p2.introText);
@@ -2391,7 +2553,9 @@ function resetSinglePlayerRound() {
     resetFighterUI();
     updatePlayerIcons();
     updateSinglePlayerHUD();
+    updateTagHUD();
     resetPositions();
+    updateCamera();
 }
 
             function handleSinglePlayerRoundEnd(winnerId) {
@@ -2522,31 +2686,77 @@ function startNextSinglePlayerMatch() {
     singlePlayer.matchNumber++;
     singlePlayer.matchRoundsWon = 0;
     singlePlayer.matchRoundsLost = 0;
-        startFightTimer = 180;//project.settings.instantRoundReset ? 60 : 180; 
+    startFightTimer = 180;
     startFightSoundPlayed = false;
     ringOutOccurred = false;
     timerFrameCounter = 0;
+
     const introP1 = getRandomText(p1.introText);
     const introP2 = getRandomText(p2.introText);
     if (introP1) showIntroOutroText(1, introP1, true);
     if (introP2) showIntroOutroText(2, introP2, true);
 
     // ─── TEGENSTANDER SELECTIE ──────────────────────────────
+    const playerChar = project.selectedP1Char || 'fighter';
+    const tagMatch = project.settings.tagMatch || false;
     let opponentId;
+    let opponentTagId = null;
     const isLastRound = (singlePlayer.matchNumber === singlePlayer.maxRounds);
-    if (isLastRound) {
-        const bossId = getRandomBossCharacter();
-        if (bossId) {
-            opponentId = bossId;
-        } else {
-            opponentId = singlePlayer.opponentPool[Math.floor(Math.random() * singlePlayer.opponentPool.length)];
-        }
+    const isSurvival = (singlePlayer.mode === 'survival');
+
+    // Verzamel alle normale (niet-baas) karakters
+    let normalChars = Object.keys(project.characters).filter(id => !project.characters[id].isBoss);
+    // Verwijder de speler uit de normale lijst
+    let available = normalChars.slice(); //let available = normalChars.filter(id => id !== playerChar);
+    if (available.length === 0) {
+        // Fallback: alle normale karakters (inclusief speler) – dit is zeldzaam
+        available = normalChars;
+        if (available.length === 0) available = Object.keys(project.characters); // valt terug op alles
+    }
+
+    let bossId = null;
+    // Alleen in de laatste ronde (en niet survival) proberen we een baas te kiezen
+    if (isLastRound && !isSurvival) {
+        bossId = getRandomBossCharacter();
+    }
+
+    // Als er een baas is en dit is de laatste ronde (niet survival), gebruik de baas
+    if (bossId && available.includes(bossId)) {
+        opponentId = bossId;
     } else {
-        do {
-            opponentId = singlePlayer.opponentPool[Math.floor(Math.random() * singlePlayer.opponentPool.length)];
-        } while (opponentId === singlePlayer.currentOpponentId && singlePlayer.opponentPool.length > 1);
+        // Normale selectie: vermijd vorige tegenstander indien mogelijk
+        let candidates = available;
+        if (singlePlayer.currentOpponentId && candidates.length > 1) {
+            candidates = candidates.filter(id => id !== singlePlayer.currentOpponentId);
+            if (candidates.length === 0) candidates = available;
+        }
+        // Shuffle en kies een willekeurige
+        const shuffled = candidates.sort(() => Math.random() - 0.5);
+        opponentId = shuffled[0] || available[0] || 'fighter';
     }
     singlePlayer.currentOpponentId = opponentId;
+
+    // ─── TAGPARTNER VOOR TEGENSTANDER (indien tagMatch) ────
+    if (tagMatch) {
+        const p1TagChar = project.selectedP1TagChar || 'fighter';
+        // Uitsluitingen: actieve tegenstander, speler, tag van speler, en ook bazen vermijden (tenzij geen keuze)
+        let tagCandidates = Object.keys(project.characters).filter(id =>
+            id !== opponentId && id !== playerChar && id !== p1TagChar && !project.characters[id].isBoss
+        );
+        if (tagCandidates.length === 0) {
+            // Geen normale karakters over, probeer zonder baas-uitsluiting
+            tagCandidates = Object.keys(project.characters).filter(id =>
+                id !== opponentId && id !== playerChar && id !== p1TagChar
+            );
+            if (tagCandidates.length === 0) {
+                // laatste redmiddel: alleen actieve tegenstander uitsluiten
+                tagCandidates = Object.keys(project.characters).filter(id => id !== opponentId);
+                if (tagCandidates.length === 0) tagCandidates = Object.keys(project.characters);
+            }
+        }
+        const shuffledTag = tagCandidates.sort(() => Math.random() - 0.5);
+        opponentTagId = shuffledTag[0] || 'fighter';
+    }
 
     // ─── STAGE SELECTIE ──────────────────────────────────────
     let stageId;
@@ -2557,26 +2767,70 @@ function startNextSinglePlayerMatch() {
     setStage(stageId);
 
     // ─── FIGHTERS OPSTARTEN ──────────────────────────────────
-    const p1Char = project.selectedP1Char || 'fighter';
+    const p1Char = playerChar;
     const p2Char = opponentId;
- 
- let oldP1Health = null;
-    let oldP1MaxHealth = null;
-    if (singlePlayer.mode === 'survival' && p1) {
-        oldP1Health = p1.health;
-        oldP1MaxHealth = p1.maxHealth;
+
+    // Oude health opslaan voor survival (P1 en tag)
+    let oldP1Health = null, oldP1MaxHealth = null;
+    let oldP1TagHealth = null, oldP1TagMaxHealth = null;
+    if (singlePlayer.mode === 'survival') {
+        if (p1) {
+            oldP1Health = p1.health;
+            oldP1MaxHealth = p1.maxHealth;
+        }
+        if (p1_tag) {
+            oldP1TagHealth = p1_tag.health;
+            oldP1TagMaxHealth = p1_tag.maxHealth;
+        }
     }
-     p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
+
+    // Actieve vechters
+    p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
     p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
     p1.spriteImg = spriteImages[p1Char] || null;
     p2.spriteImg = spriteImages[p2Char] || null;
 
-    // IN SURVIVAL: health van P1 herstellen naar de oude waarde
     if (singlePlayer.mode === 'survival' && oldP1Health !== null) {
         p1.health = Math.min(oldP1Health, p1.maxHealth);
         p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
-		
+    }
 
+    // Tag vechters
+    if (tagMatch) {
+        const tagX1 = project.settings.startX1 - 50;
+        const tagX2 = project.settings.startX2 + 50;
+
+        const p1TagChar = project.selectedP1TagChar || 'fighter';
+        p1_tag = new Fighter(p1TagChar, tagX1, 1, 0);
+        p1_tag.spriteImg = spriteImages[p1TagChar] || null;
+        p1_tag.isTag = true;
+
+        let p2TagChar = opponentTagId || project.selectedP2TagChar || 'fighter';
+        // Extra veiligheid: als de tag nog steeds gelijk is aan de actieve tegenstander,
+        // probeer dan een andere te kiezen (tenzij er echt geen andere is)
+        if (p2TagChar === p2Char) {
+            const otherChars = Object.keys(project.characters).filter(id =>
+                id !== p2Char && id !== p1TagChar && id !== playerChar
+            );
+            if (otherChars.length > 0) {
+                p2TagChar = otherChars[Math.floor(Math.random() * otherChars.length)];
+            } else {
+                // Geen andere keuze, dan maar dezelfde (dit zou niet moeten gebeuren)
+                const allOthers = Object.keys(project.characters).filter(id => id !== p2Char);
+                if (allOthers.length > 0) p2TagChar = allOthers[Math.floor(Math.random() * allOthers.length)];
+            }
+        }
+        p2_tag = new Fighter(p2TagChar, tagX2, -1, 1);
+        p2_tag.spriteImg = spriteImages[p2TagChar] || null;
+        p2_tag.isTag = true;
+
+        if (singlePlayer.mode === 'survival' && oldP1TagHealth !== null) {
+            p1_tag.health = Math.min(oldP1TagHealth, p1_tag.maxHealth);
+            p1_tag.maxHealth = oldP1TagMaxHealth || p1_tag.maxHealth;
+        }
+    } else {
+        p1_tag = null;
+        p2_tag = null;
     }
 
     winner = null;
@@ -2584,6 +2838,7 @@ function startNextSinglePlayerMatch() {
     projectiles = [];
     mines = [];
     matchOver = false;
+    tagCooldown = { p1: 0, p2: 0 };
 
     // ─── TIMER ──────────────────────────────────────────────
     gameTimer = project.settings.timerSeconds || 99;
@@ -2594,9 +2849,11 @@ function startNextSinglePlayerMatch() {
     updateWinIndicators();
     updatePlayerIcons();
     updateSinglePlayerHUD();
-				resetPositions() ;
-	    updateCamera(); 
-
+    updateTagHUD();
+    resetPositions();
+    updateCamera();
+    applyBarStyles();
+    resetFighterUI();
 }
 
             function loadBloodImage(charId, base64) {
@@ -2647,6 +2904,21 @@ function resetPositions() {
     }
     p1.vx = 0; p1.vy = 0; p1.onGround = true;
     p2.vx = 0; p2.vy = 0; p2.onGround = true;
+	
+	
+	    if (p1_tag) {
+        p1_tag.x = project.settings.startX1 - 50;
+        p1_tag.y = laneMode ? LANE_Y[1] - p1_tag.h : GROUND_Y - p1_tag.h;
+        p1_tag.vx = 0; p1_tag.vy = 0; p1_tag.onGround = true;
+    }
+    if (p2_tag) {
+        p2_tag.x = project.settings.startX2 + 50;
+        p2_tag.y = laneMode ? LANE_Y[1] - p2_tag.h : GROUND_Y - p2_tag.h;
+        p2_tag.vx = 0; p2_tag.vy = 0; p2_tag.onGround = true;
+    }
+
+
+
     updateCamera();
 }
 
@@ -2697,7 +2969,7 @@ function awardVictoryPoints() {
 
     const vp = (project.settings.victoryPoints ?? 0) + project.settings.vpPerWin;
     project.settings.victoryPoints = vp;
-    localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
+    localStorage.setItem('fighting_settings', JSON.stringify({ ...project.settings, projectId: project.projectId }));
     showToast(`🏆 +${project.settings.vpPerWin} VP!`, 'success');
 }
             function handleRoundEnd(winner) {
@@ -2755,21 +3027,24 @@ else flawlessVictory = false;
 hiddenMediaContainer.style.cssText = 'position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;';
 function loadStageMedia(stageId, dataUrl) {
     if (!dataUrl) return;
-    if (dataUrl.startsWith('data:video/')) return; // video wordt nu apart afgehandeld, zie setStage()
+     if (dataUrl.startsWith('data:video/')) {
+        assetCache.stageBg.set(stageId, null);  
+        return;
+    }
 
-    const existing = hiddenMediaContainer.querySelector(`[data-stage="${stageId}"]`);
-    if (existing) existing.remove();
-
-    const element = document.createElement('img');
-    element.dataset.stage = stageId;
-    element.src = dataUrl;
-    hiddenMediaContainer.appendChild(element);
-
-    const onLoad = () => { stageBackgroundImages[stageId] = element; };
-    element.onload = onLoad;
-    if (element.complete) onLoad();
+    const img = new Image();
+    img.onload = function() {
+        assetCache.stageBg.set(stageId, img);
+         if (project.currentStageId === stageId) {
+         }
+    };
+    img.onerror = function() {
+        console.warn('Failed to load stage image for', stageId);
+        assetCache.stageBg.set(stageId, null);
+    };
+    img.src = dataUrl;
+    assetCache.stageBg.set(stageId, null); // placeholder tot geladen
 }
- 
 const RANDOM_NAMES = [
     'Blaze', 'Shadow', 'Frost', 'Storm', 'Fury', 'Ghost', 'Titan', 'Crimson',
     'Sable', 'Viper', 'Wraith', 'Raven', 'Phoenix', 'Onyx', 'Slash', 'Rex',
@@ -3050,7 +3325,7 @@ class Projectile {
             return;
         }
 
-        if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
+        if (this.spriteImg  ) {
             const owner = this.owner;
             const fw = owner?.spriteFrameWidth ?? 64;
             const fh = owner?.spriteFrameHeight ?? 64;
@@ -3125,7 +3400,7 @@ class Mine {
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
 
-        if (this.extraImage) {
+        if (this.extraImage) { 
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
                 this.imageLoaded = true;
             } else {
@@ -3240,24 +3515,19 @@ class Mine {
     return;
 }
 
-if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
-    const owner = this.owner;
-    const fw = owner?.spriteFrameWidth ?? 64;
-    const fh = owner?.spriteFrameHeight ?? 64;
-    const cols = owner?.spriteCols ?? 8;
-
-    const frameIndex = this.row * cols + (this.startFrame + this.currentOffset);
-    const col = frameIndex % cols;
-    const row = Math.floor(frameIndex / cols);
-
-    ctx.save();
-    ctx.translate(sx, sy);
-    if (this.owner && this.owner.facing === -1) ctx.scale(-1, 1);
-    ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -r, -r, r * 2, r * 2);
-    ctx.restore();
-    return;
-}
-
+if (this.spriteLoaded && this.spriteImg) {
+        // ─── Sprite ───
+        ctx.save();
+        ctx.translate(sx, drawY + h / 2);
+        if (f < 0) ctx.scale(-1, 1);
+        if (scaleY !== 1) ctx.scale(1, scaleY);
+        // Bepaal row/col (bestaande logica)
+        const row = this.getSpriteRow();
+        const col = this.animFrame % this.spriteCols;
+        ctx.drawImage(this.spriteImg, col * fw, row * fh, fw, fh, -w/2, -h/2, w, h);
+        ctx.restore();
+		return;
+    }
         // Fallback
         if (!isFinite(r) || r <= 0) return;
         const maxR = 200;
@@ -3335,6 +3605,15 @@ document.getElementById('winIndP2').style.opacity = opacity2;
 }
             // ─── FIGHTER CLASS ────────────────────────────────────
             class Fighter {
+			
+			async loadSprite(charId) {
+    const img = await getSpriteForChar(charId);
+    if (img) {
+        this.spriteImg = img;
+        this.spriteLoaded = true;
+    }
+}
+
                 constructor(charId, x, facing, playerIdx) {
                     const charData = project.characters[charId] || project.characters.fighter;
 
@@ -3492,7 +3771,11 @@ this._historyTimes = [];
                     this.spriteFrameHeight = charData.spriteFrameHeight || 64;
                     this.spriteCols = charData.spriteCols || 8;
                     this.spriteRows = charData.spriteRows || 12;
-                    this.spriteImg = spriteImages[charId] || null;
+                   
+				       this.spriteLoaded = false;
+    this.spriteImg = null;
+    this.loadSprite(this.charId); 
+				   
                     this.bloodImage = charData.bloodImage || null;
                     this.hitEffectImage = charData.hitEffectImage || null;
                     this.bloodEnabled = charData.bloodEnabled !== undefined ? charData.bloodEnabled : true;
@@ -3625,7 +3908,10 @@ this._historyTimes = [];
         this.onGround = true;
         this.vy = 0;
     }
-                    this.spriteImg = spriteImages[this.charId] || null;
+                      this.spriteLoaded = false;
+    this.spriteImg = null;
+    this.loadSprite(this.charId); 
+
                 }
 
 isButtonActive(idx) {
@@ -4101,7 +4387,11 @@ if (this.counterActive) {
         if (this.state === 'counter') this.state = 'idle';
     }
 }
+if (project.settings.tagMatch) {
 
+if (tagCooldown.p1 > 0) tagCooldown.p1--;
+if (tagCooldown.p2 > 0) tagCooldown.p2--;
+}
 if (this.state === 'hit' && this.canRecoverFromFlinch && this.hitTimer > 0) {
     if (this.input.down && this._pendingButton === '1') {
         this.hitTimer = 0;
@@ -5098,7 +5388,7 @@ ctx.fillText(`FPS: ${fps}`, x, y);
 const shadowWorldX = this.cx;
 let shadowOffsetX = 0;
 
-if (this.spriteImg && this.spriteImg.complete && this.spriteImg.naturalWidth > 0) {
+ if (this.spriteImg ) {
     shadowOffsetX = -(this.w / 2);
 }
 
@@ -5155,7 +5445,11 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
     let move = null;
 	        move = this.getMove(this.attackIdx);
  
-         if (move && move.attackImage) {
+ if (  !fatalityActive && winner == "p"+(this.playerIdx+1).toString()  ) { 
+							this.state  = 'victory';  
+							this._cachedStateConfig = this.getStateConfig(this.state);
+ 							} 
+							else if (move && move.attackImage) {
             if (extraImages[move.attackImage]) {
                 attackImg = extraImages[move.attackImage];
             } else {
@@ -5166,8 +5460,9 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
              
         }
     }
-
-    if (attackImg && attackImg.complete && attackImg.naturalWidth > 0) {
+	
+ 
+    if (attackImg && isImageLoaded(attackImg)  ) {    
         ctx.save();
         ctx.translate(sx, drawY + h / 2);
         if (f < 0) ctx.scale(-1, 1);
@@ -5182,14 +5477,12 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
 			
         // ─── STATE‑SPECIFIEKE AFBEELDING (niet attack) ───── 
 		              
- if (  !fatalityActive && winner == "p"+(this.playerIdx+1).toString()  ) { 
-							this.state  = 'victory';  
- 							}
-        if (this._lastCachedState !== this.state) {
-    this._cachedStateConfig = this.getStateConfig(this.state);
-    this._lastCachedState = this.state;
-}
-const cfg = this._cachedStateConfig;
+ 
+        if (this._lastCachedState !== this.state && this.state != "victory") {
+            this._cachedStateConfig = this.getStateConfig(this.state);
+            this._lastCachedState = this.state;
+        }
+        const cfg = this._cachedStateConfig;
 
         let stateImg = null;
         if (cfg && cfg.image) {
@@ -5202,28 +5495,28 @@ const cfg = this._cachedStateConfig;
             stateImg = this._stateImages[this.state];
         }
 
-        if (stateImg && stateImg.complete && stateImg.naturalWidth > 0) {
-            // ─── Hele afbeelding voor deze state ──────────
+        // ─── TEKEN STATE‑AFBEELDING ──────────────────────────
+        if (stateImg && isImageLoaded(stateImg)) {    
             ctx.save();
             ctx.translate(sx, drawY + h / 2);
             if (f < 0) ctx.scale(-1, 1);
             if (scaleY !== 1) ctx.scale(1, scaleY);
             ctx.drawImage(stateImg, -w / 2, -h / 2, w, h);
             ctx.restore();
-        } else if (spriteImg) {
+        } else if (this.spriteLoaded && this.spriteImg) {    
             // ─── SPRITESHEET ──────────────────────────────
             let rowToUse, colToUse;
             if (this.state === 'attack' && this.attackIdx >= 0) {
                 const move2 = this.getMove(this.attackIdx);
                 if (move2) {
-            const start = move2.startFrame || 0;
-            const end = move2.endFrame || start + 3;
-            const range = end - start + 1;
-            const progress = 1 - (this.attackTimer / (move2.speed || 20));
-            const frameOffset = Math.floor(progress * range);
-            const frameIdx = start + Math.min(frameOffset, range - 1);
-            rowToUse = move2.row ?? 4;    
-            colToUse = frameIdx % this.spriteCols;
+                    const start = move2.startFrame || 0;
+                    const end = move2.endFrame || start + 3;
+                    const range = end - start + 1;
+                    const progress = 1 - (this.attackTimer / (move2.speed || 20));
+                    const frameOffset = Math.floor(progress * range);
+                    const frameIdx = start + Math.min(frameOffset, range - 1);
+                    rowToUse = move2.row ?? 4;
+                    colToUse = frameIdx % this.spriteCols;
                 } else {
                     rowToUse = this.getSpriteRow();
                     colToUse = this.animFrame % this.spriteCols;
@@ -5236,9 +5529,15 @@ const cfg = this._cachedStateConfig;
             ctx.translate(sx, drawY + h / 2);
             if (f < 0) ctx.scale(-1, 1);
             if (scaleY !== 1) ctx.scale(1, scaleY);
-            ctx.drawImage(spriteImg, colToUse * fw, rowToUse * fh, fw, fh, -w / 2, -h / 2, w, h);
-            ctx.restore();
-
+            ctx.drawImage(
+                this.spriteImg,
+                colToUse * this.spriteFrameWidth,
+                rowToUse * this.spriteFrameHeight,
+                this.spriteFrameWidth,
+                this.spriteFrameHeight,
+                -w / 2, -h / 2, w, h
+            );
+            ctx.restore(); 
 
         } else {
             // ─── FALLBACK: GEOMETRISCHE VORMEN ─────────────
@@ -6417,7 +6716,57 @@ p2 = new Fighter(project.selectedP2Char, project.settings.startX2 || 740, -1, 1)
             }
             initFighters();
 
-            function loadSpriteForChar(charId, base64Data) {
+function isImageLoaded(img) {
+    if (!img) return false;
+    // ImageBitmap is altijd meteen klaar
+    if (img instanceof ImageBitmap) return true;
+    // HTMLImageElement
+    if (img instanceof HTMLImageElement) {
+        return img.complete && img.naturalWidth > 0;
+    }
+     return true;
+}
+async function getSpriteForChar(charId) {
+showLoadingScreen();
+freeUnusedSprites();
+
+    if (assetCache.sprites.has(charId)) {
+	hideLoadingScreen(100);
+        return assetCache.sprites.get(charId);
+    }
+    const base64 = project.sprites[charId];
+    if (!base64) {		hideLoadingScreen(100);
+
+return null;}
+
+
+    try {
+        const response = await fetch(base64);
+        const blob = await response.blob();
+        const bitmap = await createImageBitmap(blob, {
+            premultiplyAlpha: 'premultiply',
+            colorSpaceConversion: 'default',
+        });
+        assetCache.sprites.set(charId, bitmap);
+				hideLoadingScreen(100);
+
+
+        return bitmap;
+    } catch (e) {
+        console.warn('createImageBitmap failed, falling back to Image', e);
+        // Fallback: HTMLImageElement
+        const img = new Image();
+        img.src = base64;
+        assetCache.sprites.set(charId, img);
+				hideLoadingScreen(100);
+
+
+        return img;
+    }
+
+}
+
+       function loadSpriteForChar(charId, base64Data) {
                 if (!base64Data) return;
                 const img = new Image();
                 img.onload = () => {
@@ -6546,6 +6895,17 @@ function playSystemSound(type) {
 
     }
 }
+function getStageAudioElement(stageId) {
+    if (assetCache.audio.has('stage_' + stageId)) {
+        return assetCache.audio.get('stage_' + stageId);
+    }
+    const stage = project.stages.find(s => s.id === stageId);
+    if (!stage || !stage.audioData) return null;
+    const audio = new Audio(stage.audioData);
+    audio.loop = true;
+    assetCache.audio.set('stage_' + stageId, audio);
+    return audio;
+}
             function playStageAudio(stageId) {
                 if (!project.settings.audioEnabled) return;
                 try {
@@ -6554,12 +6914,13 @@ function playSystemSound(type) {
                         currentStageAudioId = null; }
                     const stage = project.stages.find(s => s.id === stageId);
                     if (!stage || !stage.audioData) return;
-                    const audio = new Audio(stage.audioData);
-                    audio.loop = true;
-                    audio.volume = 0.3;
-                    audio.play().catch(() => {});
-                    stageAudio = audio;
-                    currentStageAudioId = stageId;
+    const audio = getStageAudioElement(stageId);
+    if (audio) {
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+        stageAudio = audio;
+        currentStageAudioId = stageId;
+    }
                 } catch (e) { /* */ }
             }
 
@@ -6997,18 +7358,32 @@ const triggerAttack = () => {
 
     updateTouchDpad();
 }
-           function updateCamera() {
+function updateCamera() {
     if (!p1 || !p2) return;
     const centerX = (p1.cx + p2.cx) / 2;
     const centerY = (p1.cy + p2.cy) / 2;
     const offsetX = project.settings.cameraOffsetX || 0;
     const offsetY = project.settings.cameraOffsetY || 0;
-    camera.offsetX = (centerX + offsetX) - W / (2 * camera.zoom);
-    camera.offsetY = (centerY + offsetY) - H / (2 * camera.zoom);
-    camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
-    camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
-}
 
+    if (cameraAnim) {
+        const progress = cameraAnim.progress / cameraAnim.duration;
+        const currentZoom = cameraAnim.startZoom + (cameraAnim.endZoom - cameraAnim.startZoom) * progress;
+        const currentFractionX = cameraAnim.startFractionX + (cameraAnim.endFractionX - cameraAnim.startFractionX) * progress;
+        const currentFractionY = cameraAnim.startFractionY + (cameraAnim.endFractionY - cameraAnim.startFractionY) * progress;
+
+        camera.zoom = currentZoom;
+        camera.offsetX = centerX + offsetX - (currentFractionX * W) / currentZoom;
+        camera.offsetY = centerY + offsetY - (currentFractionY * H) / currentZoom;
+        camera.offsetX = Math.max(0, Math.min(W - W / currentZoom, camera.offsetX));
+        camera.offsetY = Math.max(0, Math.min(H - H / currentZoom, camera.offsetY));
+    } else {
+        // Normale camera
+        camera.offsetX = (centerX + offsetX) - W / (2 * camera.zoom);
+        camera.offsetY = (centerY + offsetY) - H / (2 * camera.zoom);
+        camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
+        camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
+    }
+}
 function drawDefaultTravelcube(ctx, x, y, w, h) {
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -7027,7 +7402,8 @@ function drawDefaultTravelcube(ctx, x, y, w, h) {
             function drawBackground() {
                 const stage = project.stages.find(s => s.id === project.currentStageId);
                 const bgKey = stage ? stage.bg : project.currentBg;
-                const bgImg = stage ? stageBackgroundImages[stage.id] : null;
+             const bgImg = getStageImage(project.currentStageId);
+
 const isVideoStage = stage && stage.imageData && stage.imageData.startsWith('data:video/');
 
     // ─── Kleurthema (filter) ──────────────────────────────
@@ -7092,10 +7468,11 @@ if (isVideoStage) {
             `translate(${-camera.offsetX * camera.zoom * kx}px, ${-camera.offsetY * camera.zoom * ky}px) scale(${camera.zoom})`;
 			        ctx.drawImage(bgVideoEl, 0, 0, W, H);
     }
- } else if (bgImg) {
+ } else if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
     ctx.drawImage(bgImg, 0, 0, W, H);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fillRect(0, 0, W, H);
+
                 } else {
                     const bg = BG_COLORS[bgKey] || BG_COLORS.dojo;
                     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -7584,6 +7961,35 @@ if(delta == 1)
 			return;
         }
     }
+	
+	// ─── AI tag switch (alleen in tagmatch) ──────────────────────
+if (project.settings.tagMatch) {
+    // Cooldown aflopen
+    if (fighter._tagSwitchCooldown > 0) {
+        fighter._tagSwitchCooldown--;
+    } else {
+        // Bepaal of deze fighter een tagpartner heeft
+        const partner = (fighter === p1) ? p1_tag : p2_tag;
+        if (partner && partner.health > 0 && fighter.health > 0) {
+            const healthPct = fighter.health / fighter.maxHealth;
+            const thresholds = [0.75, 0.50, 0.25];
+            const index = fighter._tagSwitchIndex || 0;
+            if (index < thresholds.length && healthPct < thresholds[index]) {
+                // Wissel met 60% kans, zodat de AI niet altijd voorspelbaar is
+                if (Math.random() < 0.6) {
+                    const player = (fighter === p1) ? 1 : 2;
+                    swapTag(player);
+                    fighter._tagSwitchIndex = index + 1;
+                    fighter._tagSwitchCooldown = 60; // 1 seconde wachten
+                } else {
+                    // Als niet gewisseld, verhoog de index zodat de AI niet blijft hangen
+                    fighter._tagSwitchIndex = index + 1;
+                    fighter._tagSwitchCooldown = 30;
+                }
+            }
+        }
+    }
+}
 }
 function updateHUDVisibility() {
 
@@ -7787,7 +8193,7 @@ function saveAdventureProgress() {
         project.settings.adventurePlayerChar = p1.charId;
     }
     try {
-        localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
+        localStorage.setItem('fighting_settings', JSON.stringify({ ...project.settings, projectId: project.projectId }));
     } catch (e) {}
 }
 
@@ -7818,6 +8224,35 @@ function handleAdventureAdvance(targetStageId) {
 
  }
 
+function updateTagHUD() {
+    if (!project.settings.tagMatch) {
+        document.getElementById('healthP1_tag').style.display = 'none';
+        document.getElementById('healthP2_tag').style.display = 'none';
+        document.getElementById('tagInfoP1').style.display = 'none';
+        document.getElementById('tagInfoP2').style.display = 'none';
+        return;
+    }
+    // Toon tag bars
+    document.getElementById('healthP1_tag').style.display = 'block';
+    document.getElementById('healthP2_tag').style.display = 'block';
+    document.getElementById('tagInfoP1').style.display = 'flex';
+    document.getElementById('tagInfoP2').style.display = 'flex';
+
+    // P1 tag
+    if (p1_tag) {
+        const hpTag1 = Math.max(0, (p1_tag.health / p1_tag.maxHealth) * 100);
+        document.getElementById('healthP1_tag').style.width = hpTag1 + '%';
+        document.getElementById('iconP1_tag').src = p1_tag.profilePic || createFallbackIcon(p1_tag);
+        document.getElementById('nameP1_tag').textContent = p1_tag.name;
+    }
+    // P2 tag
+    if (p2_tag) {
+        const hpTag2 = Math.max(0, (p2_tag.health / p2_tag.maxHealth) * 100);
+        document.getElementById('healthP2_tag').style.width = hpTag2 + '%';
+        document.getElementById('iconP2_tag').src = p2_tag.profilePic || createFallbackIcon(p2_tag);
+        document.getElementById('nameP2_tag').textContent = p2_tag.name;
+    }
+}
 // ─── Random helpers voor travelcubes ──────────────────────────
 
 function getRandomStage(vp) {
@@ -7853,6 +8288,16 @@ function getRandomDifficulty() {
  				frameSaveTimer++;
 		 
 				
+				
+				if (cameraAnim) {
+    cameraAnim.progress++;
+    if (cameraAnim.progress >= cameraAnim.duration) {
+        camera.zoom = cameraAnim.endZoom;
+        cameraAnim = null;
+    }
+}
+                updateCamera();
+
 	if(frameSaveTimer ==7 || frameSaveTimer==14   ){
 	
 
@@ -8098,13 +8543,48 @@ guardP2.style.background = guardColor;
 guardP2.style.borderRadius = radius;
 guardTrackP2.style.borderRadius = radius;
 
-
+// ─── Tag health bars ──────────────────────────────────────
+if (project.settings.tagMatch) {
+    const tag1El = document.getElementById('healthP1_tag');
+    const tag2El = document.getElementById('healthP2_tag');
+    if (tag1El && p1_tag) {
+        const tagPct = Math.max(0, (p1_tag.health / p1_tag.maxHealth) * 100);
+        tag1El.style.width = Math.min(100, tagPct) + '%';
+        tag1El.style.display = 'block';
+        
+        // Kleur en border-radius
+        const color = project.settings.tagHealthColor ?? '#ff69b4';
+        const badColor = project.settings.tagHealthBadColor ?? '#ff0000';
+        const radius = (project.settings.tagHealthBorderRadius ?? 12) + 'px';
+        tag1El.style.background = tagPct < 25 ? badColor : color;
+        tag1El.style.borderRadius = radius;
+        tag1El.style.transition = 'width 0.1s ease-out, background 0.3s';
+    } else if (tag1El) {
+        tag1El.style.display = 'none';
+    }
+    // Idem voor P2
+    if (tag2El && p2_tag) {
+        const tagPct = Math.max(0, (p2_tag.health / p2_tag.maxHealth) * 100);
+        tag2El.style.width = Math.min(100, tagPct) + '%';
+        tag2El.style.display = 'block';
+        const color = project.settings.tagHealthColor ?? '#ff69b4';
+        const badColor = project.settings.tagHealthBadColor ?? '#ff0000';
+        const radius = (project.settings.tagHealthBorderRadius ?? 12) + 'px';
+        tag2El.style.background = tagPct < 25 ? badColor : color;
+        tag2El.style.borderRadius = radius;
+        tag2El.style.transition = 'width 0.1s ease-out, background 0.3s';
+    } else if (tag2El) {
+        tag2El.style.display = 'none';
+    }
+}
 timerDisplay.style.color = project.settings.timerColor || '#ffffff';
 
                 if (currentMode !== 'training') {
                     timerDisplay.textContent = Math.ceil(gameTimer);
                 }
                 updateSinglePlayerHUD();
+								updateTagHUD();
+
                 updateWinIndicators(); 
 				
 				   if (roundActive && project.settings.ringOutEnabled) {
@@ -8142,9 +8622,33 @@ timerDisplay.style.color = project.settings.timerColor || '#ffffff';
             }
      }
 }
- if (currentMode !== 'training') {  
 
-if (roundActive && winner === null && project.settings.fatalityEnabled ){ 
+
+
+ if (currentMode !== 'training') {  
+  
+  let isOkTOHandle= true;
+if (project.settings.tagMatch && winner === null) {
+
+if((p1.health+p1_tag.health) >0 && (p2.health+p2_tag.health) > 0)
+{
+ isOkTOHandle= false;
+ }
+     if (p1.health <= 0   && p1_tag.health > 0) {
+	 	  tagCooldown["p1"]=0; 
+        swapTag(1,true);
+    }
+    if (p2.health <= 0   && p2_tag.health > 0) {
+	  tagCooldown["p2"]=0;
+        swapTag(2,true);
+    }
+ 
+ 
+
+}
+
+
+  if (isOkTOHandle && roundActive && winner === null && project.settings.fatalityEnabled ){ 
 
     const maxRounds = project.settings.roundCount || 3;
 
@@ -8212,7 +8716,7 @@ p2.comboCount=0;
 	
 	}
 }  
-     if (roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
+     if (isOkTOHandle && roundActive && winner === null && p1.health <= 0 && p2.health <= 0) {
             winner = 'draw';
 			setTimeout(() => {
             roundActive = false;
@@ -8225,7 +8729,7 @@ p2.comboCount=0;
                 handleRoundEnd('draw');
             }
         } 
-		else  if (p1.health <= 0 && winner === null) {
+		else  if (isOkTOHandle && p1.health <= 0 && winner === null) {
                         winner = 'p2';
 			setTimeout(() => {
             roundActive = false;
@@ -8239,7 +8743,7 @@ p2.comboCount=0;
                         } else {
                               handleRoundEnd('p2')
                         }
-                    } else if (p2.health <= 0 && winner === null) {
+                    } else if (isOkTOHandle && p2.health <= 0 && winner === null) {
                         winner = 'p1';
 			setTimeout(() => {
             roundActive = false;
@@ -8256,7 +8760,12 @@ p2.comboCount=0;
                     }
     if (gameTimer <= 0 && roundActive) {
       roundActive = false;
-    winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
+	if (project.settings.tagMatch){
+	    winner = (p1.health+p1_tag.health) > (p2.health+p2_tag.health )? 'p1' : ((p2.health+p2_tag.health ) > (p1.health+p1_tag.health) ? 'p2' : 'draw');
+
+	}
+	else{    winner = p1.health > p2.health ? 'p1' : (p2.health > p1.health ? 'p2' : 'draw');
+		}
     if (singlePlayer.active) {
         handleSinglePlayerRoundEnd(winner);
     } else {
@@ -8268,7 +8777,6 @@ p2.comboCount=0;
                     if (p1.health <= 0) { p1.health = 100;
                         p1.state = 'idle'; }
                 }
-				
 				
 				
 				}
@@ -8321,6 +8829,7 @@ p2.comboCount=0;
         startFightSoundPlayed = true;
      }
 }
+
 
  if (roundActive && !gamePaused && currentMode !== 'training' && !isSoloLevel) {
     timerFrameCounter++;
@@ -8477,6 +8986,30 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
         }
         p1.update(p2);
         p2.update(p1);
+ 			if (project.settings.tagMatch) {
+    if (p1 && p1._history && p1._history.length >= 2) {
+        const last = p1._history[p1._history.length - 1];
+        const prev = p1._history[p1._history.length - 2];
+        // Check of de laatste twee entries "back" en "4" zijn (in die volgorde)
+        if (last === '4' && (prev === 'b' || prev === 'back')) {
+             if (p1.health > 0 && p1_tag && p1_tag.health > 0) {
+                swapTag(1);
+                 p1._history.splice(-2, 2);
+            }
+        }
+    }
+         if (p2 && p2._history && p2._history.length >= 2) {
+        const last = p2._history[p2._history.length - 1];
+        const prev = p2._history[p2._history.length - 2];
+        if (last === '4' && (prev === 'b' || prev === 'back')) {
+            if (p2.health > 0 && p2_tag && p2_tag.health > 0) {
+                swapTag(2);
+                p2._history.splice(-2, 2);
+         }
+    }
+
+}
+}
         networkSendCounter++;
         if (networkSendCounter >= 1) {
             networkSendCounter = 0;
@@ -8494,6 +9027,30 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 } else {
     p1.update(p2);
     p2.update(p1);
+			if (project.settings.tagMatch) {
+    if (p1 && p1._history && p1._history.length >= 2) {
+        const last = p1._history[p1._history.length - 1];
+        const prev = p1._history[p1._history.length - 2];
+        // Check of de laatste twee entries "back" en "4" zijn (in die volgorde)
+        if (last === '4' && (prev === 'b' || prev === 'back')) {
+             if (p1.health > 0 && p1_tag && p1_tag.health > 0) {
+                swapTag(1);
+                 p1._history.splice(-2, 2);
+            }
+        }
+    }
+         if (p2 && p2._history && p2._history.length >= 2) {
+        const last = p2._history[p2._history.length - 1];
+        const prev = p2._history[p2._history.length - 2];
+        if (last === '4' && (prev === 'b' || prev === 'back')) {
+            if (p2.health > 0 && p2_tag && p2_tag.health > 0) {
+                swapTag(2);
+                p2._history.splice(-2, 2);
+            }
+        }
+    }
+
+}
 }
 
 
@@ -8527,7 +9084,7 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 				
                 updateProjectilesAndMines();
 				updateWeather();
-                updateCamera();
+
 
 
 
@@ -8797,17 +9354,31 @@ if (now - lastFpsTime >= 1000) {
 fatalityTimer = 0; 
 timerFrameCounter = 0; 
 				    startFightTimer = project.settings.instantRoundReset ? 60 : 180;
+freeUnusedSprites();
 
 				startFightSoundPlayed = false;
+
+isSoloLevel=isAdventureSolo()
+if (project.settings.tagMatch) {
+     p1 = new Fighter(project.selectedP1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(project.selectedP2Char, project.settings.startX2, -1, 1);
+     const tagX1 = project.settings.startX1 - 50;
+    const tagX2 = project.settings.startX2 + 50;
+    p1_tag = new Fighter(project.selectedP1TagChar, tagX1, 1, 0);
+    p2_tag = new Fighter(project.selectedP2TagChar, tagX2, -1, 1);
+      p1_tag.isTag = true;
+    p2_tag.isTag = true;
+} else {
+     p1 = new Fighter(project.selectedP1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(project.selectedP2Char, project.settings.startX2, -1, 1);
+    p1_tag = null;
+    p2_tag = null;
+}
+resetPositions()
+updateHUDVisibility();
 resetFighterUI();
 applyBarStyles();
 updatePlayerIcons();
-
-isSoloLevel=isAdventureSolo()
-p1.reset(project.settings.startX1 || 470, 1);
-p2.reset(project.settings.startX2 || 740, -1);
-resetPositions()
-updateHUDVisibility();
 
        diffKey = project.settings.aiDifficulty || 'normal'; 
     params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
@@ -8841,9 +9412,95 @@ updateHUDVisibility();
                  updateWinIndicators();
             }
 
+// Helper: kopieer exacte positie en platform‑status
+function applyFighterState(fighter, state) {
+    fighter.x = state.x;
+    fighter.y = state.y;
+    fighter.lane = state.lane;
+    fighter.groundY = state.groundY;
+    fighter.onGround = state.onGround;
+    fighter._ignorePlatform = state.ignorePlatform || null;
+    fighter.vx = 0;
+    fighter.vy = 0;
+    fighter.state = 'idle';
+    fighter.hitTimer = 0;
+    fighter.attackTimer = 0;
+    fighter.attackActive = false;
+    fighter.cooldown = 0;
+}
+
+function swapTag(player, isOverrideRules) {
+    if (!project.settings.tagMatch) return;
+    const key = player === 1 ? 'p1' : 'p2';
+    if (tagCooldown[key] > 0) return;
+
+    if (player === 1) {
+        if (!p1 || !p1_tag) return;
+         const activeState = {
+            x: p1.x, y: p1.y, lane: p1.lane,
+            groundY: p1.groundY, onGround: p1.onGround,
+            ignorePlatform: p1._ignorePlatform
+        };
+        const tagState = {
+            x: p1_tag.x, y: p1_tag.y, lane: p1_tag.lane,
+            groundY: p1_tag.groundY, onGround: p1_tag.onGround,
+            ignorePlatform: p1_tag._ignorePlatform
+        };
+         [p1, p1_tag] = [p1_tag, p1];
+         applyFighterState(p1, activeState);
+        applyFighterState(p1_tag, tagState);
+        p1.playSound('recover');
+    } else if (player === 2) {
+        if (!p2 || !p2_tag) return;
+        const activeState = {
+            x: p2.x, y: p2.y, lane: p2.lane,
+            groundY: p2.groundY, onGround: p2.onGround,
+            ignorePlatform: p2._ignorePlatform
+        };
+        const tagState = {
+            x: p2_tag.x, y: p2_tag.y, lane: p2_tag.lane,
+            groundY: p2_tag.groundY, onGround: p2_tag.onGround,
+            ignorePlatform: p2_tag._ignorePlatform
+        };
+        [p2, p2_tag] = [p2_tag, p2];
+        applyFighterState(p2, activeState);
+        applyFighterState(p2_tag, tagState);
+        p2.playSound('recover');
+    }
+
+    tagCooldown[key] = 75;
+    updatePlayerIcons();
+}
+function startCameraAnimation() {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+    if (stage && stage.startAnimation && stage.startAnimation !== 'none') {
+        const direction = stage.startAnimation;
+        let startFractionX = 0.5, startFractionY = 0.5;
+        switch (direction) {
+            case 'left':   startFractionX = 0.8; break; // vechters rechts in beeld → camera van links
+            case 'right':  startFractionX = 0.2; break; // vechters links in beeld → camera van rechts
+            case 'top':    startFractionY = 0.8; break; // vechters onder in beeld → camera van boven
+            case 'bottom': startFractionY = 0.2; break; // vechters boven in beeld → camera van onder
+        }
+        cameraAnim = {
+            progress: 0,
+            duration: 60,
+            startZoom: 2.5,
+            endZoom: camera.zoom,
+            startFractionX: startFractionX,
+            endFractionX: 0.5,
+            startFractionY: startFractionY,
+            endFractionY: 0.5
+        };
+    } else {
+        cameraAnim = null;
+    }
+}
+
             function fullReset() {
    timerFrameCounter = 0; 
                 if (gamePaused) togglePause();
+				freeUnusedSprites();
                 ringOutOccurred = false;
 				    startFightTimer = 180;//project.settings.instantRoundReset ? 60 : 180;
 
@@ -8854,9 +9511,6 @@ fatalityActive = false;
 fatalityTimer = 0;
 
 isSoloLevel=isAdventureSolo()
-applyBarStyles();
-updatePlayerIcons();
-   resetTravelCubes();
    
        diffKey = project.settings.aiDifficulty || 'normal'; 
     params = project.settings.aiParams?.[diffKey] || project.settings.aiParams?.normal;
@@ -8868,12 +9522,27 @@ updatePlayerIcons();
                 isOutrRendered = false;
                 projectiles = [];
                 mines = [];
-                const c1 = project.selectedP1Char || 'fighter';
-                const c2 = project.selectedP2Char || 'fighter';
-p1 = new Fighter(c1, project.settings.startX1 || 470, 1, 0);
-p2 = new Fighter(c2, project.settings.startX2 || 740, -1, 1);
+if (project.settings.tagMatch) {
+    // Actieve vechters
+    p1 = new Fighter(project.selectedP1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(project.selectedP2Char, project.settings.startX2, -1, 1);
+     const tagX1 = project.settings.startX1 - 50;
+    const tagX2 = project.settings.startX2 + 50;
+    p1_tag = new Fighter(project.selectedP1TagChar, tagX1, 1, 0);
+    p2_tag = new Fighter(project.selectedP2TagChar, tagX2, -1, 1);
+     p1_tag.isTag = true;
+    p2_tag.isTag = true;
+} else {
+     p1 = new Fighter(project.selectedP1Char, project.settings.startX1, 1, 0);
+    p2 = new Fighter(project.selectedP2Char, project.settings.startX2, -1, 1);
+    p1_tag = null;
+    p2_tag = null;
+}
 resetPositions();
 updateHUDVisibility();
+applyBarStyles();
+updatePlayerIcons();
+   resetTravelCubes();
 
                 winner = null;
                 roundActive = true;
@@ -8919,6 +9588,7 @@ updateHUDVisibility();
                 updateWinIndicators();
 				resetFighterUI();
 				rebuildTouchAttacks();
+			startCameraAnimation( ) ;
 
 				
  
@@ -9000,12 +9670,15 @@ function updatePlayerIcons() {
             // ─── EXPORT / IMPORT ────────────────────────────────────
             function exportProject() {
                 const data = {
-                    version: '37.6',
+                    version: '70.6',
+					projectId :project.projectId,
                     characters: project.characters,
                     settings: project.settings,
                     currentBg: project.currentBg,
                     selectedP1Char: project.selectedP1Char,
-                    selectedP2Char: project.selectedP2Char,
+                    selectedP2Char: project.selectedP2Char,					
+					selectedP1TagChar : project.selectedP1TagChar,
+					selectedP2TagChar : project.selectedP2TagChar , 
                     sprites: project.sprites,
                     audio: project.audio,
                     stages: project.stages,
@@ -9026,14 +9699,20 @@ function updatePlayerIcons() {
             }
 // ---------- IMPORTEREN VAN PROJECTDATA ----------
 function processProjectData(jsonString) {
+showLoadingScreen();
+
     try {
         var data = JSON.parse(jsonString);
         if (!data.characters) throw new Error('Invalid projectfile: no characters');
-
+			if (!data.projectId)     data.projectId = 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+project.projectId =data.projectId;
         project.characters = data.characters;
         project.currentBg = data.currentBg || 'dojo';
         project.selectedP1Char = data.selectedP1Char || 'fighter';
         project.selectedP2Char = data.selectedP2Char || 'fighter';
+		        project.selectedP1TagChar = data.selectedP1TagChar || 'fighter';
+        project.selectedP2TagChar = data.selectedP2TagChar || 'fighter';
+ 
         project.sprites = data.sprites || {};
         project.audio = data.audio || {};
         project.stages = data.stages || DEFAULT_STAGES.map(function(s) { return { ...s }; });
@@ -9051,7 +9730,8 @@ function processProjectData(jsonString) {
 			if (!stage.soloAdventure) stage.soloAdventure = false;
 			if (!stage.nextStageId) stage.nextStageId = null;
 						if (!stage.gameOverStageId) stage.gameOverStageId = null;
- 
+ if (stage.startAnimation === undefined) stage.startAnimation = 'none';
+
      if (stage.platformMarginLeft === undefined) stage.platformMarginLeft = 3;
     if (stage.platformMarginRight === undefined) stage.platformMarginRight = 3;
     if (stage.platformYOffset === undefined) stage.platformYOffset = 2;
@@ -9068,7 +9748,7 @@ function processProjectData(jsonString) {
                     timerSeconds: 99,
                     aiDifficulty: 'easy',
                     ringOutEnabled: true,
-                    ringOutLeft: 60,
+                     ringOutLeft: 60,
                     ringOutRight: 1220,
 					    ringOutText: "RING OUT!",
 						flawlessVictoryText: 'PERFECT!',
@@ -9076,6 +9756,10 @@ function processProjectData(jsonString) {
 fatalityDuration: 5,  
 fatalityText: 'FATALITY!',
 fatalityColor: '#ff0000',  
+tagMatch: false, 
+tagHealthColor: '#ff69b4',
+tagHealthBadColor : '#ff0000',
+tagHealthBorderRadius : 12,
     startFightText: "FIGHT!",
 	autoFreezeOnBlock: true, 
     roundWinText: "{winner} WINS!",
@@ -9150,6 +9834,11 @@ try { localStorage.setItem('fighting_publish_config', JSON.stringify(project.pub
         if (!project.settings.ringOutText) project.settings.ringOutText = "RING OUT!";
 		        if (!project.settings.flawlessVictoryText) project.settings.flawlessVictoryText = "PERFECT!";
 						        if (!project.settings.fatalityEnabled) project.settings.fatalityEnabled = false;
+project.settings.tagMatch = project.settings.tagMatch ?? false;
+project.settings.tagHealthColor = project.settings.tagHealthColor ?? '#ff69b4'; 
+project.settings.tagHealthBadColor = project.settings.tagHealthBadColor ?? '#ff0000';
+project.settings.tagHealthBorderRadius = project.settings.tagHealthBorderRadius ?? 12;
+ 
 						    if (!project.settings.isWaitBeforeAfterFightStart) project.settings.isWaitBeforeAfterFightStart = false;  
 		        if (!project.settings.fatalityDuration) project.settings.fatalityDuration = 5; 
 						        if (!project.settings.fatalityText) project.settings.fatalityText = "FATALITY!";  
@@ -9271,12 +9960,10 @@ if (project.settings.showMoveNamesInTraining === undefined) {
             p2.y = LANE_Y[1];
         }
 
-        // --- Spelers resetten ---
-        p1 = new Fighter(project.selectedP1Char, project.settings.startX1, 1, 0);
-        p2 = new Fighter(project.selectedP2Char, project.settings.startX2, -1, 1);
-        fullReset();
-        rebuildTouchAttacks();
-
+               fullReset(); 
+			   updatePlayerIcons();
+ 
+ 
         // --- Plugins uitvoeren ---
         if (typeof executeAllPlugins === "function") {
             executeAllPlugins();
@@ -9292,10 +9979,21 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         showToast('❌ Import failed: ' + err.message, 'error');
         console.error(err);
     }
+	
+	hideLoadingScreen();
+
 }
 
 // ---------- IMPORT FUNCTIE (ondersteunt File en string) ----------
 function importProject(source) {
+
+                setMode('training');
+
+ freeStageAudio();
+ freeUnusedStageBg();
+ freeUnusedSprites();
+ 
+ 
     if (typeof source === 'string') {
         processProjectData(source);
     } else if (source instanceof File) {
@@ -9529,10 +10227,61 @@ function updateTravelCubes() {
         }
     }
 }
-           function setStage(stageId) {
+function getStageImage(stageId) {
+ 
+    if (assetCache.stageBg.has(stageId)) {
+        const cached = assetCache.stageBg.get(stageId);
+        if (cached === null) return null;
+        if (cached instanceof HTMLImageElement) {
+            if (cached.complete && cached.naturalWidth > 0) {
+                return cached;
+            }
+            return null;  
+        }
+        return null;
+    }
+
+    const stage = project.stages.find(s => s.id === stageId);
+    if (!stage || !stage.imageData) return null;
+    if (stage.imageData.startsWith('data:video/')) {
+        assetCache.stageBg.set(stageId, null);
+        return null;
+    }
+
+    const img = new Image();
+    img.onload = function() {
+        assetCache.stageBg.set(stageId, img);
+        if (project.currentStageId === stageId) {
+         }
+    };
+    img.onerror = function() {
+        console.warn('Failed to load stage image for', stageId);
+        assetCache.stageBg.set(stageId, null);
+    };
+    img.src = stage.imageData;
+    assetCache.stageBg.set(stageId, null);
+	hideLoadingScreen();
+
+    return null;
+}
+
+     function setStage(stageId) {
+	     showLoadingScreen();
+
+cameraAnim = null;
+camera.zoom = project.cameraZoom || 1.0;
+
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
+	
+
+	freeUnusedStageBg();
+	freeStageAudio();
+	
     project.currentStageId = stageId;
+	
+			startCameraAnimation( ) ;
+
    resetTravelCubes();// nota no reset between rounds (only after full reset)
  textCubes = (stage.textcubeConfigs || []).map(cfg => {
     const cube = { ...cfg, active: false, image: null };
@@ -9548,10 +10297,13 @@ function updateTravelCubes() {
         playStageAudio(stageId);
     }
 
-    const bgVideoEl = document.getElementById('stageBgVideo');
+     const bgVideoEl = document.getElementById('stageBgVideo');
     const isVideo = stage.imageData && stage.imageData.startsWith('data:video/');
     if (isVideo) {
-        if (bgVideoEl.src !== stage.imageData) bgVideoEl.src = stage.imageData;
+        if (bgVideoEl.src !== stage.imageData) {
+            bgVideoEl.src = stage.imageData;
+            bgVideoEl.load(); // forceer herladen
+        }
         bgVideoEl.style.display = 'block';
         bgVideoEl.play().catch(() => {});
     } else {
@@ -9570,7 +10322,7 @@ function updateTravelCubes() {
 	
     stageSelect.selectedIndex = 0;
     stageSelect[0].innerHTML = stage.name;
-	
+	hideLoadingScreen();
 }
 
           let gameOverModalOpen = false;
@@ -9652,6 +10404,7 @@ function showGameOverModal(won) {
 
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
+		fullReset();
             stopAutoClose();
             modalOverlay.classList.remove('open');
             initSinglePlayerMode(singlePlayer.mode);
@@ -9768,6 +10521,19 @@ let html = `<h2>📝 Characters</h2>
         const lockIcon = locked ? '🔒' : '🔓';
         const lockText = locked ? ` (VP: ${vpRequired})` : '';
 
+    const isP1 = (id === project.selectedP1Char);
+    const isP2 = (id === project.selectedP2Char);
+    const isP1Tag = (id === project.selectedP1TagChar);
+    const isP2Tag = (id === project.selectedP2TagChar);
+    const isSameAsActiveP1 = (id === project.selectedP1Char);
+    const isSameAsActiveP2 = (id === project.selectedP2Char);
+
+    // ─── Styles 4 buttons ──────────────────────────────
+    const styleP1 = (locked ? 'opacity:0.5;' : '') + (isP1 ? 'border:2px solid #ffdd44; background:rgba(255,215,0,0.15);' : '');
+    const styleP2 = (locked ? 'opacity:0.5;' : '') + (isP2 ? 'border:2px solid #ffdd44; background:rgba(255,215,0,0.15);' : '');
+    const styleP1Tag = (locked ? 'opacity:0.5;' : '') + (isP1Tag ? 'border:2px solid #ff69b4; background:rgba(255,105,180,0.15);' : '') + (isSameAsActiveP1 ? 'opacity:0.3;' : '');
+    const styleP2Tag = (locked ? 'opacity:0.5;' : '') + (isP2Tag ? 'border:2px solid #ff69b4; background:rgba(255,105,180,0.15);' : '') + (isSameAsActiveP2 ? 'opacity:0.3;' : '');
+
         html += `
     <div class="char-item" data-charid="${id}" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#0f0f1e; border:1px solid #22223a; border-radius:8px; padding:10px 14px; margin-bottom:6px;">
         <div style="display:flex; align-items:center; gap:10px; flex:1 1 0; min-width:0;">
@@ -9791,14 +10557,31 @@ let html = `<h2>📝 Characters</h2>
 		            <button class="btn moves-btn" data-charid="${id}" style="background:#2a4a6a;border-color:#3a5a7a;color:#8ab4ff;">📋 Moves</button>
 
             <button class="btn primary edit-char" data-charid="${id}">✏️</button>
-            <button class="btn success select-char" data-charid="${id}" data-player="1" 
-                    ${locked ? 'style="opacity:0.5;" title="Niet beschikbaar (VP: '+vpRequired+')"' : ''}>
+            <button class="btn success select-char" data-charid="${id}" data-player="1"
+                style="${styleP1}"
+                ${locked ? 'title="Niet beschikbaar (VP: '+vpRequired+')"' : ''}>
                 ${locked ? '🔒' : ''} P1
             </button>
             <button class="btn success select-char" data-charid="${id}" data-player="2"
-                    ${locked ? 'style="opacity:0.5;" title="Niet beschikbaar (VP: '+vpRequired+')"' : ''}>
+                style="${styleP2}"
+                ${locked ? 'title="Niet beschikbaar (VP: '+vpRequired+')"' : ''}>
                 ${locked ? '🔒' : ''} P2
             </button>
+            ${project.settings.tagMatch ? `
+            <button class="btn success tag-char" data-charid="${id}" data-player="1"
+                style="${styleP1Tag}"
+                ${locked ? 'title="Niet beschikbaar (VP: '+vpRequired+')"' : (isSameAsActiveP1 ? 'title="Cannot be the same as P1"' : '')}
+                ${isSameAsActiveP1 ? 'disabled' : ''}>
+                ${locked ? '🔒' : ''} P1 Tag
+            </button>
+            <button class="btn success tag-char" data-charid="${id}" data-player="2"
+                style="${styleP2Tag}"
+                ${locked ? 'title="Niet beschikbaar (VP: '+vpRequired+')"' : (isSameAsActiveP2 ? 'title="Cannot be the same as P2"' : '')}
+                ${isSameAsActiveP2 ? 'disabled' : ''}>
+                ${locked ? '🔒' : ''} P2 Tag
+            </button>
+            ` : ''}
+
             ${id !== 'fighter' ? `<button class="btn danger delete-char" data-charid="${id}">🗑</button>` : ''}
         </div>
     </div>`;
@@ -9832,6 +10615,28 @@ document.querySelectorAll('.moves-btn').forEach(el => {
         showMovesList(charId);
     });
 });
+document.querySelectorAll('.tag-char').forEach(el => {
+    el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const charId = el.dataset.charid;
+        const player = parseInt(el.dataset.player);
+        const char = project.characters[charId];
+        const vpRequired = char.vpRequired || 0;
+        const currentVP = project.settings.victoryPoints || 0;
+        if (vpRequired > 0 && currentVP < vpRequired) {
+            showToast(`🔒 Required ${vpRequired} VP for ${char.name}.`, 'error');
+            return;
+        }
+        if (player === 1) {
+            project.selectedP1TagChar = charId;
+        } else {
+            project.selectedP2TagChar = charId;
+        }
+   //     showToast(`✅ ${player === 1 ? 'P1' : 'P2'} tag → ${char.name}`, 'success');
+		fullReset();
+        openCharacterEditor(); // herlaad de lijst
+    });
+});
 
     document.querySelectorAll('.select-char').forEach(el => {
         el.addEventListener('click', (e) => {
@@ -9860,7 +10665,7 @@ document.querySelectorAll('.moves-btn').forEach(el => {
 				   updatePlayerIcons();
             }
             rebuildTouchAttacks();
-            showToast(`✅ ${player === 1 ? 'P1' : 'P2'} → ${char.name}`, 'success');
+           // showToast(`✅ ${player === 1 ? 'P1' : 'P2'} → ${char.name}`, 'success');
             openCharacterEditor(); // herlaad de lijst
         });
     });
@@ -11282,7 +12087,8 @@ guardRecoveryRate: 5,
             platformMarginLeft: 3,
             platformMarginRight: 3,
             platformYOffset: 0,
-			    textcubeConfigs: []
+			    textcubeConfigs: [],
+    startAnimation: 'none'
         };
     }
 
@@ -11436,6 +12242,17 @@ function buildStageTargetOptions(selected) {
                 </select>
             </div>
         </div>
+		<div class="form-group">
+    <label>Start animation</label>
+    <select id="editStageStartAnim">
+        <option value="none">None</option>
+        <option value="left">Fade in from left</option>
+        <option value="right">Fade in from right</option>
+        <option value="top">Fade in from top</option>
+        <option value="bottom">Fade in from bottom</option>
+    </select>
+</div>
+		<hr>
         <h3>🏗️ Platforms</h3>
         <div class="form-row">
             <div class="form-group">
@@ -11476,7 +12293,8 @@ function buildStageTargetOptions(selected) {
                 Current: ${tempPlatforms.length} platforms
             </span>
         </div>
-        <h3 style="margin-top:16px;">📦 Falling items (OFFLINE ONLINE - FOR NOW)</h3>
+		<hr>
+        <h3 style="margin-top:16px;">📦 Falling items</h3>
         <p style="font-size:12px;color:#7a7a9a;">Items randomly drop out of the sky. Set your configuration here.</p>
         <div id="editStageItemConfigs">
             ${(stage.itemConfigs || []).map((cfg, i) => `
@@ -11628,7 +12446,7 @@ function buildStageTargetOptions(selected) {
             }).join('')}
         </div>
         <button class="btn" id="addEditStageTravelcube">➕ Add travelcube</button>
-
+<hr>
         <div class="btn-group" style="margin-top:16px;">
             <button class="btn primary" id="saveEditStage">💾 Save</button>
             <button class="btn" id="cancelEditStage">Cancel</button>
@@ -11637,6 +12455,8 @@ function buildStageTargetOptions(selected) {
 
     modalBody.innerHTML = html; 
     modalOverlay.classList.add('open');
+
+document.getElementById('editStageStartAnim').value = stage.startAnimation || 'none';
 
 // ─── Delegate voor clear/remove knoppen ───────────────────
 modalBody.addEventListener('click', function(e) {
@@ -11871,6 +12691,8 @@ modalBody.addEventListener('click', function(e) {
         const bg = document.getElementById('editStageBg').value || 'dojo';
         const theme = document.getElementById('editStageTheme').value;
         const weather = document.getElementById('editStageWeather').value;
+		const startAnimation = document.getElementById('editStageStartAnim').value;
+
         const platformMarginLeft = parseFloat(document.getElementById('editPlatformMarginLeft').value) ?? 30;
         const platformMarginRight = parseFloat(document.getElementById('editPlatformMarginRight').value) ?? 30;
         const platformYOffset = parseFloat(document.getElementById('editPlatformYOffset').value) ?? 0;
@@ -12048,6 +12870,7 @@ const blinkBeforeSpawn = row.querySelector('.tc-blink').checked;
                 itemConfigs: itemConfigs,
                 travelcubeConfigs: travelcubeConfigs,
                 colorTheme: theme,
+				    startAnimation: startAnimation,
                 weather: weather,
                 vpRequired: vpRequired,
                 soloAdventure: soloAdventure,
@@ -12095,6 +12918,18 @@ const blinkBeforeSpawn = row.querySelector('.tc-blink').checked;
             modalOverlay.classList.remove('open');
             openStagesEditor();
             isSaving = false;
+			
+			assetCache.stageBg.delete(id);
+
+// Laad de nieuwe afbeelding (indien aanwezig)
+if (stageData.imageData) {
+    loadStageMedia(id, stageData.imageData);
+}
+
+// Als deze stage de huidige is, herlaad hem dan (voor video en platforms)
+if (id === project.currentStageId) {
+    setStage(id);
+}
         }
 
         if (pendingReads === 0) checkAllLoaded();
@@ -12304,7 +13139,7 @@ project.settings.guardColor = document.getElementById('settingsGuardColor').valu
 project.settings.guardShape = document.getElementById('settingsGuardShape').value;
 
     try {
-        localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
+        localStorage.setItem('fighting_settings', JSON.stringify({ ...project.settings, projectId: project.projectId }));
     } catch (e) {}
 
     if (currentMode !== 'training') {
@@ -12473,6 +13308,20 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsEnergyRadius" value="${settings.energyBarBorderRadius ?? 4}" min="1" max="90" />
     </div>
 </div>
+ <h3>🤝 Tag Match</h3>
+<div class="form-row-2">
+    <div class="form-group">
+
+    <label>Enable Tag Match</label>
+    <input type="checkbox" id="settingsTagMatch" ${settings.tagMatch ? 'checked' : ''} />
+ </div>
+	  
+	  <div class="form-group">
+         <label>Border-radius (px)</label>
+        <input type="number" id="settingsTagHealthRadius" value="${settings.tagHealthBorderRadius ?? 12}" min="0" max="60" step="1" />
+ </div>
+ </div>
+
 <h3>🛡️ Guard Block</h3>
 <div class="form-row">
     <div class="form-group"><label>Color</label><input type="color" id="settingsGuardColor" value="${settings.guardColor || '#66ccff'}" /></div>
@@ -12490,6 +13339,17 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     <div class="form-group"><label>Health bad</label><input type="color" id="settingsHealthBad" value="${settings.healthBadColor || '#e74c3c'}" /></div>
 </div>
 <div class="form-row-3">
+    <div class="form-group">
+        <label>Tag health color</label>
+        <input type="color" id="settingsTagHealthColor" value="${settings.tagHealthColor ?? '#ff69b4'}" />
+    </div>
+    <div class="form-group">
+        <label>Tag health bad</label>
+        <input type="color" id="settingsTagHealthBadColor" value="${settings.tagHealthBadColor ?? '#ff0000'}" />
+    </div>
+</div>
+
+<div class="form-row-3">
     <div class="form-group"><label>Energy bar</label><input type="color" id="settingsEnergyColor" value="${settings.energyColor || '#3498db'}" /></div>
     <div class="form-group"><label>Energy full</label><input type="color" id="settingsEnergyFull" value="${settings.energyFullColor || '#f1c40f'}" /></div>
     <div class="form-group"><label>Timer</label><input type="color" id="settingsTimerColor" value="${settings.timerColor || '#ffffff'}" /></div>
@@ -12499,6 +13359,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 	 <div class="form-group"><label>Fatality color</label><input type="color" id="settingsFatalityColor" value="${settings.fatalityColor || '#ff0000'}" /></div>
 
  </div>
+
  <h3>🗺️ Adventure Progress</h3>
 <div class="form-row">
     <div class="form-group">
@@ -12921,10 +13782,8 @@ renderPlugins();
 	
 	
 		const filterSelect = document.getElementById('settingsScreenFilter');
-if (filterSelect) {
-    filterSelect.value = project.settings.screenFilter || 'none';
-}
-
+     filterSelect.value = project.settings.screenFilter ?? 'none';
+ 
 
     document.getElementById('saveSettings')?.addEventListener('click', () => {
         // Tekstvelden en vinkjes
@@ -12954,11 +13813,12 @@ const showMoveNames = document.getElementById('settingsShowMoveNames').checked;
 const adventureStage = document.getElementById('settingsAdventureStage').value || '';
 const adventureChar = document.getElementById('settingsAdventureChar').value || '';
 const showHUD = document.getElementById('settingsShowHUD').checked;
+const tagMatch = document.getElementById('settingsTagMatch').checked;
 
 const fatalityText = document.getElementById('settingsFatalityText').value;
 const fatalityColor = document.getElementById('settingsFatalityColor').value;
 
-const screenFilter = document.getElementById('settingsScreenFilter').value;
+const screenFilter = document.getElementById('settingsScreenFilter').value ?? 'none';
 const instantRoundReset = document.getElementById('settingsInstantReset').checked;
 
 const winStyle = document.getElementById('settingsWinStyle').value;
@@ -12989,6 +13849,10 @@ const healthHeight =  parseInt(document.getElementById('settingsHealthHeight').v
 const healthRadius = parseInt(document.getElementById('settingsHealthRadius').value) ??12
 const energyHeight = parseInt(document.getElementById('settingsEnergyHeight').value) ??10 ;
 const energyRadius = parseInt(document.getElementById('settingsEnergyRadius').value) ?? 4
+
+const tagHealthColor = document.getElementById('settingsTagHealthColor').value;
+const tagHealthBadColor = document.getElementById('settingsTagHealthBadColor').value;
+const tagHealthRadius = parseInt(document.getElementById('settingsTagHealthRadius').value) || 12;
 
  const showRingOut = document.getElementById('settingsShowRingOut').checked;
 const settingsisStatusTextAbovePlayer = document.getElementById('settingsisStatusTextAbovePlayer').checked;
@@ -13089,6 +13953,11 @@ project.settings.comboFont = comboFont;
 project.settings.statusFont = statusFont;
 project.settings.introOutroFont = introOutroFont;
 project.settings.showHUD = showHUD;
+project.settings.tagMatch = tagMatch;
+project.settings.tagHealthColor = tagHealthColor;
+project.settings.tagHealthBadColor = tagHealthBadColor;
+project.settings.tagHealthBorderRadius = parseInt(document.getElementById('settingsTagHealthRadius').value);
+
 project.settings.fatalityText = fatalityText;
 project.settings.fatalityColor = fatalityColor;
 project.settings.instantRoundReset = instantRoundReset;
@@ -13180,6 +14049,19 @@ fullReset();//resetRound();
                             <li><strong>🧠 AI difficulty:</strong> difficulty of the computer opponent (Beginner through Hard).</li>
                             <li><strong>🎮 Controls:</strong> remap the keyboard/controller keys for each player.</li>
                             <li><strong>🛠️ DevTools (hidden after publish):</strong> advanced visual settings — block/counter shield effects, recover flash, combo text, bar style (border-radius), colors for health/energy/timer/text, and the text shown on ring-out, fight-start, round-win, and match-win.</li>
+                        </ul>
+						<h3> Extra movement (if active) </h3>
+                        <ul style="margin-left:20px;color:#b0b0d0;line-height:1.6;">
+						
+						    <li><strong>Dash</strong> Quick double press left or right to dash</li>
+						   	  <li><strong>Block</strong> Press back (or down + back for a low block)</li> 
+						    <li><strong>Counter</strong> Set counter inside a move (character settings)</li>
+						    <li><strong>Recover</strong> Press down + button 1 to recover</li>
+						    <li><strong>Drop from platform</strong> Double press down to drop from a platform</li> 
+						   <li><strong>Superjump</strong> Quickly press down and then up</li> 
+						   	  <li><strong>Double jump</strong> Quickly up and then up again</li> 
+						   <li><strong>Tag</strong> Press back and button 4</li> 
+						   	  <li><strong>Lanes</strong> Switch lanes by double pressing up or down</li>  
                         </ul>
 
                         <p style="color:#7a7a9a;margin-top:8px;">💡 Use Export to save all your settings, or Publish to generate a playable version.</p>
@@ -13500,6 +14382,9 @@ else{            setMode('training');
                 gamepadStatus.classList.remove('connected');
                 gamepadState.connected = false;
             });
+			
+
+
 function openPublishModal() {
     if (window.project && window.project.isPublished) {
         showToast('❌ Niet beschikbaar in gepubliceerde versie', 'error');
@@ -13653,6 +14538,7 @@ function openPublishModal() {
      };
 
     document.getElementById('publishGenerateBtn').addEventListener('click', async function() {
+	showLoadingScreen();
         const title = document.getElementById('publishTitle').value || 'My fighting Game';
         const faviconInput = document.getElementById('publishFavicon');
         const videoInput = document.getElementById('publishVideo');
@@ -13707,7 +14593,7 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         };
 		
         try {
-            localStorage.setItem('fighting_settings', JSON.stringify(project.settings));
+            localStorage.setItem('fighting_settings', JSON.stringify({ ...project.settings, projectId: project.projectId }));
             localStorage.setItem('fighting_publish_config', JSON.stringify(project.publish));
         } catch(e) {
             console.warn('Publish-config opslaan mislukt (mogelijk te groot voor localStorage)', e);
@@ -13728,6 +14614,8 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
 
         showToast('✅ HTML generated & downloaded!', 'success');
         document.getElementById('modalOverlay').classList.remove('open');
+		
+		hideLoadingScreen(1000);
      });
    window.generateHTML = function(title, faviconData, videoData, watermarkData) {
     var html = document.documentElement.outerHTML;
@@ -13807,24 +14695,8 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '<\/script>';
 
     // ─── LOADING OVERLAY (nieuw) ──────────────────────────────
-    var loadingHTML = `
-<div id="loadingOverlay" style="
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:#000; z-index:99999;
-  display:flex; align-items:center; justify-content:center;
-  flex-direction:column; color:#fff; font-family:sans-serif;
-">
-  <h1 style="font-size:48px; font-weight:300; margin:0;">Loading…</h1>
-  <div style="
-    width:40px; height:40px; margin-top:20px;
-    border:4px solid #555; border-top-color:#fff;
-    border-radius:50%; animation: spin 0.8s linear infinite;
-  "></div>
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-</div>
-`;
+    var loadingHTML = LOADING_HTML 
+	
     html = html.replace('<body', '<body>' + loadingHTML);
 
     var watermarkHTML = '';
@@ -13887,25 +14759,52 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '});' +
         '<\/script>';
 
- var overlayHTML = '';
+var overlayHTML = '';
 if (videoData) {
-    overlayHTML = '<div id="introOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;">' +
-        '<video id="introVideo" src="' + videoData + '" muted playsinline style="max-width:90%;max-height:80%;" onended="closeIntro()"></video>' +
-        '<div style="display:flex;gap:10px;margin-top:20px;">' +
-        '<button hidden id="unmuteIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="this.style.display=\'none\'; var v=document.getElementById(\'introVideo\'); if (v) v.muted = false;">🔊 Sound aan</button>' +
-        '<button id="skipIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="closeIntro()">Skip intro</button>' +
-        '</div>' +
-        '</div>' +
-        '<script>' +
-        'function closeIntro() {' +
-        '  var el = document.getElementById("introOverlay");' +
-        '  if (el) el.style.display = "none";' +
-        '  var vid = document.getElementById("introVideo");' +
-        '  if (vid) { vid.pause(); vid.currentTime = 0; }' +
-        '}' +
-        '<\/script>';
+    overlayHTML = `
+    <div id="introOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;">
+        <video id="introVideo" muted playsinline style="max-width:90%;max-height:80%;" onended="closeIntro()"></video>
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button hidden id="unmuteIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="this.style.display='none'; var v=document.getElementById('introVideo'); if (v) v.muted = false;">🔊 Sound aan</button>
+            <button id="skipIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="closeIntro()">Skip intro</button>
+        </div>
+    </div>
+    <script>
+    function closeIntro() {
+        var el = document.getElementById('introOverlay');
+        if (el) el.style.display = 'none';
+        var vid = document.getElementById('introVideo');
+        if (vid) {
+            vid.pause();
+            vid.currentTime = 0;
+            vid.src = '';
+            vid.load();
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var video = document.getElementById('introVideo');
+        if (!video) return;
+        video.src = ` + JSON.stringify(videoData) + `;
+        video.muted = true;
+        video.load();
+        function tryPlay() {
+            video.play().catch(function(e) {
+                // Autoplay geblokkeerd → wacht op een klik
+                var overlay = document.getElementById('introOverlay');
+                if (overlay) {
+                    overlay.addEventListener('click', function playOnClick() {
+                        video.play().catch(function() {});
+                        overlay.removeEventListener('click', playOnClick);
+                    }, { once: true });
+                }
+            });
+        }
+        video.addEventListener('canplay', tryPlay, { once: true });
+        setTimeout(tryPlay, 2000);
+    });
+    <\/script>
+    `;
 }
-
 
      var filterScript = '<script>' +
         'document.addEventListener("DOMContentLoaded", function() {' +
