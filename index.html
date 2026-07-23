@@ -3101,7 +3101,11 @@ const BIO_TRAITS = [
                 char.darkColor = `hsl(${hue}, ${sat-10}%, ${light-20}%)`;
                 char.speed = 3 + Math.floor(Math.random() * 4);
                 char.health = 80 + Math.floor(Math.random() * 60);
-                char.gravity =parseFloat( 0.4 + Math.random() * 0.5).toFixed(2);
+				
+const raw = 0.4 + Math.random() * 0.5;
+char.gravity = Math.round(raw * 100) / 100;
+
+
                 char.doubleJump = Math.random() > 0.5;
                  char.flinchTime = 10 + Math.floor(Math.random() * 12);
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
