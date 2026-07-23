@@ -3101,7 +3101,11 @@ const BIO_TRAITS = [
                 char.darkColor = `hsl(${hue}, ${sat-10}%, ${light-20}%)`;
                 char.speed = 3 + Math.floor(Math.random() * 4);
                 char.health = 80 + Math.floor(Math.random() * 60);
-                char.gravity =parseFloat( 0.4 + Math.random() * 0.5).toFixed(2);
+				
+const raw = 0.4 + Math.random() * 0.5;
+char.gravity = Math.round(raw * 100) / 100;
+
+
                 char.doubleJump = Math.random() > 0.5;
                  char.flinchTime = 10 + Math.floor(Math.random() * 12);
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
@@ -7359,11 +7363,22 @@ const triggerAttack = () => {
     updateTouchDpad();
 }
 function updateCamera() {
-    if (!p1 || !p2) return;
+     if (!p1 || !p2 || isNaN(p1.cx) || isNaN(p2.cx) || isNaN(p1.cy) || isNaN(p2.cy) || !isFinite(p1.cx) || !isFinite(p2.cx)) {
+         camera.zoom = Math.max(0.5, Math.min(2.0, camera.zoom || 1.0));
+        camera.offsetX = 0;
+        camera.offsetY = 0;
+        console.warn('Camera: ongeldige fighterpositie, terug naar standaard.');
+        return;
+    }
+
     const centerX = (p1.cx + p2.cx) / 2;
     const centerY = (p1.cy + p2.cy) / 2;
     const offsetX = project.settings.cameraOffsetX || 0;
     const offsetY = project.settings.cameraOffsetY || 0;
+
+     if (!camera.zoom || camera.zoom <= 0 || !isFinite(camera.zoom)) {
+        camera.zoom = 1.0;
+    }
 
     if (cameraAnim) {
         const progress = cameraAnim.progress / cameraAnim.duration;
@@ -7374,14 +7389,20 @@ function updateCamera() {
         camera.zoom = currentZoom;
         camera.offsetX = centerX + offsetX - (currentFractionX * W) / currentZoom;
         camera.offsetY = centerY + offsetY - (currentFractionY * H) / currentZoom;
-        camera.offsetX = Math.max(0, Math.min(W - W / currentZoom, camera.offsetX));
-        camera.offsetY = Math.max(0, Math.min(H - H / currentZoom, camera.offsetY));
     } else {
-        // Normale camera
         camera.offsetX = (centerX + offsetX) - W / (2 * camera.zoom);
         camera.offsetY = (centerY + offsetY) - H / (2 * camera.zoom);
-        camera.offsetX = Math.max(0, Math.min(W - W / camera.zoom, camera.offsetX));
-        camera.offsetY = Math.max(0, Math.min(H - H / camera.zoom, camera.offsetY));
+    }
+     const minOffsetX = 0;
+    const maxOffsetX = W - W / camera.zoom;
+    const minOffsetY = 0;
+    const maxOffsetY = H - H / camera.zoom;
+    camera.offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, camera.offsetX));
+    camera.offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, camera.offsetY));
+     if (isNaN(camera.offsetX) || isNaN(camera.offsetY) || !isFinite(camera.offsetX) || !isFinite(camera.offsetY)) {
+        camera.offsetX = 0;
+        camera.offsetY = 0;
+        console.warn('Camera: offset werd NaN, gereset.');
     }
 }
 function drawDefaultTravelcube(ctx, x, y, w, h) {
@@ -9477,16 +9498,16 @@ function startCameraAnimation() {
         const direction = stage.startAnimation;
         let startFractionX = 0.5, startFractionY = 0.5;
         switch (direction) {
-            case 'left':   startFractionX = 0.8; break; // vechters rechts in beeld → camera van links
-            case 'right':  startFractionX = 0.2; break; // vechters links in beeld → camera van rechts
-            case 'top':    startFractionY = 0.8; break; // vechters onder in beeld → camera van boven
-            case 'bottom': startFractionY = 0.2; break; // vechters boven in beeld → camera van onder
+            case 'left':   startFractionX = 0.8; break;
+            case 'right':  startFractionX = 0.2; break;
+            case 'top':    startFractionY = 0.8; break;
+            case 'bottom': startFractionY = 0.2; break;
         }
         cameraAnim = {
             progress: 0,
             duration: 60,
             startZoom: 2.5,
-            endZoom: camera.zoom,
+            endZoom: project.cameraZoom || 1.0,  
             startFractionX: startFractionX,
             endFractionX: 0.5,
             startFractionY: startFractionY,
@@ -14154,6 +14175,7 @@ fullReset();//resetRound();
                     if (!isNaN(zoomVal) && zoomVal > 0) {
                         camera.zoom = zoomVal;
                         project.cameraZoom = zoomVal;
+						 cameraAnim = null; 
                         updateActionSelectZoom();
                     }
 
