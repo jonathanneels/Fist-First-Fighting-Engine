@@ -1068,7 +1068,7 @@
 }
 
 #touchDpad {
-    position: relative; /* essentieel voor absolute positionering van toucharea */
+    position: absolute; /* essentieel voor absolute positionering van toucharea */
 }
 #dpadTouchArea {
     position: absolute;
@@ -1145,7 +1145,11 @@
     pointer-events: none;
 }
 
- 
+#touchDpad .tag-dpad-btn {
+    pointer-events: auto !important;
+    z-index: 10;
+    position: relative;
+}
     </style>
 </head>
 <body>
@@ -1328,7 +1332,7 @@
 
 const isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
                    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-
+let isTouchOccured =false; 
 const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
             const W = 1280,
@@ -1769,6 +1773,7 @@ const DEFAULT_STATES = {
                 sweepSound: null,
                 mineSound: null,
                 damageSound: null,
+				    tagSound: null,
                 introText: 'Good luck, You are done!',
                 outroText: 'Thanks for the match, Exciting!',
                 headShape: 'circle',
@@ -2245,6 +2250,11 @@ let networkUID  = null
     const activeIds = new Set();
     if (p1) activeIds.add(p1.charId);
     if (p2) activeIds.add(p2.charId);
+	
+if(project.settings.tagMatch){
+    if (p1_tag) activeIds.add(p1_tag.charId);  
+    if (p2_tag) activeIds.add(p2_tag.charId);  
+}
 
     for (const [id, img] of assetCache.sprites) {
         if (!activeIds.has(id)) {
@@ -3645,7 +3655,7 @@ this.ignorePhysics = charData.ignorePhysics || false;
 this.activeDirections = charData.activeDirections || { up: true, down: true, left: true, right: true };
 
 this.projectileMijnImg;
-this.projectileMijnTimer = 30;
+this.projectileMijnTimer = 0;
 this.superJumpPower = charData.superJumpPower !== undefined ? charData.superJumpPower : -18;
 
                     this.x = x;
@@ -3757,6 +3767,8 @@ this._currentMoveHeight = 'mid';
                     this.sweepSound = charData.sweepSound || null;
                     this.mineSound = charData.mineSound || null;
                     this.damageSound = charData.damageSound || null;
+					    this.tagSound = charData.tagSound || null;
+
                     this.introText = charData.introText || 'Good luck, You are done!';
                     this.outroText = charData.outroText || 'Thanks for the match, Exciting!';
                     this.canRecoverFromFlinch = charData.canRecoverFromFlinch || false;
@@ -3845,6 +3857,8 @@ this.belt = charData.belt || 'none';
                     this._recoverFlash = 0;
 this.hasEnergy = charData.hasEnergy !== undefined ? charData.hasEnergy : true;
 this._teleportCooldown = 0;
+
+					    this.tagSound = charData.tagSound || null;
 
                     this.maxJumps = this.doubleJump ? 2 : 1;
                     this.vx = 0;
@@ -4082,15 +4096,28 @@ if (move.type === 'projectile') {
             extraImg = img;
         }
     }
-    if (move.attackImage) {
-        let img = extraImages[move.attackImage];
-        if (!img) {
-            img = new Image();
-            img.src = move.attackImage;
-            this.projectileMijnImg = img;
-            this.projectileMijnTimer = 30;
-        }
+if (move.attackImage) {
+    let img = extraImages[move.attackImage];
+    if (!img) {
+        img = new Image();
+        img.src = move.attackImage;
+        extraImages[move.attackImage] = img;    
     }
+    this.projectileMijnImg = img;               
+    this.projectileMijnTimer = 30;
+	    this.attackActive = false;  
+
+}
+else{
+
+    this.attackIdx = idx;
+    this.attackTimer = Math.min(move.speed || 20, 15);  
+    this.state = 'attack';
+    this.attackActive = false;  
+    this.cooldown = Math.floor(this.attackTimer * 0.3);
+    this.animFrame = move.startFrame || 0;
+
+}
     const startDist = (move.startDistance && move.startDistance > 0) ? move.startDistance : 30;
 	
 	const offsetX = startDist || 0;
@@ -4146,15 +4173,27 @@ if (move.type === 'mine') {
             extraImg = img;
         }
     }
-    if (move.attackImage) {
-        let img = extraImages[move.attackImage];
-        if (!img) {
-            img = new Image();
-            img.src = move.attackImage;
-            this.projectileMijnImg = img;
-            this.projectileMijnTimer = 30;
-        }
+if (move.attackImage) {
+    let img = extraImages[move.attackImage];
+    if (!img) {
+        img = new Image();
+        img.src = move.attackImage;
+        extraImages[move.attackImage] = img;    
     }
+    this.projectileMijnImg = img;               
+    this.projectileMijnTimer = 30;
+	    this.attackActive = false;   
+}
+else{
+
+    this.attackIdx = idx;
+    this.attackTimer = Math.min(move.speed || 20, 15);  
+    this.state = 'attack';
+    this.attackActive = false;  
+    this.cooldown = Math.floor(this.attackTimer * 0.3);
+    this.animFrame = move.startFrame || 0;
+
+}
 const offsetX = move.startDistance || 0;
 const distance = this.w / 2 + offsetX;   
 var mineX = this.cx + this.facing * distance;
@@ -5258,15 +5297,15 @@ if (this.playerIdx === 0 && currentMode === 'training' && project.settings.showM
     let y = 155;
     const lineHeight = 17;
     const padding = 8;
-    const maxWidth = 233; 
-    const totalHeight = 12.5 * lineHeight + padding * 2; 
+    const maxWidth = 235; 
+    const totalHeight = 12.7 * lineHeight + padding * 2; 
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
      ctx.fillRect(x - padding, y - padding, maxWidth, totalHeight);
      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1;
     ctx.strokeRect(x - padding, y - padding, maxWidth, totalHeight);
-ctx.fillStyle = '#8affd0';
+ctx.fillStyle = '#4abbd0';
 ctx.fillText(`FPS: ${fps}`, x, y);
     	y += lineHeight;
 
@@ -5453,7 +5492,10 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
 							this.state  = 'victory';  
 							this._cachedStateConfig = this.getStateConfig(this.state);
  							} 
-							else if (move && move.attackImage) {
+						else if (this.projectileMijnTimer > 0 && this.projectileMijnImg) {    
+    attackImg = this.projectileMijnImg;
+	this.projectileMijnTimer-=1;
+}else if (move && move.attackImage) {
             if (extraImages[move.attackImage]) {
                 attackImg = extraImages[move.attackImage];
             } else {
@@ -5463,8 +5505,8 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
                 attackImg = img;
              
         }
-    }
-	
+    }		
+ 	
  
     if (attackImg && isImageLoaded(attackImg)  ) {    
         ctx.save();
@@ -5533,14 +5575,22 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
             ctx.translate(sx, drawY + h / 2);
             if (f < 0) ctx.scale(-1, 1);
             if (scaleY !== 1) ctx.scale(1, scaleY);
-            ctx.drawImage(
-                this.spriteImg,
-                colToUse * this.spriteFrameWidth,
-                rowToUse * this.spriteFrameHeight,
-                this.spriteFrameWidth,
-                this.spriteFrameHeight,
-                -w / 2, -h / 2, w, h
-            );
+        try {
+    ctx.drawImage(
+        this.spriteImg,
+        colToUse * this.spriteFrameWidth,
+        rowToUse * this.spriteFrameHeight,
+        this.spriteFrameWidth,
+        this.spriteFrameHeight,
+        -w / 2, -h / 2, w, h
+    );
+} catch (e) {
+    // Sprite is beschadigd of gedetacheerd  
+    console.warn('Sprite draw failed, trying to restore.', e);
+if (this.spriteImg && typeof this.spriteImg.close === 'function') {
+     this.loadSprite(this.charId);
+}
+}
             ctx.restore(); 
 
         } else {
@@ -6034,30 +6084,7 @@ if (move && this.state === 'attack') {
         }
     }	}
 
-
-if (this.projectileMijnTimer > 0) {
-    this.projectileMijnTimer--;
-    if (this.projectileMijnTimer === 0) {
-        this.projectileMijnImg = null; 
-    }
-}
-
-if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
-
-          ctx.save();
-               const cx = (this.cx - camera.offsetX) * camera.zoom;
-            const cy = (this.cy - camera.offsetY) * camera.zoom;
-            const size = 80 * camera.zoom;
-             ctx.globalAlpha = 1;
-            ctx.translate(cx, cy);
-
-        if (f < 0) ctx.scale(-1, 1);
-        if (scaleY !== 1) ctx.scale(1, scaleY);
-        const imgW = w * 1.2;
-        const imgH = h * 1.2;
-        ctx.drawImage(this.projectileMijnImg, -imgW / 2, -imgH / 2, imgW, imgH);
-        ctx.restore();
- }
+  
     // ─── HIT EFFECT ────────────────────────────────────────────
 	ctx.restore();
     const hitEffectImg = hitEffectImages[this.charId];
@@ -6179,6 +6206,9 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
                         case 'mine':
                             customBuffer = this.mineSound;
                             break;
+						 case 'tag':
+                            customBuffer = this.tagSound;
+                            break;
                         case 'block':
                             customBuffer = null;
                             break;
@@ -6238,6 +6268,13 @@ if (this.projectileMijnImg != null&& this.projectileMijnImg.naturalWidth > 0) {
                                 dur = 0.08;
                                 vol = 0.12;
                                 break;
+							 case 'tag':
+                                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+                                osc.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.10);
+                                dur = 0.08;
+                                vol = 0.10;
+                                break;
+
                             default:
                                 freq = 400;
                                 dur = 0.06;
@@ -6331,7 +6368,7 @@ function drawFallbackAttack(ctx, camera, fighter, move, sx, sy, w, h, scaleY, of
 
 if(!isLowPower){
     // ─── SWOOSH ──────────────────────────────────────────
-    if (cfg.swoosh && fighter.attackActive && !isLowPower) {
+    if (cfg.swoosh && fighter.attackActive  ) {
         const alpha = 0.3 * (1 - p);
 
         if (cfg.swooshType === 'arc') {
@@ -7035,17 +7072,29 @@ window.pollGamepad = function() {
         if (gp.buttons[13]?.pressed) fighter.input.down = true;
         if (gp.buttons[14]?.pressed) fighter.input.left = true;
         if (gp.buttons[15]?.pressed) fighter.input.right = true;
-
-        for (let i = 1; i <= 6; i++) {
-            const cfg = map['attack' + i];
-            if (cfg?.type === 'button') {
-                const btn = gp.buttons[cfg.index];
-                if (btn?.pressed && btn.value > 0.5 && fighter.health > 0) {
-                    fighter._pendingButton = String(i);
-                    fighter.startAttackByCommand(String(i), fighter._history || []);
+		
+for (let i = 1; i <= 6; i++) {
+    const cfg = map['attack' + i];
+    if (cfg?.type === 'button') {
+        const btn = gp.buttons[cfg.index];
+        if (btn?.pressed && btn.value > 0.5 && fighter.health > 0) {
+            // Tag-combinatie: back + attack4 (alleen als tagMatch aan staat)
+            if (i === 4 && project.settings.tagMatch) {
+                const isBack = (fighter.facing === 1 && fighter.input.left) || (fighter.facing === -1 && fighter.input.right);
+                if (isBack) {
+                    // Voer tag uit
+                    const player = (fighter === p1) ? 1 : 2;
+                    swapTag(player);
+                    // Sla de aanval over
+                    continue;
                 }
             }
+            // Normale aanval
+            fighter._pendingButton = String(i);
+            fighter.startAttackByCommand(String(i), fighter._history || []);
         }
+    }
+}
     };
 
 if (p1GamepadIndex !== -1 && useP1) {
@@ -7164,7 +7213,7 @@ if (!local) return;
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.changedTouches[0];
-        activeTouchId = touch.identifier;
+        activeTouchId = touch.identifier; 
         const dir = getDirection(touch);
         setDirection(dir);
     }, { passive: false });
@@ -7189,6 +7238,8 @@ if (!local) return;
             if (t.identifier === activeTouchId) {
                 activeTouchId = null;
                 setDirection(null);
+						  isTouchOccured =true;// now tag must be handled through button 
+
                 break;
             }
         }
@@ -7197,6 +7248,8 @@ if (!local) return;
     touchArea.addEventListener('touchcancel', (e) => {
         activeTouchId = null;
         setDirection(null);
+				  isTouchOccured =true;// now tag must be handled through button 
+
     }, { passive: false });
 }
 
@@ -7253,7 +7306,102 @@ function setDirectionInput(fighter, dir, value) {
     else if (dir === 'leftdown') { fighter.input.left = value; fighter.input.down = value; }
     else if (dir === 'rightdown') { fighter.input.right = value; fighter.input.down = value; }
 }
+function setupTagDpadButton() {
+    const dpad = document.getElementById('touchDpad');
+    if (!dpad) return;
+    // Verwijder oude knop indien aanwezig
+    const existing = document.getElementById('tagDpadBtn');
+    if (existing) existing.remove();
 
+    // Alleen tonen als tagMatch aan staat
+    if (!project.settings.tagMatch) return;
+
+    const tagBtn = document.createElement('div');
+    tagBtn.id = 'tagDpadBtn';
+    tagBtn.className = 'dpad-btn tag-dpad-btn';
+   /* tagBtn.style.cssText = `
+        grid-column: 2;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(14px, 2.5vw, 24px);
+        font-weight: bold;
+        color: #ffdd44;
+        background: rgba(255, 215, 0, 0.25);
+        border: 2px solid #ffdd44;
+        border-radius: 50%;
+        pointer-events: auto;
+        touch-action: manipulation;
+        z-index: 10;
+        position: relative;
+    `;*/
+	
+	tagBtn.style.cssText = `
+        grid-column: 2;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(10px, 1.8vw, 16px);
+        font-weight: bold;
+        color: #ffdd44;
+        background: rgba(255, 215, 0, 0.25);
+         width: 70%;
+        height: 70%;
+        place-self: center; 
+        pointer-events: auto;
+        touch-action: manipulation;
+        z-index: 10;
+        position: relative;
+    `;
+    tagBtn.textContent = 'TAG';
+
+    const triggerTag = (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // voorkom dat de toucharea het ook oppikt
+        const local = getLocalPlayer();
+        if (!local || local.health <= 0) return;
+
+        let player = 0;
+        if (local === p1) player = 1;
+        else if (local === p2) player = 2;
+        else return;
+
+        const key = 'p' + player;
+        if (tagCooldown[key] > 0) {
+
+            return;
+        }
+
+        // Netwerk (joiner stuurt verzoek naar host)
+        if (networkMode && networkRole === 'joiner') {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'tagSwitch', player: 2 }));
+            }
+            return;
+        }
+
+        swapTag(player);
+    };
+
+    tagBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        tagBtn.style.transform = 'scale(0.9)';
+        triggerTag(e);
+    }, { passive: false });
+    tagBtn.addEventListener('touchend', () => tagBtn.style.transform = '');
+    tagBtn.addEventListener('touchcancel', () => tagBtn.style.transform = '');
+    tagBtn.addEventListener('mousedown', (e) => {
+        tagBtn.style.transform = 'scale(0.9)';
+        triggerTag(e);
+    });
+    tagBtn.addEventListener('mouseup', () => tagBtn.style.transform = '');
+    tagBtn.addEventListener('mouseleave', () => tagBtn.style.transform = '');
+
+    dpad.appendChild(tagBtn);
+}
 function rebuildTouchAttacks() {
     touchAttacks.innerHTML = '';
     const local = getLocalPlayer();
@@ -7360,7 +7508,9 @@ const triggerAttack = () => {
         touchAttacks.appendChild(btn);
     }
 
+
     updateTouchDpad();
+	setupTagDpadButton() 
 }
 function updateCamera() {
      if (!p1 || !p2 || isNaN(p1.cx) || isNaN(p2.cx) || isNaN(p1.cy) || isNaN(p2.cy) || !isFinite(p1.cx) || !isFinite(p2.cx)) {
@@ -9048,8 +9198,8 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 } else {
     p1.update(p2);
     p2.update(p1);
-			if (project.settings.tagMatch) {
-    if (p1 && p1._history && p1._history.length >= 2) {
+			if (project.settings.tagMatch    ) { 
+    if (!isTouchOccured && p1 && p1._history && p1._history.length >= 2) {// mobile gets different handler
         const last = p1._history[p1._history.length - 1];
         const prev = p1._history[p1._history.length - 2];
         // Check of de laatste twee entries "back" en "4" zijn (in die volgorde)
@@ -9449,14 +9599,53 @@ function applyFighterState(fighter, state) {
     fighter.attackActive = false;
     fighter.cooldown = 0;
 }
+function showFloatingText(text, duration = 800, color = '#ffdd44', size = 'clamp(60px, 12vw, 120px)') {
+    // Controleer of er al een element bestaat, anders maak het aan
+    let el = document.getElementById('floatingText');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'floatingText';
+        el.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 900;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            letter-spacing: 4px;
+            text-shadow: 0 0 30px rgba(0,0,0,0.5);
+        `;
+        document.body.appendChild(el);
+    }
 
+    // Annuleer bestaande timer
+    if (el._timer) clearTimeout(el._timer);
+
+    // Stel stijl in
+    el.style.color = color;
+    el.style.fontSize = size;
+    el.style.textShadow = `0 0 30px ${color}80, 0 0 60px ${color}40`;
+    el.textContent = text;
+    el.style.opacity = '1';
+
+    // Zet timer om te vervagen
+    el._timer = setTimeout(() => {
+        el.style.opacity = '0';
+    }, duration);
+}
+ 
 function swapTag(player, isOverrideRules) {
     if (!project.settings.tagMatch) return;
     const key = player === 1 ? 'p1' : 'p2';
     if (tagCooldown[key] > 0) return;
-
+ 
     if (player === 1) {
         if (!p1 || !p1_tag) return;
+ 
          const activeState = {
             x: p1.x, y: p1.y, lane: p1.lane,
             groundY: p1.groundY, onGround: p1.onGround,
@@ -9470,10 +9659,10 @@ function swapTag(player, isOverrideRules) {
          [p1, p1_tag] = [p1_tag, p1];
          applyFighterState(p1, activeState);
         applyFighterState(p1_tag, tagState);
-        p1.playSound('recover');
+        p1.playSound('tag');
     } else if (player === 2) {
         if (!p2 || !p2_tag) return;
-        const activeState = {
+         const activeState = {
             x: p2.x, y: p2.y, lane: p2.lane,
             groundY: p2.groundY, onGround: p2.onGround,
             ignorePlatform: p2._ignorePlatform
@@ -9486,9 +9675,10 @@ function swapTag(player, isOverrideRules) {
         [p2, p2_tag] = [p2_tag, p2];
         applyFighterState(p2, activeState);
         applyFighterState(p2_tag, tagState);
-        p2.playSound('recover');
+        p2.playSound('tag');
     }
-
+	
+ 
     tagCooldown[key] = 75;
     updatePlayerIcons();
 }
@@ -11192,6 +11382,16 @@ let newMoveImages = {};
                     ${char.damageSound ? '🔊' : '🔇'}
                 </span>
             </div>
+			<div class="form-group">
+    <label>Tag</label>
+    <div class="file-input-wrap">
+        <input type="file" id="editCharTagSound" accept="audio/*" />
+        <button class="clear-file" data-target="tagSound" type="button">✕</button>
+    </div>
+    <span id="tagSoundStatus" style="font-size:10px;color:#5a5a8a;">
+        ${char.tagSound ? '🔊' : '🔇'}
+    </span>
+</div>
             <div class="form-group">
                 <label>Projectile</label>
                 <div class="file-input-wrap">
@@ -11533,20 +11733,23 @@ const activeDirections = {
     let projSound = char.projectileSound;
     let sweepSound = char.sweepSound;
     let mineSound = char.mineSound;
+let tagSound = char.tagSound;
 
     if (removalFlags.hitSound) hitSound = null;
     if (removalFlags.damageSound) damageSound = null;
     if (removalFlags.projectileSound) projSound = null;
     if (removalFlags.sweepSound) sweepSound = null;
     if (removalFlags.mineSound) mineSound = null;
+    if (removalFlags.tagSound) tagSound = null;
 
-    let pendingReads = 0;
+     let pendingReads = 0;
     const audioFiles = [
         { id: 'editCharHitSound', callback: (data) => { if (data !== null) hitSound = data; } },
         { id: 'editCharDamageSound', callback: (data) => { if (data !== null) damageSound = data; } },
         { id: 'editCharProjSound', callback: (data) => { if (data !== null) projSound = data; } },
         { id: 'editCharSweepSound', callback: (data) => { if (data !== null) sweepSound = data; } },
-        { id: 'editCharMineSound', callback: (data) => { if (data !== null) mineSound = data; } }
+        { id: 'editCharMineSound', callback: (data) => { if (data !== null) mineSound = data; } },
+	    { id: 'editCharTagSound', callback: (data) => { if (data !== null) tagSound = data; } }
     ];
     audioFiles.forEach(({ id, callback }) => {
         const input = document.getElementById(id);
@@ -11831,6 +12034,7 @@ belt: belt,
             dashCooldown: dashCooldown,
             hitSound: hitSound,
             damageSound: damageSound,
+							    tagSound: tagSound,
             projectileSound: projSound,
             sweepSound: sweepSound,
             mineSound: mineSound,
@@ -11969,6 +12173,7 @@ belt: 'none',
         dashCooldown: 1,
         hitSound: null,
         damageSound: null,
+						    tagSound: null,
         projectileSound: null,
         sweepSound: null,
         mineSound: null,
