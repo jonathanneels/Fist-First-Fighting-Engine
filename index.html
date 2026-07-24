@@ -2063,6 +2063,11 @@ fatalityColor: '#ff0000',
 	isWaitBeforeAfterFightStart:false,
 		 startX1 : 470,    
  startX2 :740,  
+ showTouchControls :true,
+ touchDpadColor:'#ffffff',
+  touchTagColor :'#ffdd44',
+ touchAttackColor :'#ff6666',
+ touchShape :'round', 
   adventureCurrentStageId:'' ,
  adventurePlayerChar : '',     
      cameraOffsetX: 0,
@@ -7259,6 +7264,57 @@ function getLocalPlayer() {
     if (networkMode && networkRole === 'host') return p1;
     if (networkMode && networkRole === 'joiner') return p2;
 }
+function applyTouchSettings() {
+    const settings = project.settings;
+    let show = settings.showTouchControls !== false ;
+	if(!isLowPower)
+	{
+	show=false;
+ 	}
+    const controls = document.getElementById('touchControls');
+   // if (controls) controls.style.display = show ? '' : 'none';
+ controls.classList.toggle('active',  show);
+
+    const dpadColor = settings.touchDpadColor || '#ffffff';
+    const tagColor = settings.touchTagColor || '#ffdd44';
+    const attackColor = settings.touchAttackColor || '#ff6666';
+    const shape = settings.touchShape || 'round';
+    const radius = shape === 'round' ? '50%' : '4px';
+
+    // D‑pad knoppen (behalve de tagknop)
+    document.querySelectorAll('#touchDpad .dpad-btn:not(.tag-dpad-btn)').forEach(btn => {
+        const r = parseInt(dpadColor.slice(1,3), 16);
+        const g = parseInt(dpadColor.slice(3,5), 16);
+        const b = parseInt(dpadColor.slice(5,7), 16);
+        btn.style.borderColor = `rgba(${r},${g},${b},0.3)`;
+        btn.style.color = dpadColor;
+        btn.style.background = `rgba(${r},${g},${b},0.1)`;
+        btn.style.borderRadius = radius;
+    });
+
+    // Tagknop
+    const tagBtn = document.getElementById('tagDpadBtn');
+    if (tagBtn) {
+        const r = parseInt(tagColor.slice(1,3), 16);
+        const g = parseInt(tagColor.slice(3,5), 16);
+        const b = parseInt(tagColor.slice(5,7), 16);
+        tagBtn.style.borderColor = tagColor;
+        tagBtn.style.color = tagColor;
+        tagBtn.style.background = `rgba(${r},${g},${b},0.25)`;
+        tagBtn.style.borderRadius = radius;
+    }
+
+    // Aanvalsknoppen
+    document.querySelectorAll('#touchAttacks .atk-btn').forEach(btn => {
+        const r = parseInt(attackColor.slice(1,3), 16);
+        const g = parseInt(attackColor.slice(3,5), 16);
+        const b = parseInt(attackColor.slice(5,7), 16);
+        btn.style.borderColor = `rgba(${r},${g},${b},0.25)`;
+        btn.style.color = attackColor;
+        btn.style.background = `rgba(${r},${g},${b},0.15)`;
+        btn.style.borderRadius = radius;
+    });
+}
 function setupTouchControls() {
     updateTouchDpad();
 
@@ -7444,7 +7500,7 @@ function rebuildTouchAttacks() {
         btn.className = 'atk-btn';
         const shortName = move.name.length > 8 ? move.name.slice(0, 7) + '…' : move.name;
 
-        btn.innerHTML = `<span>${shortName}</span>`;
+        btn.innerHTML =`<span>`+(idx+1).toString()+`</span>`;// `<span>${shortName}</span>`;
 
 const triggerAttack = () => {
             const localTarget = getLocalPlayer();
@@ -7510,7 +7566,9 @@ const triggerAttack = () => {
 
 
     updateTouchDpad();
-	setupTagDpadButton() 
+	setupTagDpadButton();
+	applyTouchSettings();
+
 }
 function updateCamera() {
      if (!p1 || !p2 || isNaN(p1.cx) || isNaN(p2.cx) || isNaN(p1.cy) || isNaN(p2.cy) || !isFinite(p1.cx) || !isFinite(p2.cx)) {
@@ -9980,6 +10038,10 @@ tagHealthBorderRadius : 12,
 	isWaitBeforeAfterFightStart:false,
 		 startX1 : 470,    
  startX2 :740,
+  touchDpadColor:'#ffffff',
+  touchTagColor :'#ffdd44',
+ touchAttackColor :'#ff6666',
+ touchShape :'round',  
   adventureCurrentStageId:'' ,
  adventurePlayerChar : '',     
      victoryPoints: 0,         
@@ -10060,6 +10122,12 @@ project.settings.tagHealthBorderRadius = project.settings.tagHealthBorderRadius 
         if (!project.settings.matchWinText) project.settings.matchWinText = "{winner} wins the match!";
         if (project.settings.startX1 === undefined) project.settings.startX1 = 470;
         if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
+		if (project.settings.showTouchControls === undefined) project.settings.showTouchControls = true;
+if (project.settings.touchDpadColor === undefined) project.settings.touchDpadColor = '#ffffff';
+if (project.settings.touchTagColor === undefined) project.settings.touchTagColor = '#ffdd44';
+if (project.settings.touchAttackColor === undefined) project.settings.touchAttackColor = '#ff6666';
+if (project.settings.touchShape === undefined) project.settings.touchShape = 'round';
+
 		        if (project.settings.adventureCurrentStageId  === undefined) project.settings.adventureCurrentStageId  = '';
         if (project.settings.adventurePlayerChar  === undefined) project.settings.adventurePlayerChar  = '';
  if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object') {
@@ -13388,12 +13456,15 @@ project.settings.guardShape = document.getElementById('settingsGuardShape').valu
         <div class="form-group"  >
             <label>🔊 Audio</label>
             <input type="checkbox" id="settingsAudio" ${settings.audioEnabled ? 'checked' : ''} />
-             <label>📋Training mode - Show moves</label> 
+             <label>📋 Training mode - Show moves</label> 
      <input type="checkbox" id="settingsShowMoveNames" ${settings.showMoveNamesInTraining ? 'checked' : ''} />
+	 
+   <span id="isMobileButtonsOptionVisible">  <label>📱 Show touch controls</label>
+    <input type="checkbox" id="settingsTouchShow" ${settings.showTouchControls !== false ? 'checked' : ''} />
+	</span>
+ 
 </div>
-</div>
-
-
+</div> 
 
         <div class="form-row">
             <div class="form-group">
@@ -13403,7 +13474,7 @@ project.settings.guardShape = document.getElementById('settingsGuardShape').valu
             <div class="form-group">
                 <h3>⏱️ Timer (seconds)</h3>
                 <input type="number" id="settingsTimer" value="${settings.timerSeconds}" min="10" max="999" step="5" />
-            </div>
+            </div> 
         </div>
         <div class="form-group">
             <h3>🧠 AI difficulty</h3>
@@ -13413,8 +13484,7 @@ project.settings.guardShape = document.getElementById('settingsGuardShape').valu
                 <option value="normal" ${settings.aiDifficulty === 'normal' ? 'selected' : ''}>Normal</option>
                 <option value="hard" ${settings.aiDifficulty === 'hard' ? 'selected' : ''}>Hard</option>
             </select>
-        </div>
-     
+        </div> 
  				<h3>🎮 Controls</h3>
 <div class="form-row">
     <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -13547,7 +13617,6 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsTagHealthRadius" value="${settings.tagHealthBorderRadius ?? 12}" min="0" max="60" step="1" />
  </div>
  </div>
-
 <h3>🛡️ Guard Block</h3>
 <div class="form-row">
     <div class="form-group"><label>Color</label><input type="color" id="settingsGuardColor" value="${settings.guardColor || '#66ccff'}" /></div>
@@ -13558,6 +13627,8 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         </select>
     </div>
 </div>
+<hr>
+
 <h3>🎨 Colors</h3>
 <div class="form-row-3">
     <div class="form-group"><label>Health P1</label><input type="color" id="settingsHealthP1" value="${settings.healthColorP1 || '#b1c40f'}" /></div>
@@ -13573,8 +13644,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <label>Tag health bad</label>
         <input type="color" id="settingsTagHealthBadColor" value="${settings.tagHealthBadColor ?? '#ff0000'}" />
     </div>
-</div>
-
+</div> 
 <div class="form-row-3">
     <div class="form-group"><label>Energy bar</label><input type="color" id="settingsEnergyColor" value="${settings.energyColor || '#3498db'}" /></div>
     <div class="form-group"><label>Energy full</label><input type="color" id="settingsEnergyFull" value="${settings.energyFullColor || '#f1c40f'}" /></div>
@@ -13585,6 +13655,21 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 	 <div class="form-group"><label>Fatality color</label><input type="color" id="settingsFatalityColor" value="${settings.fatalityColor || '#ff0000'}" /></div>
 
  </div>
+		<h3>📱 Mobile Controls</h3>
+<div class="form-row">
+    <div class="form-group"><label>Mobile D‑pad color</label><input type="color" id="settingsTouchDpadColor" value="${settings.touchDpadColor || '#ffffff'}" /></div>
+    <div class="form-group"><label>Mobile Tag button color</label><input type="color" id="settingsTouchTagColor" value="${settings.touchTagColor || '#ffdd44'}" /></div>
+</div>
+<div class="form-row">
+    <div class="form-group"><label>Mobile Attack buttons color</label><input type="color" id="settingsTouchAttackColor" value="${settings.touchAttackColor || '#ff6666'}" /></div>
+    <div class="form-group"><label>Mobile Button shape</label>
+        <select id="settingsTouchShape">
+            <option value="round" ${(settings.touchShape || 'round') === 'round' ? 'selected' : ''}>Round</option>
+            <option value="square" ${(settings.touchShape || 'round') === 'square' ? 'selected' : ''}>Square</option>
+        </select>
+    </div>
+</div>
+<hr>
 
  <h3>🗺️ Adventure Progress</h3>
 <div class="form-row">
@@ -13834,7 +13919,10 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
     modalOverlay.classList.add('open');
 	
 
- 
+ if(!isLowPower)
+	{
+ 	document.getElementById("isMobileButtonsOptionVisible").style.display= "none";
+	}
 document.getElementById('resetAllDataBtn')?.addEventListener('click', function() {
     if (confirm('⚠️ Sure you want to remove your data? It is permanent!')) {
 	
@@ -14085,6 +14173,11 @@ const settingsisStatusTextAbovePlayer = document.getElementById('settingsisStatu
 const isWaitBeforeAfterFightStart= document.getElementById('settingsisWaitBeforeAfterFightStart').checked
 const useP1Gamepad = document.getElementById('settingsP1Gamepad').checked;
 const useP2Gamepad = document.getElementById('settingsP2Gamepad').checked;
+const showTouch = document.getElementById('settingsTouchShow').checked;
+const touchDpadColor = document.getElementById('settingsTouchDpadColor').value;
+const touchTagColor = document.getElementById('settingsTouchTagColor').value;
+const touchAttackColor = document.getElementById('settingsTouchAttackColor').value;
+const touchShape = document.getElementById('settingsTouchShape').value;
 
 const borderWithoutRingOUTLeft = parseFloat(document.getElementById('settingsBorderLeft').value) ?? 20;
 const borderWithoutRingOUTRight = parseFloat(document.getElementById('settingsBorderRight').value) ?? 20;
@@ -14183,6 +14276,11 @@ project.settings.tagMatch = tagMatch;
 project.settings.tagHealthColor = tagHealthColor;
 project.settings.tagHealthBadColor = tagHealthBadColor;
 project.settings.tagHealthBorderRadius = parseInt(document.getElementById('settingsTagHealthRadius').value);
+project.settings.showTouchControls = showTouch;
+project.settings.touchDpadColor = touchDpadColor;
+project.settings.touchTagColor = touchTagColor;
+project.settings.touchAttackColor = touchAttackColor;
+project.settings.touchShape = touchShape;
 
 project.settings.fatalityText = fatalityText;
 project.settings.fatalityColor = fatalityColor;
