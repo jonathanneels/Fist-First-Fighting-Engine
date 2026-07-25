@@ -1246,7 +1246,16 @@
     "tagMatch": false,
     "tagHealthColor": "#ff69b4",
     "tagHealthBadColor": "#ff0000",
-    "tagHealthBorderRadius": 12
+    "tagHealthBorderRadius": 12,
+    "tickRate": "60",
+    "showTouchControls": true,
+    "touchDpadColor": "#ffffff",
+    "touchTagColor": "#ffdd44",
+    "touchAttackColor": "#ff6666",
+    "touchShape": "square",
+    "instantRoundReset": false,
+    "guardColor": "#66ccff",
+    "guardShape": "rounded"
   },
   "currentBg": "dojo",
   "selectedP1Char": "char_1783184918617",
