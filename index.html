@@ -1245,7 +1245,7 @@
             <option value="pvp" >PvP</option>
             <option value="aivai">AIvsAI</option>
             <option value="training" selected>Training</option>
-			            <option hidden value="network">Network (not ready yet!)</option>
+			            <option   value="network">Network (experimental)</option>
 
         </select>
         <span style="display:flex;gap:2px;align-items:center;">
@@ -1330,9 +1330,9 @@
         (() => {
             'use strict';
 
-const isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+let isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
                    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-let isTouchOccured =false; 
+
 const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
             const W = 1280,
@@ -1417,10 +1417,235 @@ var lTimeout;
 	}, time);
 
 }
-showLoadingScreen();
-hideLoadingScreen(100);
+
 // ─── Netwerk synchronisatie ──────────────────────────────
 
+	  
+ // ─── NETWERK LOGICA ──────────────────────────────────
+const networkOverlay = document.getElementById('networkOverlay');
+const hostBtn = document.getElementById('hostBtn');
+const joinBtn = document.getElementById('joinBtn');
+const joinInput = document.getElementById('joinInput');
+const uidInput = document.getElementById('uidInput');
+const ipInput = document.getElementById('ipInput');
+const connectBtn = document.getElementById('connectBtn');
+const networkStatus = document.getElementById('networkStatus');
+const uidDisplay = document.getElementById('uidDisplay');
+
+function disconnectNetwork() {
+const ns = document.getElementById('networkStatus');
+
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        console.log("Netwerkverbinding handmatig gesloten voor andere modus.");
+        ws.close(); // Sluit de verbinding fysiek
+    }
+
+     networkMode = false;
+    networkRole = null;
+    receivedState = null;
+    receivedInput = null;
+
+     if (ns) {
+        ns.textContent = '🔴 Offline';
+    }
+}
+function generateUID() {
+    return String(Math.floor(1000 + Math.random() * 9000));
+}
+function getFighterByName(name) {
+if(!name){return null}
+
+    for (const [id, char] of Object.entries(project.characters)) {
+	if(char && char.name){
+        if (char.name.toLowerCase() === name.toLowerCase()) {
+            return { id, char };
+        }
+    }}
+    return null;  
+}
+hostBtn.addEventListener('click', () => {
+    const uid = generateUID();
+    networkUID = uid;
+    networkServerIP = window.location.hostname || 'localhost';
+    uidDisplay.textContent = `Your UID: ${uid}`;
+    networkStatus.textContent = '⏳ Waiting for opponent...';
+    connectWebSocket(uid, 'host', networkServerIP);
+    joinInput.style.display = 'none';
+});
+
+joinBtn.addEventListener('click', () => {
+    joinInput.style.display = 'flex';
+    uidInput.focus();
+});
+
+connectBtn.addEventListener('click', () => {
+    const uid = uidInput.value.trim();
+    const ip = ipInput.value.trim() || 'localhost';
+    if (!uid) {
+        networkStatus.textContent = '❌ Set UID.';
+        return;
+    }
+    networkUID = uid;
+    networkServerIP = ip;
+    networkStatus.textContent = '⏳ Connecting...';
+    connectWebSocket(uid, 'joiner', ip);
+    joinInput.style.display = 'none';
+});
+
+
+
+function connectWebSocket(uid, role, ip) {
+    const wsUrl = `ws://${ip}:8765`;
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'join', uid, role }));
+    };
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'joined') {
+        networkRole = data.role;
+        networkStatus.textContent = `✅ Connected as ${data.role}`;
+        if (data.role === 'host') {
+            networkStatus.textContent = '🟢 Waiting for opponent...';
+        }
+	
+    } else if (data.type === 'start') {
+        networkStatus.textContent = '⚔️ Fight start!';
+        networkMode = true;
+        networkOverlay.style.display = 'none';
+        fullReset();
+		
+         if (networkRole === 'host') {
+			  timerFrameCounter = 0;
+                gameTimer = project.settings.timerSeconds;
+                        timerDisplay.textContent = Math.ceil(gameTimer);
+        }
+
+        if (networkRole === 'host') {
+            const state = serializeGameStateCompact();
+            ws.send(JSON.stringify({ type: 'state', state }));
+        }
+		
+			
+    } 
+else if (data.type === 'move') {
+    if (networkRole === 'joiner') {
+        const fighter = data.player === 'p1' ? p1 : p2;
+        if (fighter && data.moveId >= 0 && data.moveId < fighter.moves.length) {
+            const move = fighter.moves[data.moveId];
+            fighter.playMoveCosmetics(move, data.moveId);
+        }
+    }
+}
+
+	else if (data.type === 'state') {
+         if (networkRole === 'joiner') {
+            receivedState = data.state;
+ 		
+		if(project.currentStageId != receivedState.st){
+ 		setStage(receivedState.st); }
+ const feed= playerJoinerIdSend();
+        ws.send(JSON.stringify({ type: 'p2Name', feed}));
+		
+        }
+    }
+else if (data.type === 'p2Name' && networkRole === 'host') {
+ 
+if (!p2 || p2.name !== data.feed.name && !window["takeAP2SwitchBreakNetwork"] ) {
+
+const result = getFighterByName(data.feed.name);
+if (result) {
+project.selectedP2Char=result.id
+fullReset()
+			updatePlayerIcons() 
+
+		   const feed= playerHOSTIdSend();
+        ws.send(JSON.stringify({ type: 'p1Name', feed}));
+
+		  window["takeAP2SwitchBreakNetwork"] =true;
+		  setTimeout(() => {
+  delete  window["takeAP2SwitchBreakNetwork"] 
+}, 5000);
+
+
+ } else {
+    console.log('Fighter not found');
+}
+
+}
+}else if (data.type === 'p1Name' && networkRole === 'joiner') {
+ 
+if (!p1 || p1.name !== data.feed.name && !window["takeAP1SwitchBreakNetwork"] ) {
+
+const result = getFighterByName(data.feed.name);
+if (result) {
+project.selectedP1Char=result.id
+fullReset()
+			updatePlayerIcons() 
+
+		  window["takeAP1SwitchBreakNetwork"] =true;
+		  setTimeout(() => {
+  delete  window["takeAP1SwitchBreakNetwork"] 
+}, 5000);
+
+
+ } else {
+    console.log('Fighter not found');
+}
+
+}
+}
+	else if (data.type === 'input') {
+
+        if (networkRole === 'host') {
+             receivedInput = data.input; // Dit blijft staan voor je normale D-pad/bewegingen
+
+console.log(data.input)
+             if (data.input && data.input.action === 'attack') {
+                if (p2 && p2.health > 0) {
+                    // De host voert de aanval uit op P2 (de joiner) met de meegestuurde geschiedenis
+                    p2.startAttackByCommand(data.input.buttonCode, data.input.history);
+                }
+            }
+			if (data.input.action === 'move') {
+                    if (p2) {
+                        // De host voert lokaal de beweging uit op P2 namens de joiner!
+                        setDirectionInput(p2, data.input.dir, data.input.pressed);
+                 }
+			}
+        }
+    } else if (data.type === 'error') {
+        networkStatus.textContent = '❌ ' + data.message;
+    }
+};
+    ws.onerror = () => {
+        networkStatus.textContent = '❌ Verbindingsfout';
+    };
+
+   ws.onclose = () => {
+    if (networkMode) {
+        networkMode = false;
+         if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'disconnect' }));
+        }
+        alert('Connection lost!');
+        networkStatus.textContent = '🔴 Connection closed';
+    }
+    networkStatus.textContent = '🔴 Connection closed';
+};
+
+}
+
+function sendMyInput(input) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'input', input }));
+    }
+}
+  
+            networkOverlay.style.display = 'none';
+			
 function serializeFighterCompact(fighter) {
     if (!fighter) return null;
     return {
@@ -1440,6 +1665,37 @@ function serializeFighterCompact(fighter) {
     };
 }
 
+function serializeGameStateCompact() {
+    return {
+        p1: serializeFighterCompact(p1),
+        p2: serializeFighterCompact(p2),
+        p1id: p1.charId,
+        p2id: p2.charId,
+        proj: projectiles.map(p => ({
+            x: p.x, y: p.y, dir: p.dir, dmg: p.damage, spd: p.speed,
+            owner: p.owner === p1 ? 1 : 2,
+            row: p.row, sf: p.startFrame, co: p.currentOffset,
+            life: p.life, tx: p.teleportX, ty: p.teleportY,
+            range: p.range, chip: p.chipDamage, act: p.active, mi: p.moveIndex  
+        })),
+        mines: mines.map(m => ({
+            x: m.x, y: m.y, dmg: m.damage,
+            owner: m.owner === p1 ? 1 : 2,
+            row: m.row, sf: m.startFrame, co: m.currentOffset,
+            life: m.life, tx: m.teleportX, ty: m.teleportY,
+            range: m.range, chip: m.chipDamage, act: m.active,
+            expl: m.exploded, ext: m.explosionTimer,    mi: m.moveIndex
+        })),
+        t: gameTimer,
+        st: project.currentStageId,
+        ra: roundActive,
+        w: winner,
+        p1w: p1Wins,
+        p2w: p2Wins,
+        mo: matchOver,
+ 
+    };
+} 
 function deserializeFighterCompact(fighter, data) {
     if (!fighter || !data) return;
     
@@ -1458,6 +1714,7 @@ function deserializeFighterCompact(fighter, data) {
         fighter.attackIdx = data.at !== undefined ? data.at : -1;
         fighter.animFrame = 0;
         fighter.animTimer = 0;
+	 
     }
 
 
@@ -1478,42 +1735,17 @@ function deserializeFighterCompact(fighter, data) {
     }
 }
 
-function serializeGameStateCompact() {
-    return {
-        p1: serializeFighterCompact(p1),
-        p2: serializeFighterCompact(p2),
-        p1id: p1.charId,
-        p2id: p2.charId,
-        proj: projectiles.map(p => ({
-            x: p.x, y: p.y, dir: p.dir, dmg: p.damage, spd: p.speed,
-            owner: p.owner === p1 ? 1 : 2,
-            row: p.row, sf: p.startFrame, co: p.currentOffset,
-            life: p.life, tx: p.teleportX, ty: p.teleportY,
-            range: p.range, chip: p.chipDamage, act: p.active
-        })),
-        mines: mines.map(m => ({
-            x: m.x, y: m.y, dmg: m.damage,
-            owner: m.owner === p1 ? 1 : 2,
-            row: m.row, sf: m.startFrame, co: m.currentOffset,
-            life: m.life, tx: m.teleportX, ty: m.teleportY,
-            range: m.range, chip: m.chipDamage, act: m.active,
-            expl: m.exploded, ext: m.explosionTimer
-        })),
-        t: gameTimer,
-        st: project.currentStageId,
-        ra: roundActive,
-        w: winner,
-        p1w: p1Wins,
-        p2w: p2Wins,
-        mo: matchOver,
- 
-    };
-}
 function deserializeGameStateCompact(data) {
     if (networkMode && networkRole === 'host') return;
 
     const prevRoundActive = roundActive;
     const prevMatchOver = matchOver;
+
+    const oldP1 = p1 ? { health: p1.health, state: p1.state, attackActive: p1.attackActive } : null;
+    const oldP2 = p2 ? { health: p2.health, state: p2.state, attackActive: p2.attackActive } : null;
+     const oldRoundActive = roundActive;
+    const oldWinner = winner;
+    const oldMatchOver = matchOver;
 
     if (data.p1 && data.p1id) {
         if (!p1 || p1.charId !== data.p1id) {
@@ -1531,35 +1763,64 @@ function deserializeGameStateCompact(data) {
     }
 
 
-    // Projectielen soepel overnemen
-    projectiles = data.proj.map(pd => {
-        const owner = pd.owner === 1 ? p1 : p2;
-        const sprite = owner ? owner.spriteImg : null;
-        const proj = new Projectile(
-            pd.x, pd.y, pd.dir, pd.dmg, pd.spd, owner,
-            sprite, pd.row, pd.sf, pd.sf+3, 0, null, pd.life,
-            pd.tx, pd.ty, pd.range, pd.chip !== false, 5
-        );
-        proj.currentOffset = pd.co || 0;
-        proj.active = pd.act !== false;
-        return proj;
-    });
+ projectiles = data.proj.map(pd => {
+    const owner = pd.owner === 1 ? p1 : p2;
+    const sprite = owner ? owner.spriteImg : null;
+    // Haal de move op
+    const move = (owner && pd.mi !== undefined && pd.mi >= 0) ? owner.moves[pd.mi] : null;
+    let extraImg = null;
+    if (move && move.projectileImage) {
+        // Zorg dat de afbeelding in extraImages staat (of laad hem)
+        if (extraImages[move.projectileImage]) {
+            extraImg = extraImages[move.projectileImage];
+        } else {
+            const img = new Image();
+            img.src = move.projectileImage;
+            extraImages[move.projectileImage] = img;
+            extraImg = img;
+        }
+    }
+    const proj = new Projectile(
+        pd.x, pd.y, pd.dir, pd.dmg, pd.spd, owner,
+        sprite, pd.row, pd.sf, pd.sf+3, 0, extraImg, pd.life,
+        pd.tx, pd.ty, pd.range, pd.chip !== false, 5,
+        pd.mi  // geef de moveIndex mee
+    );
+    proj.currentOffset = pd.co || 0;
+    proj.active = pd.act !== false;
+ 
+    return proj;
+});
 
-    // Mijnen overnemen
-    mines = data.mines.map(md => {
-        const owner = md.owner === 1 ? p1 : p2;
-        const sprite = owner ? owner.spriteImg : null;
-        const mine = new Mine(
-            md.x, md.y, md.dmg, owner,
-            sprite, md.row, md.sf, md.sf+3, md.range, 0,
-            false, null, md.life, md.tx, md.ty, md.chip !== false, 5
-        );
-        mine.currentOffset = md.co || 0;
-        mine.active = md.act !== false;
-        mine.exploded = md.expl || false;
-        mine.explosionTimer = md.ext || 0;
-        return mine;
-    });
+// mines
+mines = data.mines.map(md => {
+    const owner = md.owner === 1 ? p1 : p2;
+    const sprite = owner ? owner.spriteImg : null;
+    const move = (owner && md.mi !== undefined && md.mi >= 0) ? owner.moves[md.mi] : null;
+    let extraImg = null;
+    if (move && move.mineImage) {
+        if (extraImages[move.mineImage]) {
+            extraImg = extraImages[move.mineImage];
+        } else {
+            const img = new Image();
+            img.src = move.mineImage;
+            extraImages[move.mineImage] = img;
+            extraImg = img;
+        }
+    }
+    const mine = new Mine(
+        md.x, md.y, md.dmg, owner,
+        sprite, md.row, md.sf, md.sf+3, md.range, 0,
+        false, extraImg, md.life, md.tx, md.ty,
+        md.chip !== false, 5, md.mi
+    );
+    mine.currentOffset = md.co || 0;
+    mine.active = md.act !== false;
+    mine.exploded = md.expl || false;
+    mine.explosionTimer = md.ext || 0;
+ 
+    return mine;
+});
 
     if (gameTimer !== data.t) {
         gameTimer = data.t;
@@ -1583,6 +1844,54 @@ function deserializeGameStateCompact(data) {
         document.getElementById('textP1').style.opacity = '0';
         document.getElementById('textP2').style.opacity = '0';
     }
+
+
+
+     // ─── 3. Geluiden afspelen (alleen voor joiner) ──────────────
+    if (networkRole === 'joiner') {
+        function playIfChanged(fighter, oldHealth, oldState, oldAttackActive) {
+            if (!fighter) return;
+            if (!fighter._lastSoundTime) fighter._lastSoundTime = {};
+            const now = performance.now();
+            const canPlay = (type) => {
+                const last = fighter._lastSoundTime[type] || 0;
+                if (now - last < 80) return false;
+                fighter._lastSoundTime[type] = now;
+                return true;
+            };
+
+            // Health
+            if (fighter.health < oldHealth) {
+                if (fighter.state !== 'block' && fighter.state !== 'block_crouch') {
+                    if (canPlay('damage')) fighter.playSound('damage');
+                }
+            } else if (fighter.health > oldHealth) {
+                if (canPlay('recover')) fighter.playSound('recover');
+            }
+
+            // State
+            if (fighter.state !== oldState) {
+                if (fighter.state === 'block' || fighter.state === 'block_crouch') {
+                   // if (canPlay('block')) fighter.playSound('block');=> only when block successful
+                } else if (fighter.state === 'ko') {
+                    if (canPlay('ko')) fighter.playSound('ko');
+                } else if (fighter.state === 'hit') {
+                    if (canPlay('damage')) fighter.playSound('damage');
+                } else if (fighter.state === 'swept') {
+                    if (canPlay('sweep')) fighter.playSound('sweep');
+                }
+            }
+
+				/*if (gameTimer == 99 &&   !oldRoundActive) {
+					playSystemSound('startFight');
+				}*/
+        }
+
+        // Pas toe op P1 en P2
+        if (p1 && oldP1) playIfChanged(p1, oldP1.health, oldP1.state, oldP1.attackActive);
+        if (p2 && oldP2) playIfChanged(p2, oldP2.health, oldP2.state, oldP2.attackActive);
+		}
+ 
 
     if (prevRoundActive && !roundActive) {
         playSystemSound('roundEnd');
@@ -2049,6 +2358,7 @@ selectedP2TagChar: 'fighter',
 					    instantRoundReset: false, 
                     ringOutLeft: 60,
                     ringOutRight: 1220,
+					    tickRate: 60,
 					flawlessVictoryText: 'PERFECT!',
 					fatalityEnabled: false,
 fatalityDuration: 5, 
@@ -2250,7 +2560,8 @@ let networkUID  = null
                     gamepadStartPressed = false;
                 }
             }
-			  
+			
+	 	  
 			  function freeUnusedSprites() {
     const activeIds = new Set();
     if (p1) activeIds.add(p1.charId);
@@ -3211,7 +3522,10 @@ class Projectile {
                 row = 0, startFrame = 0, endFrame = 3,
                 startDistance = 0, extraImage = null, life = 300,
                 teleportX = 0, teleportY = 0, range = 40, chipDamage = true,
-                animSpeed = 5) {
+                animSpeed = 5,moveIndex = -1) {
+				
+				        this.moveIndex = moveIndex;
+
         this.x = x;
         this.y = y;
         this.dir = dir;
@@ -3392,7 +3706,8 @@ class Mine {
                 range = 60, startDistance = 0,
                 friendlyFire = false, extraImage = null, life = 300,
                 teleportX = 0, teleportY = 0, chipDamage = true,
-                animSpeed = 5) {
+                animSpeed = 5, moveIndex = -1) {				
+				        this.moveIndex = moveIndex;
         this.x = x;
         this.y = y;
         this.damage = damage || 15;
@@ -4152,10 +4467,12 @@ if( move.mineImage || sprite  )
         move.teleportY || 0,
         move.range || 40,
         move.chipDamage !== false,
-        5
+        5,
+    idx 
     );
     projectiles.push(proj);
     this.playSound('projectile');
+	  this.sendMoveEvent(idx); 
     return true;
 }
 
@@ -4227,10 +4544,12 @@ const mineY = this.y + this.h - 10 + (move.spawnYOffset ?? 0);
         move.teleportX || 0,
         move.teleportY || 0,
         move.chipDamage !== false,
-        5
+        5,
+    idx
     );
     mines.push(mine);
     this.playSound('mine');
+	  this.sendMoveEvent(idx); 
     return true;
 }
 
@@ -4258,6 +4577,7 @@ const mineY = this.y + this.h - 10 + (move.spawnYOffset ?? 0);
     this.cooldown = Math.floor((move.speed || 20) * 0.3);
     this.animFrame = move.startFrame || 0;
     this.playSound('attack');
+	  this.sendMoveEvent(idx); 
     return true;
 }
               takeDamage(dmg, fromDir, blocked = false) {
@@ -6191,7 +6511,57 @@ if (move && this.state === 'attack') {
     }
 
     
-}  playSound(type) {
+}  
+
+ sendMoveEvent(idx) {
+    if (networkMode && networkRole === 'host' && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'move',
+            player: this.playerIdx === 0 ? 'p1' : 'p2',
+            moveId: idx
+        }));
+    }
+}
+
+playMoveCosmetics(move, moveIdx) {
+    if (!move) return;
+
+    // ---- Start attack animation ----
+    this.state = 'attack';
+    this.attackIdx = moveIdx;
+    this.attackTimer = move.speed || 20;
+    this.attackActive = true;
+    this.attackHit = false;
+    this.cooldown = Math.floor((move.speed || 20) * 0.3);
+    this.animFrame = move.startFrame || 0;
+
+    // ---- Handle optional attack image (for any move type) ----
+    if (move.attackImage) {
+        let img = extraImages[move.attackImage];
+        if (!img) {
+            img = new Image();
+            img.src = move.attackImage;
+            extraImages[move.attackImage] = img;
+        }
+        this.projectileMijnImg = img;
+        this.projectileMijnTimer = 30; // show for 30 frames
+    }
+
+    // ---- Play the correct sound ----
+    if (move.type === 'projectile') {
+        this.playSound('projectile');
+    } else if (move.type === 'mine') {
+        this.playSound('mine');
+    } else if (move.type === 'sweep') {
+        this.playSound('sweep');
+    } else if (move.type === 'grab') {
+        this.playSound('hit'); // or a dedicated grab sound if available
+    } else {
+        this.playSound('attack');
+    }
+}
+
+playSound(type) {
                     if (!project.settings.audioEnabled) return;
 
                     let customBuffer = null;
@@ -7242,9 +7612,7 @@ if (!local) return;
         for (let t of e.changedTouches) {
             if (t.identifier === activeTouchId) {
                 activeTouchId = null;
-                setDirection(null);
-						  isTouchOccured =true;// now tag must be handled through button 
-
+                setDirection(null); 
                 break;
             }
         }
@@ -7252,9 +7620,7 @@ if (!local) return;
 
     touchArea.addEventListener('touchcancel', (e) => {
         activeTouchId = null;
-        setDirection(null);
-				  isTouchOccured =true;// now tag must be handled through button 
-
+        setDirection(null); 
     }, { passive: false });
 }
 
@@ -9003,7 +9369,7 @@ p2.comboCount=0;
     }
 } else {
                     if (p2.health < 9999) p2.health = 9999;
-                    if (p1.health <= 0) { p1.health = 100;
+                    if (p1.health <= 0) { p1.health = p1.maxHealth;
                         p1.state = 'idle'; }
                 }
 				
@@ -9246,18 +9612,21 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'state', state }));
         }
     } else if (networkRole === 'joiner') {
-        const input = collectJoinerInput();
-        ws.send(JSON.stringify({ type: 'input', input }));
-        if (receivedState) {
-            deserializeGameStateCompact(receivedState);
-            receivedState = null;
-        }
+    const input = collectJoinerInput();
+    ws.send(JSON.stringify({ type: 'input', input }));
+    // Local simulation for responsiveness
+    p1.update(p2);
+    p2.update(p1);
+    if (receivedState) {
+        deserializeGameStateCompact(receivedState);
+        receivedState = null;
     }
+}
 } else {
     p1.update(p2);
     p2.update(p1);
 			if (project.settings.tagMatch    ) { 
-    if (!isTouchOccured && p1 && p1._history && p1._history.length >= 2) {// mobile gets different handler
+    if (!project.settings.showTouchControls && p1 && p1._history && p1._history.length >= 2) {// mobile gets different handler
         const last = p1._history[p1._history.length - 1];
         const prev = p1._history[p1._history.length - 2];
         // Check of de laatste twee entries "back" en "4" zijn (in die volgorde)
@@ -9554,27 +9923,61 @@ if (p2) {
 	  
 
 }
-            function gameLoop() {
-			 
-                pollGamepad();
-				
-    if (currentMode === 'training') {							
-						frameCount++;
-const now = performance.now();
-if (now - lastFpsTime >= 1000) {
-    fps = frameCount;
-    frameCount = 0;
-    lastFpsTime = now;
-}
-}
-                if (!gamePaused) {
-                    update();
-		
-                }
-                render();
-                requestAnimationFrame(gameLoop);
-            }
+let TICK_RATE = project.settings.tickRate;                // Aantal updates per seconde => 120FPS mogelijk, mobiel beter 30 FPS, 60 default
+let TICK_INTERVAL = 1 / TICK_RATE; // 0.0166667 seconden
+const MAX_DELTA = 0.1;               // Veiligheidsklep (bijv. 100ms)
 
+// ---------- Variabelen voor de loop ----------
+let previousTime = 0;
+let accumulator = 0;
+
+// ---------- Nieuwe gameloop ----------
+function gameLoop(currentTime) {
+    // --- 1. Eerste frame overslaan (initialisatie) ---
+    if (previousTime === 0) {
+        previousTime = currentTime;
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    // --- 2. Deltatime berekenen en clampen ---
+    let delta = (currentTime - previousTime) / 1000; // naar seconden
+    previousTime = currentTime;
+
+    if (delta > MAX_DELTA) {
+        delta = MAX_DELTA; // voorkom enorme sprongen
+    }
+
+     accumulator += delta;
+
+     while (accumulator >= TICK_INTERVAL) {
+         if (!gamePaused) {
+            update(TICK_INTERVAL); // vaste tijdstap
+			        frameCount++; 
+        }
+        accumulator -= TICK_INTERVAL;
+    }
+
+    // --- 5. Gamepad polling (mag elke frame) ---
+    pollGamepad();
+
+    // --- 6. FPS tellen (blijft ongewijzigd) ---
+    if (currentMode === 'training') {
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+            fps = frameCount;
+            frameCount = 0;
+            lastFpsTime = now;
+        }
+    }
+
+     render();
+
+     requestAnimationFrame(gameLoop);
+}
+
+
+ 
             function resetRound() {
                 roundCount++;
                 isOutrRendered = false;
@@ -10019,6 +10422,7 @@ project.projectId =data.projectId;
                     ringOutEnabled: true,
                      ringOutLeft: 60,
                     ringOutRight: 1220,
+					    tickRate: 60, 
 					    ringOutText: "RING OUT!",
 						flawlessVictoryText: 'PERFECT!',
 															fatalityEnabled: false,
@@ -10122,6 +10526,9 @@ project.settings.tagHealthBorderRadius = project.settings.tagHealthBorderRadius 
         if (!project.settings.matchWinText) project.settings.matchWinText = "{winner} wins the match!";
         if (project.settings.startX1 === undefined) project.settings.startX1 = 470;
         if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
+		   if (project.settings.tickRate === undefined) project.settings.tickRate = 60;
+
+		
 		if (project.settings.showTouchControls === undefined) project.settings.showTouchControls = true;
 if (project.settings.touchDpadColor === undefined) project.settings.touchDpadColor = '#ffffff';
 if (project.settings.touchTagColor === undefined) project.settings.touchTagColor = '#ffdd44';
@@ -10259,6 +10666,9 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         console.error(err);
     }
 	
+	  TICK_RATE = project.settings.tickRate;        
+  TICK_INTERVAL = 1 / TICK_RATE;  
+
 	hideLoadingScreen();
 
 }
@@ -12588,7 +12998,7 @@ function buildStageTargetOptions(selected) {
             </span>
         </div>
 		<hr>
-        <h3 style="margin-top:16px;">📦 Falling items</h3>
+        <h3 style="margin-top:16px;">📦 Falling items [offline modes only]</h3>
         <p style="font-size:12px;color:#7a7a9a;">Items randomly drop out of the sky. Set your configuration here.</p>
         <div id="editStageItemConfigs">
             ${(stage.itemConfigs || []).map((cfg, i) => `
@@ -13507,6 +13917,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <span id="devTools">
 <hr><br>
 <h1> Devtools </h1><br>
+ 
 <h3>◆ Win indicators</h3>
 <div class="form-row">
     <div class="form-group">
@@ -13699,6 +14110,14 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsVPPerWin" value="${settings.vpPerWin ?? 1}" min="0" />
     </div>
 </div>
+
+ <h3>🏎 Gamespeed</h3>
+
+<div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+            <label for="tickrateInput">HZ - gamespeed frequency</label>
+            <input type="number" id="tickrateInput" min="1" max="240" value="${project.settings.tickRate ?? 60}" step="1">
+         </div>
+
  <h3>❄️Auto‑freeze</h3>
 
 <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -13775,6 +14194,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <input type="number" id="settingsFatalityDuration" value="${settings.fatalityDuration ?? 5}" min="1" max="30" />
     </div>
 </div>
+<hr>
    <h3>📝 Text</h3>
         <div class="form-group"><label>Ring Out text</label><input type="text" id="settingsRingOutText" value="${settings.ringOutText || ''}" /></div>
         <div class="form-group"><label>Start Fight text</label><input type="text" id="settingsStartFightText" value="${settings.startFightText || ''}" /></div>
@@ -13868,6 +14288,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
                 ${settings.matchEndSound ? '🔊' : '🔇'}
             </span>
         </div>
+		<hr>
 	<h3>🧠 AI parameters per difficulty</h3>
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
     ${['beginner','easy','normal','hard'].map(diff => {
@@ -13890,7 +14311,7 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 		</div>`;
     }).join('')}
 </div>
-	
+	<hr>
 		
 <h3>🔌 Custom Plugins (.js or code)</h3>
 <div id="pluginsContainer" style="max-height:420px; overflow-y:auto; border:1px solid #2a2a4a; border-radius:8px; padding:8px; background:#0f0f1e;"></div>
@@ -14139,6 +14560,7 @@ const winStyle = document.getElementById('settingsWinStyle').value;
 const winIndicatorColor = document.getElementById('settingswinIndicatorColor').value;
 const winEmptyColor = document.getElementById('settingsWinEmptyColor').value;
 
+const tickRate = document.getElementById('tickrateInput').value;
 
 const countdownFont = document.getElementById('settingsCountdownFont').value;
 const winFont = document.getElementById('settingsWinFont').value;
@@ -14289,6 +14711,11 @@ project.settings.instantRoundReset = instantRoundReset;
 project.settings.winIndicatorStyle = winStyle;
 project.settings.winIndicatorColor = winIndicatorColor;
 project.settings.winIndicatorEmptyColor = winEmptyColor;
+project.settings.tickRate = tickRate;
+
+  TICK_RATE = project.settings.tickRate;        
+  TICK_INTERVAL = 1 / TICK_RATE;  
+
 
 project.settings.borderWithoutRingOUTLeft = borderWithoutRingOUTLeft;
 project.settings.borderWithoutRingOUTRight = borderWithoutRingOUTRight;
@@ -14408,11 +14835,23 @@ fullReset();//resetRound();
             }
 
             function resizeCanvas() {
+			isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
+                   (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+				   
                 const rect = canvas.parentElement.getBoundingClientRect();
                 canvas.width = W;
                 canvas.height = H;
                 canvas.style.width = rect.width + 'px';
                 canvas.style.height = rect.height + 'px';
+				if(isLowPower){
+				ctx.imageSmoothingEnabled = false;
+				ctx.imageSmoothingQuality = 'low';  
+				}
+				else{
+				ctx.imageSmoothingEnabled = true;
+				ctx.imageSmoothingQuality = 'high';  
+				}
+ 
             }
             window.addEventListener('resize', resizeCanvas);
 
@@ -14676,7 +15115,7 @@ else{            setMode('training');
 
 }
 
-            gameLoop();
+requestAnimationFrame(gameLoop);
 
             if (!CanvasRenderingContext2D.prototype.roundRect) {
                 CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -15220,224 +15659,10 @@ if (videoData) {
 };
 }
 
-	  
- // ─── NETWERK LOGICA ──────────────────────────────────
-const networkOverlay = document.getElementById('networkOverlay');
-const hostBtn = document.getElementById('hostBtn');
-const joinBtn = document.getElementById('joinBtn');
-const joinInput = document.getElementById('joinInput');
-const uidInput = document.getElementById('uidInput');
-const ipInput = document.getElementById('ipInput');
-const connectBtn = document.getElementById('connectBtn');
-const networkStatus = document.getElementById('networkStatus');
-const uidDisplay = document.getElementById('uidDisplay');
-
-function disconnectNetwork() {
-const ns = document.getElementById('networkStatus');
-
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-        console.log("Netwerkverbinding handmatig gesloten voor andere modus.");
-        ws.close(); // Sluit de verbinding fysiek
-    }
-
-     networkMode = false;
-    networkRole = null;
-    receivedState = null;
-    receivedInput = null;
-
-     if (ns) {
-        ns.textContent = '🔴 Offline';
-    }
-}
-function generateUID() {
-    return String(Math.floor(1000 + Math.random() * 9000));
-}
-function getFighterByName(name) {
-if(!name){return null}
-
-    for (const [id, char] of Object.entries(project.characters)) {
-	if(char && char.name){
-        if (char.name.toLowerCase() === name.toLowerCase()) {
-            return { id, char };
-        }
-    }}
-    return null;  
-}
-hostBtn.addEventListener('click', () => {
-    const uid = generateUID();
-    networkUID = uid;
-    networkServerIP = window.location.hostname || 'localhost';
-    uidDisplay.textContent = `Your UID: ${uid}`;
-    networkStatus.textContent = '⏳ Waiting for opponent...';
-    connectWebSocket(uid, 'host', networkServerIP);
-    joinInput.style.display = 'none';
-});
-
-joinBtn.addEventListener('click', () => {
-    joinInput.style.display = 'flex';
-    uidInput.focus();
-});
-
-connectBtn.addEventListener('click', () => {
-    const uid = uidInput.value.trim();
-    const ip = ipInput.value.trim() || 'localhost';
-    if (!uid) {
-        networkStatus.textContent = '❌ Set UID.';
-        return;
-    }
-    networkUID = uid;
-    networkServerIP = ip;
-    networkStatus.textContent = '⏳ Connecting...';
-    connectWebSocket(uid, 'joiner', ip);
-    joinInput.style.display = 'none';
-});
-
-
-
-function connectWebSocket(uid, role, ip) {
-    const wsUrl = `ws://${ip}:8765`;
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'join', uid, role }));
-    };
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'joined') {
-        networkRole = data.role;
-        networkStatus.textContent = `✅ Verbonden als ${data.role}`;
-        if (data.role === 'host') {
-            networkStatus.textContent = '🟢 Wachten op tegenstander...';
-        }
-	
-    } else if (data.type === 'start') {
-        networkStatus.textContent = '⚔️ Fight start!';
-        networkMode = true;
-        networkOverlay.style.display = 'none';
-        fullReset();
-		
+showLoadingScreen();
+hideLoadingScreen(100);
+resizeCanvas() 
  
-	
-		
-        // Host start timer, joiner krijgt timer via state
-        if (networkRole === 'host') {
-			  timerFrameCounter = 0;
-                gameTimer = timerSeconds;
-                        timerDisplay.textContent = Math.ceil(gameTimer);
-        }
-        // Host stuurt gelijk een eerste state
-        if (networkRole === 'host') {
-            const state = serializeGameStateCompact();
-            ws.send(JSON.stringify({ type: 'state', state }));
-        }
-		
-			
-    } else if (data.type === 'state') {
-        // Alleen joiner past state toe
-        if (networkRole === 'joiner') {
-            receivedState = data.state;
- 		
- 		setStage(receivedState.st); 
- const feed= playerJoinerIdSend();
-        ws.send(JSON.stringify({ type: 'p2Name', feed}));
-        }
-    }
-else if (data.type === 'p2Name' && networkRole === 'host') {
- 
-if (!p2 || p2.name !== data.feed.name && !window["takeAP2SwitchBreakNetwork"] ) {
-
-const result = getFighterByName(data.feed.name);
-if (result) {
-project.selectedP2Char=result.id
-fullReset()
-			updatePlayerIcons() 
-
-		   const feed= playerHOSTIdSend();
-        ws.send(JSON.stringify({ type: 'p1Name', feed}));
-
-		  window["takeAP2SwitchBreakNetwork"] =true;
-		  setTimeout(() => {
-  delete  window["takeAP2SwitchBreakNetwork"] 
-}, 5000);
-
-
- } else {
-    console.log('Fighter not found');
-}
-
-}
-}else if (data.type === 'p1Name' && networkRole === 'joiner') {
- 
-if (!p1 || p1.name !== data.feed.name && !window["takeAP1SwitchBreakNetwork"] ) {
-
-const result = getFighterByName(data.feed.name);
-if (result) {
-project.selectedP1Char=result.id
-fullReset()
-			updatePlayerIcons() 
-
-		  window["takeAP1SwitchBreakNetwork"] =true;
-		  setTimeout(() => {
-  delete  window["takeAP1SwitchBreakNetwork"] 
-}, 5000);
-
-
- } else {
-    console.log('Fighter not found');
-}
-
-}
-}
-	else if (data.type === 'input') {
-
-        if (networkRole === 'host') {
-             receivedInput = data.input; // Dit blijft staan voor je normale D-pad/bewegingen
-
-console.log(data.input)
-             if (data.input && data.input.action === 'attack') {
-                if (p2 && p2.health > 0) {
-                    // De host voert de aanval uit op P2 (de joiner) met de meegestuurde geschiedenis
-                    p2.startAttackByCommand(data.input.buttonCode, data.input.history);
-                }
-            }
-			if (data.input.action === 'move') {
-                    if (p2) {
-                        // De host voert lokaal de beweging uit op P2 namens de joiner!
-                        setDirectionInput(p2, data.input.dir, data.input.pressed);
-                 }
-			}
-        }
-    } else if (data.type === 'error') {
-        networkStatus.textContent = '❌ ' + data.message;
-    }
-};
-    ws.onerror = () => {
-        networkStatus.textContent = '❌ Verbindingsfout';
-    };
-
-   ws.onclose = () => {
-    if (networkMode) {
-        networkMode = false;
-         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'disconnect' }));
-        }
-        alert('Connection lost!');
-        networkStatus.textContent = '🔴 Connection closed';
-    }
-    networkStatus.textContent = '🔴 Connection closed';
-};
-
-}
-
-function sendMyInput(input) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', input }));
-    }
-}
-  
-            networkOverlay.style.display = 'none';
-
       })();
 
 	</script>
