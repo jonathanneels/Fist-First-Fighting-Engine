@@ -8925,6 +8925,18 @@ function getRandomDifficulty() {
                 targetId = getRandomStage(currentVP);
             }
 }
+
+if (project.settings.tagMatch && activeTravelcube.tagSwitch && activeTravelcube.tagSwitch !== 'none') {
+    const ts = activeTravelcube.tagSwitch;
+    if (ts === 'p1' || ts === 'both') {
+        swapTag(1);
+    }
+    if (ts === 'p2' || ts === 'both') {
+        swapTag(2);
+    }
+}
+
+
             let charP1 = activeTravelcube.charP1;
             if (charP1 === 'random') {
                 charP1 = getRandomChar(currentVP);
@@ -13069,6 +13081,8 @@ function buildStageTargetOptions(selected) {
                 const ty1 = (cfg.teleportY1 !== undefined && cfg.teleportY1 !== null) ? cfg.teleportY1 : '';
                 const tx2 = (cfg.teleportX2 !== undefined && cfg.teleportX2 !== null) ? cfg.teleportX2 : '';
                 const ty2 = (cfg.teleportY2 !== undefined && cfg.teleportY2 !== null) ? cfg.teleportY2 : '';
+				    const tagSwitch = cfg.tagSwitch || 'none';
+
                 return `
                 <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -13102,6 +13116,14 @@ function buildStageTargetOptions(selected) {
                         <select class="tc-charp2" style="width:80px;">
                             ${buildCharOptions(cfg.charP2 || '')}
                         </select>
+						<label style="font-size:10px;color:#7a7a9a;">Tag switch</label>
+<select class="tc-tagswitch">
+    <option value="none" ${tagSwitch === 'none' ? 'selected' : ''}>None</option>
+    <option value="p1" ${tagSwitch === 'p1' ? 'selected' : ''}>P1 tag</option>
+    <option value="p2" ${tagSwitch === 'p2' ? 'selected' : ''}>P2 tag</option>
+    <option value="both" ${tagSwitch === 'both' ? 'selected' : ''}>Both</option>
+</select>
+
                         <label style="font-size:10px;color:#7a7a9a;">Set AI difficulty</label>
                         <select class="tc-ai" style="width:80px;">
                             ${buildAIOptions(cfg.aiDifficulty || '')}
@@ -13292,6 +13314,15 @@ modalBody.addEventListener('click', function(e) {
                 <select class="tc-charp2" style="width:80px;">
                     ${buildCharOptions('')}
                 </select>
+				<label style="font-size:10px;color:#7a7a9a;">Tag switch</label>
+<select class="tc-tagswitch" style="width:80px;">
+    <option value="none">None</option>
+    <option value="p1">P1 tag</option>
+    <option value="p2">P2 tag</option>
+    <option value="both">Both</option>
+</select>
+
+
                 <label style="font-size:10px;color:#7a7a9a;">Set AI difficulty</label>
                 <select class="tc-ai" style="width:80px;">
                     ${buildAIOptions('')}
@@ -13492,6 +13523,7 @@ const timeToLive = parseFloat(row.querySelector('.tc-ttl').value) || 0;
 const spawnAfterXSeconds = parseFloat(row.querySelector('.tc-spawn').value) || 0;
 const spawnOnce = row.querySelector('.tc-spawnonce').checked;
 const blinkBeforeSpawn = row.querySelector('.tc-blink').checked;
+const tagSwitch = row.querySelector('.tc-tagswitch').value || 'none';
 
                 const field = 'tcImage_' + i;
                 let imageData = null;
@@ -13507,7 +13539,8 @@ const blinkBeforeSpawn = row.querySelector('.tc-blink').checked;
                     x, y, width, height, targetStageId, mode, charP1, charP2, aiDifficulty, imageData,
                     teleportX1, teleportY1, teleportX2, teleportY2,
     damageP1, damageP2 ,    timeToLive,
-    spawnAfterXSeconds,    spawnOnce ,     blinkBeforeSpawn
+    spawnAfterXSeconds,    spawnOnce ,     blinkBeforeSpawn,
+    tagSwitch: tagSwitch 
 
                 });
             });
