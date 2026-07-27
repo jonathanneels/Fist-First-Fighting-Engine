@@ -1337,10 +1337,10 @@ const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
             const W = 1280,
                 H = 720;
-            const GROUND_Y = 560;
-            const PLAYER_W = 60,
+            let GROUND_Y = 560;
+             const PLAYER_W = 60,
                 PLAYER_H = 100;
-            const LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
+            let LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
 
             let activeFallingItems = [];
             let fallingItemSpawnTimer = 0;
@@ -1545,7 +1545,8 @@ else if (data.type === 'move') {
             receivedState = data.state;
  		
 		if(project.currentStageId != receivedState.st){
- 		setStage(receivedState.st); }
+ 		setStage(receivedState.st); 
+		}
  const feed= playerJoinerIdSend();
         ws.send(JSON.stringify({ type: 'p2Name', feed}));
 		
@@ -1693,6 +1694,7 @@ function serializeGameStateCompact() {
         p1w: p1Wins,
         p2w: p2Wins,
         mo: matchOver,
+		sft: startFightTimer
  
     };
 } 
@@ -1738,6 +1740,7 @@ function deserializeFighterCompact(fighter, data) {
 function deserializeGameStateCompact(data) {
     if (networkMode && networkRole === 'host') return;
 
+ let previousStartFightTimer = 0; 
     const prevRoundActive = roundActive;
     const prevMatchOver = matchOver;
 
@@ -1836,6 +1839,19 @@ mines = data.mines.map(md => {
     roundActive = data.ra !== undefined ? data.ra : true;
     winner = data.w || null;
     matchOver = data.mo || false;
+	
+	 if (data.sft !== undefined) {
+    const prev = previousStartFightTimer;
+    startFightTimer = data.sft;
+    previousStartFightTimer = data.sft;
+
+    // Als de timer net op 0 is gekomen en de ronde is actief
+    if (prev > 0 && data.sft === 0 && data.ra === true) {
+        fightDisplayTimer = 30;          // toon "FIGHT!"
+        playSystemSound('startFight');   // speel geluid
+        startFightSoundPlayed = true;
+    }
+} 
 
     updateWinIndicators();
 
@@ -2258,25 +2274,25 @@ const BELT_TYPES = ['none', 'leather', 'studded', 'golden', 'silver', 'utility']
 let travelCubes = [];
 let textCubes=[];
             const DEFAULT_STAGES = [
-                { id: 'dojo', name: 'Dojo', bg: 'dojo', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'dojo', name: 'Dojo', bg: 'dojo', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null, gameOverStageId: null,   platformColor: '#66ccff',    platformImage: null,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'street', name: 'Street', bg: 'street', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'street', name: 'Street', bg: 'street',floorY: 560, audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'arena', name: 'Arena', bg: 'arena', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'arena', name: 'Arena', bg: 'arena', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'sunset', name: 'Sunset', bg: 'sunset', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'sunset', name: 'Sunset', bg: 'sunset', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'cyber', name: 'Cyber', bg: 'cyber', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'cyber', name: 'Cyber', bg: 'cyber', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'jungle', name: 'Jungle', bg: 'jungle', audioData: null, imageData: null, hasSpringPlatform: false,
+                { id: 'jungle', name: 'Jungle', bg: 'jungle', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
-                { id: 'lava', name: 'Lava', bg: 'lava', audioData: null, imageData: null, hasSpringPlatform: false,
+					startAnimation: 'none',platformMarginLeft: 3, floorY: 560, platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+                { id: 'lava', name: 'Lava', bg: 'lava', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,gameOverStageId: null,    platformColor: '#66ccff',    platformImage: null ,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
             ];
@@ -2324,9 +2340,10 @@ let timerFrameCounter = 0;
 const TIMER_STEP_FRAMES = 30;        
 let travelCubeStartTime = 0;
 const assetCache = {
-    sprites: new Map(),      // charId → Image / ImageBitmap
-    stageBg: new Map(),      // stageId → Image / ImageBitmap
-    audio: new Map(),        // audioId → HTMLAudioElement (of AudioBuffer)
+    sprites: new Map(),       
+    stageBg: new Map(),       
+    audio: new Map(),        
+    stateImages: new Map()  
 };
 
             let project = {
@@ -2349,6 +2366,7 @@ selectedP2TagChar: 'fighter',
     stageActions: [],
 			launchMode : 'training'
     },   settings: {showMoveNamesInTraining:true,
+	showAttackRange: false, 
                     audioEnabled: true,
 					showHUD: true, 
                     roundCount: 3,
@@ -2562,25 +2580,73 @@ let networkUID  = null
             }
 			
 	 	  
-			  function freeUnusedSprites() {
+		  function clearAllCaches() {
+    // ─── Sprites (karakters) ──────────────────────────
+    for (const [key, img] of assetCache.sprites) {
+        if (img) {
+            if (typeof img.close === 'function') img.close();
+            else if (img.src) img.src = '';
+        }
+    }
+    assetCache.sprites.clear();
+     for (const [key, img] of assetCache.stageBg) {
+        if (img) {
+            if (typeof img.close === 'function') img.close();
+            else if (img.src) img.src = '';
+        }
+    }
+    assetCache.stageBg.clear();
+     for (const [key, audio] of assetCache.audio) {
+        if (audio) {
+            audio.pause();
+            audio.src = '';
+        }
+    }
+    assetCache.audio.clear();
+     for (const key in spriteImages) delete spriteImages[key];
+    for (const key in extraImages) delete extraImages[key];
+    for (const key in bloodImages) delete bloodImages[key];
+    for (const key in hitEffectImages) delete hitEffectImages[key];
+    for (const key in stageBackgroundImages) delete stageBackgroundImages[key];
+
+    // ─── State‑images (indien gebruikt in Fighter) ──
+    if (assetCache.stateImages) {
+        for (const [key, img] of assetCache.stateImages) {
+            if (img) {
+                if (typeof img.close === 'function') img.close();
+                else if (img.src) img.src = '';
+            }
+        }
+        assetCache.stateImages.clear();
+    }
+     stopStageAudio();
+     GROUND_Y=560;
+}
+function freeUnusedSprites() {
     const activeIds = new Set();
     if (p1) activeIds.add(p1.charId);
     if (p2) activeIds.add(p2.charId);
-	
-if(project.settings.tagMatch){
-    if (p1_tag) activeIds.add(p1_tag.charId);  
-    if (p2_tag) activeIds.add(p2_tag.charId);  
-}
-
-    for (const [id, img] of assetCache.sprites) {
+    if (project.settings.tagMatch) {
+        if (p1_tag) activeIds.add(p1_tag.charId);
+        if (p2_tag) activeIds.add(p2_tag.charId);
+    }
+     for (const [id, img] of assetCache.sprites) {
         if (!activeIds.has(id)) {
-            // Ontlaad de afbeelding
-            if (img.close) img.close(); // voor ImageBitmap
-            else if (img.src) img.src = ''; // voor HTMLImageElement
+            if (img.close) img.close();
+            else if (img.src) img.src = '';
             assetCache.sprites.delete(id);
         }
     }
-}
+     for (const [key, img] of assetCache.stateImages) {
+        const charId = key.split('_')[0];
+        if (!activeIds.has(charId)) {
+            if (img.close) img.close();
+            else if (img.src) img.src = '';
+            assetCache.stateImages.delete(key);
+        }
+    }
+
+ }
 function freeUnusedStageBg() {
     const activeId = project.currentStageId;
     for (const [id, img] of assetCache.stageBg) {
@@ -5856,15 +5922,17 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
         const cfg = this._cachedStateConfig;
 
         let stateImg = null;
-        if (cfg && cfg.image) {
-            if (!this._stateImages) this._stateImages = {};
-            if (!this._stateImages[this.state]) {
-                const img = new Image();
-                img.src = cfg.image;
-                this._stateImages[this.state] = img;
-            }
-            stateImg = this._stateImages[this.state];
-        }
+    if (cfg && cfg.image) {
+    const cacheKey = this.charId + '_' + this.state;
+    let img = assetCache.stateImages.get(cacheKey);
+    if (!img) {
+        img = new Image();
+        img.src = cfg.image;
+        assetCache.stateImages.set(cacheKey, img);
+    }
+    stateImg = img;
+}
+
 
         // ─── TEKEN STATE‑AFBEELDING ──────────────────────────
         if (stateImg && isImageLoaded(stateImg)) {    
@@ -9700,11 +9768,111 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 
              
 }
+function drawAttackRanges(ctx, camera) {
+    if (!project.settings.showAttackRange) return;
+    if (!p1 || !p2) return;
+
+    const zoom = camera.zoom;
+    const fighters = [p1, p2];
+    const allProjectiles = projectiles;
+    const allMines = mines;
+
+    // ─── Aanvalsranges van vechters ──────────────
+    for (const fighter of fighters) {
+        if (fighter.state === 'attack') {
+            const move = fighter.getMove(fighter.attackIdx);
+            if (move && move.range && move.range > 0) {
+                var sx = (fighter.x - camera.offsetX) * zoom ;
+                const cy = (fighter.cy - camera.offsetY) * zoom;
+                const rangeWorld = move.range * zoom* 0.75; // ←   zoom*X closer/further body
+                const dir = fighter.facing; 
+				
+				
+				     var cx = sx + fighter.width / 2;
+
+				if(spriteImages[fighter.charId]  )
+				{
+				cx = sx;
+
+
+				} else{
+				                var cx = (fighter.cx - camera.offsetX) * zoom;
+
+				}
+				
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = '#ff3333';
+                ctx.lineWidth = 2 * zoom;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                const startAngle = dir === 1 ? -Math.PI/2 : Math.PI/2;
+                const endAngle   = dir === 1 ?  Math.PI/2 : -Math.PI/2;
+                ctx.arc(cx, cy, rangeWorld, startAngle, endAngle);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+        }
+    
+
+    // ─── Projectiel ranges ────────────────────────
+    for (const proj of allProjectiles) {
+        if (proj.range && proj.range > 0) {
+            const sx = (proj.x - camera.offsetX) * zoom;
+            const sy = (proj.y - camera.offsetY) * zoom;
+            const rangeWorld = proj.range * zoom;
+			
+							      var cx = sx + fighter.width / 2;
+				if(spriteImages[fighter.charId])
+				{
+				cx = sx;
+				}
+
+            ctx.save();
+            ctx.globalAlpha = 0.25;
+            ctx.strokeStyle = '#ff3333';
+            ctx.lineWidth = 1.5 * zoom;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(cx, sy, rangeWorld, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+    }
+
+    // ─── Mijn ranges ──────────────────────────────
+    for (const mine of allMines) {
+        if (mine.range && mine.range > 0) {
+            const sx = (mine.x - camera.offsetX) * zoom;
+            const sy = (mine.y - camera.offsetY) * zoom;
+            const rangeWorld = mine.range * zoom;
+			      var cx = sx + fighter.width / 2;
+				if(spriteImages[fighter.charId])
+				{
+				cx = sx;
+				}
+            ctx.save();
+            ctx.globalAlpha = 0.25;
+            ctx.strokeStyle = '#ff3333';
+            ctx.lineWidth = 1.5 * zoom;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(cx, sy, rangeWorld, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+    }
+}}
             var isOutrRendered = false;
 
             function render() {
                 drawBackground(); 
     drawWeather(ctx, camera);
+	
+	if (currentMode === 'training') drawAttackRanges(ctx, camera);
 
                 for (const proj of projectiles) {
                     proj.draw(ctx, camera);
@@ -10413,6 +10581,11 @@ project.projectId =data.projectId;
 			if (!stage.vpRequired) stage.vpRequired = 0;
 			if (!stage.soloAdventure) stage.soloAdventure = false;
 			if (!stage.nextStageId) stage.nextStageId = null;
+						if (!stage.floorY) stage.floorY = 560;
+	GROUND_Y = stage.floorY;
+    LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
+
+			
 						if (!stage.gameOverStageId) stage.gameOverStageId = null;
  if (stage.startAnimation === undefined) stage.startAnimation = 'none';
 
@@ -10539,8 +10712,8 @@ project.settings.tagHealthBorderRadius = project.settings.tagHealthBorderRadius 
         if (project.settings.startX1 === undefined) project.settings.startX1 = 470;
         if (project.settings.startX2 === undefined) project.settings.startX2 = 740;
 		   if (project.settings.tickRate === undefined) project.settings.tickRate = 60;
-
-		
+		   if (project.settings.showAttackRange === undefined) project.settings.showAttackRange = false;
+ 
 		if (project.settings.showTouchControls === undefined) project.settings.showTouchControls = true;
 if (project.settings.touchDpadColor === undefined) project.settings.touchDpadColor = '#ffffff';
 if (project.settings.touchTagColor === undefined) project.settings.touchTagColor = '#ffdd44';
@@ -10686,15 +10859,11 @@ if (project.settings.showMoveNamesInTraining === undefined) {
 }
 
 // ---------- IMPORT FUNCTIE (ondersteunt File en string) ----------
-function importProject(source) {
+function importProject(source) { 
 
+clearAllCaches();
                 setMode('training');
 
- freeStageAudio();
- freeUnusedStageBg();
- freeUnusedSprites();
- 
- 
     if (typeof source === 'string') {
         processProjectData(source);
     } else if (source instanceof File) {
@@ -10967,14 +11136,15 @@ function getStageImage(stageId) {
 }
 
      function setStage(stageId) {
-	     showLoadingScreen();
-
+	//     showLoadingScreen();
 cameraAnim = null;
 camera.zoom = project.cameraZoom || 1.0;
 
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
-	
+	GROUND_Y = stage.floorY;
+    LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
+
 
 	freeUnusedStageBg();
 	freeStageAudio();
@@ -11023,7 +11193,7 @@ camera.zoom = project.cameraZoom || 1.0;
 	
     stageSelect.selectedIndex = 0;
     stageSelect[0].innerHTML = stage.name;
-	hideLoadingScreen();
+	//hideLoadingScreen();
 }
 
           let gameOverModalOpen = false;
@@ -11479,11 +11649,11 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
     div.innerHTML = `
         <div class="form-row-3">
             <div class="form-group"><label>Name</label><input type="text" class="move-name" value="${data.name || 'Move'}" /></div>
-            <div class="form-group"><label>Damage</label><input type="number" class="move-dmg" value="${data.damage || 10}" /></div>
-            <div class="form-group"><label>Reach</label><input type="number" class="move-range" value="${data.range || 60}" /></div>
+            <div class="form-group"><label>Damage</label><input type="number" class="move-dmg" value="${data.damage ?? 10}" /></div>
+            <div class="form-group"><label>Reach</label><input type="number" class="move-range" value="${data.range ?? 60}" /></div>
         </div>
         <div class="form-row-4">
-            <div class="form-group"><label>Speed</label><input type="number" class="move-spd" value="${data.speed || 18}" /></div>
+            <div class="form-group"><label>Speed</label><input type="number" class="move-spd" value="${data.speed ?? 18}" /></div>
             <div class="form-group"><label>Command</label>
                 <select class="move-cmd">${cmdOptionsHtml}</select>
             </div>
@@ -12365,9 +12535,9 @@ function collectMoves() {
         const mName = row.querySelector('.move-name')?.value?.trim();
         if (!mName) return;
 
-        const mDmg = parseInt(row.querySelector('.move-dmg')?.value) || 10;
-        const mRange = parseInt(row.querySelector('.move-range')?.value) || 60;
-        const mSpeed = parseInt(row.querySelector('.move-spd')?.value) || 18;
+        const mDmg = parseInt(row.querySelector('.move-dmg')?.value) ?? 10;
+        const mRange = parseInt(row.querySelector('.move-range')?.value) ?? 60;
+        const mSpeed = parseInt(row.querySelector('.move-spd')?.value) ?? 18;
         const mCmd = row.querySelector('.move-cmd')?.value?.trim() || '';
         const mRow = parseInt(row.querySelector('.move-row')?.value) || 4;
         const mStart = parseInt(row.querySelector('.move-start')?.value) || 0;
@@ -12762,6 +12932,7 @@ guardRecoveryRate: 5,
             id: 'stage_' + Date.now(),
             name: 'New Stage',
             bg: 'dojo',
+    floorY: 560,
             imageData: null,
             audioData: null,
             platforms: [],
@@ -12786,6 +12957,7 @@ guardRecoveryRate: 5,
             id: 'stage_' + Date.now(),
             name: 'New Stage (fallback)',
             bg: 'dojo',
+    floorY: 560,
             imageData: null,
             audioData: null,
             platforms: [],
@@ -12883,6 +13055,10 @@ function buildStageTargetOptions(selected) {
 		<div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
     <label>Look @ direction</label>
     <input type="checkbox" id="editStageFreeLook" ${stage.freeLook ? 'checked' : ''} />
+</div>
+<div class="form-group">
+    <label>📏 Floor height (Y‑position)</label>
+    <input type="number" id="editStageFloor" value="${stage.floorY ?? 560}" step="1" />
 </div>
 
         <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
@@ -13421,6 +13597,7 @@ modalBody.addEventListener('click', function(e) {
         const nextStageId = document.getElementById('editStageNext').value || null;
 		const gameOverStageId = document.getElementById('editStageGameOver').value || null;
         const isFreeLook = document.getElementById('editStageFreeLook').checked;
+const floorY = parseInt(document.getElementById('editStageFloor').value) ?? 560;
 
         const platformColor = document.getElementById('editStagePlatformColor').value;
         const bg = document.getElementById('editStageBg').value || 'dojo';
@@ -13600,6 +13777,7 @@ const tagSwitch = row.querySelector('.tc-tagswitch').value || 'none';
                 id: id,
                 name: name,
                 bg: bg,
+				    floorY: floorY,
                 imageData: finalImageData,
                 audioData: finalAudioData,
                 hasSpringPlatform: tempPlatforms.length > 0,
@@ -13901,7 +14079,9 @@ project.settings.guardShape = document.getElementById('settingsGuardShape').valu
             <input type="checkbox" id="settingsAudio" ${settings.audioEnabled ? 'checked' : ''} />
              <label>📋 Training mode - Show moves</label> 
      <input type="checkbox" id="settingsShowMoveNames" ${settings.showMoveNamesInTraining ? 'checked' : ''} />
-	 
+	              <label>📋 Training mode - Show attack range</label> 
+     <input type="checkbox" id="showAttackRangeInTraining" ${settings.showAttackRange ? 'checked' : ''} />
+
    <span id="isMobileButtonsOptionVisible">  <label>📱 Show touch controls</label>
     <input type="checkbox" id="settingsTouchShow" ${settings.showTouchControls !== false ? 'checked' : ''} />
 	</span>
@@ -14578,6 +14758,8 @@ const timerColor = document.getElementById('settingsTimerColor').value;
  const ringOutColor = document.getElementById('settingsRingOutColor').value;
  const autoFreeze = document.getElementById('settingsAutoFreeze').checked;
 const showMoveNames = document.getElementById('settingsShowMoveNames').checked;
+const showAttackRange = document.getElementById('showAttackRangeInTraining').checked;
+
 const adventureStage = document.getElementById('settingsAdventureStage').value || '';
 const adventureChar = document.getElementById('settingsAdventureChar').value || '';
 const showHUD = document.getElementById('settingsShowHUD').checked;
@@ -14714,6 +14896,7 @@ project.settings.energyBarBorderRadius = energyRadius;
   project.settings.isWaitBeforeAfterFightStart= isWaitBeforeAfterFightStart; 
 project.settings.autoFreezeOnBlock = autoFreeze;
 project.settings.showMoveNamesInTraining = showMoveNames;
+project.settings.showAttackRange = showAttackRange; 
 project.settings.adventureCurrentStageId = adventureStage;
 project.settings.adventurePlayerChar = adventureChar;
 project.settings.countdownColor = countdownColor;
