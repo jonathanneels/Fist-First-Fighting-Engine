@@ -2663,6 +2663,42 @@ function freeUnusedStageBg() {
         }
     }
 }
+
+let stageAccessOrder = [];  
+function updateStageAccess(stageId) {
+    // Verwijder de ID als hij al in de lijst staat
+    const idx = stageAccessOrder.indexOf(stageId);
+    if (idx !== -1) stageAccessOrder.splice(idx, 1);
+    // Voeg de ID toe aan het einde (meest recent)
+    stageAccessOrder.push(stageId);
+}
+function freeUnusedStageBgSoft(maxCacheSize = 10) {
+
+    const usedIds = new Set(project.stages.map(s => s.id));
+    for (const [id, img] of assetCache.stageBg) {
+        if (!usedIds.has(id)) {
+            if (img && typeof img === 'object') {
+                if (typeof img.close === 'function') img.close();
+                else if (img.src) img.src = '';
+            }
+            assetCache.stageBg.delete(id);
+            // Verwijder ook uit de volgorde
+            const idx = stageAccessOrder.indexOf(id);
+            if (idx !== -1) stageAccessOrder.splice(idx, 1);
+        }
+    }
+     while (assetCache.stageBg.size > maxCacheSize && stageAccessOrder.length > 0) {
+        const oldestId = stageAccessOrder.shift(); // oudste eruit
+        if (assetCache.stageBg.has(oldestId)) {
+            const img = assetCache.stageBg.get(oldestId);
+            if (img && typeof img === 'object') {
+                if (typeof img.close === 'function') img.close();
+                else if (img.src) img.src = '';
+            }
+            assetCache.stageBg.delete(oldestId);
+        }
+    }
+}
 function freeStageAudio() {
     if (stageAudio) {
         stageAudio.pause();
@@ -3436,6 +3472,8 @@ function loadStageMedia(stageId, dataUrl) {
     };
     img.src = dataUrl;
     assetCache.stageBg.set(stageId, null); // placeholder tot geladen
+		updateStageAccess(stageId) 
+
 }
 const RANDOM_NAMES = [
     'Blaze', 'Shadow', 'Frost', 'Storm', 'Fury', 'Ghost', 'Titan', 'Crimson',
@@ -5110,11 +5148,17 @@ if (move.generatesEnergy) {
                                    if(this.onGround) this.vx = 0;
                                     this.state = 'block_crouch';
                                     this.blockType = 'crouch';
+					//				this.animFrame = 0;
+						//this.animTimer = 0;
+
                                 } else if (standBlock) {
                                     this.isBlocking = true;
                                     if(this.onGround && project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block'; 
                                     this.blockType = 'stand';
+							 	this.animFrame = 0;
+						 this.animTimer = 0;
+
                                 } else {
                                     this.isBlocking = false;
                                     if (this.state === 'block' || this.state === 'block_crouch') {
@@ -5227,11 +5271,17 @@ const jumpPower = superJump ? this.superJumpPower : -12;
                                    if(this.onGround) this.vx = 0;
                                     this.state = 'block_crouch';
                                     this.blockType = 'crouch';
+						//			this.animFrame = 0;
+							//this.animTimer = 0;
+
                                 } else if (standBlock) {
                                     this.isBlocking = true;
                                     if(this.onGround &&   project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block';
                                     this.blockType = 'stand';
+								 	 		this.animFrame = 0;
+											 this.animTimer = 0;
+
                                 } else {
                                     this.isBlocking = false;
                                     if (this.state === 'block' || this.state === 'block_crouch') {
@@ -11145,11 +11195,15 @@ camera.zoom = project.cameraZoom || 1.0;
 	GROUND_Y = stage.floorY;
     LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
 
+    project.currentStageId = stageId;
 
-	freeUnusedStageBg();
+
+	//freeUnusedStageBg(); => te agressief atm
+	freeUnusedStageBgSoft(10);
+	updateStageAccess(project.currentStageId) 
 	freeStageAudio();
 	
-    project.currentStageId = stageId;
+
 	
 			startCameraAnimation( ) ;
 
@@ -11371,6 +11425,37 @@ function showMovesList(charId) {
         showEditCharacterForm(charId);
     });
 }
+function duplicateCharacter(charId) {
+    const original = project.characters[charId];
+    if (!original) return;
+    // Zoek een nieuwe naam
+    let baseName = original.name;
+ 
+          let  newName = baseName +  Date.now();
+
+     
+    // Maak een diepe kopie
+    const clone = JSON.parse(JSON.stringify(original));
+    clone.id = 'char_' + Date.now();
+    clone.name = newName;
+    // Als er een spritesheet is, kopieer die ook (data-URL blijft geldig)
+    // Zorg dat de sprite in project.sprites wordt gekopieerd
+    if (project.sprites[charId]) {
+        project.sprites[clone.id] = project.sprites[charId];
+    }
+    // Kopieer blood en hit effect images
+    if (bloodImages[charId]) {
+        // bloodImages is een object met Image-elementen; we kunnen de data-URL niet eenvoudig kopiëren via Image, maar we kunnen de oorspronkelijke data-URL opslaan in char.bloodImage (die is opgeslagen als data-URL). Dus die kopiëren we al via JSON.
+    }
+    project.characters[clone.id] = clone;
+    // Laad eventuele sprite (als die bestaat)
+    if (project.sprites[clone.id]) {
+        loadSpriteForChar(clone.id, project.sprites[clone.id]);
+    }
+    // Herlaad de character editor
+    openCharacterEditor();
+    showToast(`✅ "${original.name}" duplicated as "${clone.name}"`, 'success');
+}
             function openCharacterEditor() {
  const currentVP = project.settings.victoryPoints || 0;
 let html = `<h2>📝 Characters</h2>
@@ -11428,6 +11513,7 @@ let html = `<h2>📝 Characters</h2>
 		            <button class="btn moves-btn" data-charid="${id}" style="background:#2a4a6a;border-color:#3a5a7a;color:#8ab4ff;">📋 Moves</button>
 
             <button class="btn primary edit-char" data-charid="${id}">✏️</button>
+			<button class="btn duplicate-char" data-charid="${id}">📋 </button> 
             <button class="btn success select-char" data-charid="${id}" data-player="1"
                 style="${styleP1}"
                 ${locked ? 'title="Niet beschikbaar (VP: '+vpRequired+')"' : ''}>
@@ -11454,6 +11540,8 @@ let html = `<h2>📝 Characters</h2>
             ` : ''}
 
             ${id !== 'fighter' ? `<button class="btn danger delete-char" data-charid="${id}">🗑</button>` : ''}
+			
+			
         </div>
     </div>`;
     }
@@ -11466,6 +11554,14 @@ let html = `<h2>📝 Characters</h2>
 
     modalBody.innerHTML = html;
     modalOverlay.classList.add('open');
+	
+	document.querySelectorAll('.duplicate-char').forEach(el => {
+    el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const charId = el.dataset.charid;
+        duplicateCharacter(charId);
+    });
+});
 
     // Event listeners (ook binnen deze functie)
     document.getElementById('closeCharEditor')?.addEventListener('click', () => modalOverlay.classList.remove('open'));
@@ -12885,6 +12981,7 @@ guardRecoveryRate: 5,
         </span>
         <div>
             <button class="btn primary edit-stage" data-idx="${idx}">✏️</button>
+			<button class="btn duplicate-stage" data-idx="${idx}">📋 </button> 
             <button class="btn danger remove-stage" data-idx="${idx}">🗑</button>
         </div>
     </div>`;
@@ -12896,6 +12993,13 @@ guardRecoveryRate: 5,
                 modalBody.innerHTML = html;
                 modalOverlay.classList.add('open');
 
+document.querySelectorAll('.duplicate-stage').forEach(el => {
+    el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(el.dataset.idx);
+        duplicateStage(idx);
+    });
+});
                 document.getElementById('closeStagesEditor')?.addEventListener('click', () => modalOverlay.classList.remove(
                     'open'));
                 document.getElementById('addStageBtn')?.addEventListener('click', openStageForm );
@@ -12924,6 +13028,27 @@ guardRecoveryRate: 5,
                 modalClose.onclick = () => modalOverlay.classList.remove('open');
             }
 
+function duplicateStage(idx) {
+    const original = project.stages[idx];
+    if (!original) return;
+    let baseName = original.name;
+       
+        let newName = baseName +  Date.now();
+     
+    const clone = JSON.parse(JSON.stringify(original));
+    clone.id = 'stage_' + Date.now();
+    clone.name = newName;
+    // Kopieer eventuele imageData en audioData (data-URL's blijven geldig)
+    project.stages.push(clone);
+    // Laad eventuele media
+  //  if (clone.imageData) loadStageMedia(clone.id, clone.imageData);
+  //fullReset()
+              
+
+    populateStageSelect();
+    openStagesEditor();
+    showToast(`✅ "${original.name}" duplicated as "${clone.name}"`, 'success');
+}
  function openStageForm(stageIndex) {
     const isNew = (stageIndex === -1 || stageIndex === undefined || stageIndex === null || !project.stages[stageIndex]);
     let stage;
@@ -13056,15 +13181,16 @@ function buildStageTargetOptions(selected) {
     <label>Look @ direction</label>
     <input type="checkbox" id="editStageFreeLook" ${stage.freeLook ? 'checked' : ''} />
 </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+            <label>Solo loc. P1 in ADVENTURE</label>
+<input type="checkbox" id="editStageSoloAdventure" ${stage.soloAdventure ? 'checked' : ''} />
+        </div>
+
 <div class="form-group">
     <label>📏 Floor height (Y‑position)</label>
     <input type="number" id="editStageFloor" value="${stage.floorY ?? 560}" step="1" />
 </div>
 
-        <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
-            <label>Solo loc. P1 in ADVENTURE</label>
-<input type="checkbox" id="editStageSoloAdventure" ${stage.soloAdventure ? 'checked' : ''} />
-        </div>
         <div class="form-group">
             <label>Next level after WIN (ADVENTURE)</label>
     <select id="editStageNext" style="width:100%;">
@@ -15423,12 +15549,15 @@ function openPublishModal() {
         { id: 'newCharacter', label: '➕ New character' },
         { id: 'edit', label: '✏️ Edit' },
         { id: 'moves', label: '📋 Moves' },
-		    { id: 'delete', label: '🗑 Delete' }
+		    { id: 'delete', label: '🗑 Delete' },
+		    { id: 'duplicate', label: '📋 Duplicate' }
     ];
     const stageSubItems = [
         { id: 'newStage', label: '➕ New stage' },
         { id: 'edit', label: '✏️ Edit' },
-        { id: 'delete', label: '🗑 Delete' }
+        { id: 'delete', label: '🗑 Delete' },
+		    { id: 'duplicate', label: '📋 Duplicate' }
+
     ];
 
     function buildCheckboxes(items, key) {
@@ -15798,6 +15927,8 @@ if (videoData) {
         '  if (!cfg.stageActions || !cfg.stageActions.includes("newStage")) { hideCss += "#addStageBtn{display:none !important;}"; }' +
         '  if (!cfg.stageActions || !cfg.stageActions.includes("edit")) { hideCss += ".edit-stage{display:none !important;}"; }' +
         '  if (!cfg.stageActions || !cfg.stageActions.includes("delete")) { hideCss += ".remove-stage{display:none !important;}"; }' +
+		'  if (!cfg.charActions || !cfg.charActions.includes("duplicate")) { hideCss += ".duplicate-char{display:none !important;}"; }' +
+'  if (!cfg.stageActions || !cfg.stageActions.includes("duplicate")) { hideCss += ".duplicate-stage{display:none !important;}"; }' +
         '  if (hideCss) { var styleEl = document.createElement("style"); styleEl.textContent = hideCss; document.head.appendChild(styleEl); }' +
         '  var modeSel = document.getElementById("modeSelect");' +
         '  if (modeSel) {' +
