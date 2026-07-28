@@ -1369,6 +1369,7 @@ let fps = 0;
 let frameCount = 0;
 let lastFpsTime = performance.now();
 
+ 
 // Bovenaan je script (bij de andere variabelen)
 const LOADING_HTML = `
 <div id="loadingOverlay" style="
@@ -1417,10 +1418,7 @@ var lTimeout;
 	}, time);
 
 }
-
-// ─── Netwerk synchronisatie ──────────────────────────────
-
-	  
+ 
  // ─── NETWERK LOGICA ──────────────────────────────────
 const networkOverlay = document.getElementById('networkOverlay');
 const hostBtn = document.getElementById('hostBtn');
@@ -5156,8 +5154,8 @@ if (move.generatesEnergy) {
                                     if(this.onGround && project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block'; 
                                     this.blockType = 'stand';
-							 	this.animFrame = 0;
-						 this.animTimer = 0;
+							 //	this.animFrame = 0;
+						// this.animTimer = 0;
 
                                 } else {
                                     this.isBlocking = false;
@@ -5279,8 +5277,8 @@ const jumpPower = superJump ? this.superJumpPower : -12;
                                     if(this.onGround &&   project.settings.autoFreezeOnBlock)  this.vx = 0;
                                     this.state = 'block';
                                     this.blockType = 'stand';
-								 	 		this.animFrame = 0;
-											 this.animTimer = 0;
+								 	// 		this.animFrame = 0;
+									//		 this.animTimer = 0;
 
                                 } else {
                                     this.isBlocking = false;
@@ -5566,6 +5564,12 @@ if (!laneMode && this.input.down && !this._prevDown) {
     if (this._lastCachedState !== this.state) {
     this._cachedStateConfig = this.getStateConfig(this.state);
     this._lastCachedState = this.state;
+	
+	   if (  this._cachedStateConfig) {
+        this.animFrame = this._cachedStateConfig.startFrame || 0;
+        this.animTimer = 0;
+    }
+	
 }
 const cfg = this._cachedStateConfig;
 
@@ -7339,7 +7343,7 @@ for (const [id, char] of Object.entries(project.characters)) {
                     });
                 } catch (e) { /* */ }
             }
-
+ 
 function playSystemSound(type) {
     if (!project.settings.audioEnabled) return;
 
@@ -9193,6 +9197,37 @@ for (const cube of textCubes) {
             break;
         }
     }
+	      
+
+	if (cube._audio) {
+    if (cube.active) {
+            if (window._currentTextCubeId !== cube.id || cube._audio.paused) {
+                // Stop vorige audio (als die er is en anders is)
+                if (window._currentTextCubeId) {
+                    const prev = textCubes.find(c => c.id === window._currentTextCubeId);
+                    if (prev && prev._audio && !prev._audio.paused) {
+                        prev._audio.pause();
+                        prev._audio.currentTime = 0;
+                    }
+                }
+				  cube._audio.loop = false;
+                // Start nieuwe audio alleen als hij gepauzeerd is
+                if (cube._audio.paused) {
+                    cube._audio.currentTime = 0;
+                    cube._audio.play().catch(() => {});
+                }
+                window._currentTextCubeId = cube.id;
+        }
+    } else { 
+        // Als deze cube niet actief is en het is de huidige, stop hem
+        if (window._currentTextCubeId === cube.id) {
+            cube._audio.pause();
+            cube._audio.currentTime = 0;
+            window._currentTextCubeId = null;
+        }
+    }
+}
+
  }
 }
  				
@@ -10445,7 +10480,8 @@ updateHUDVisibility();
 applyBarStyles();
 updatePlayerIcons();
    resetTravelCubes();
-
+ stopAllTextCubeAudio(); 
+ 
                 winner = null;
                 roundActive = true;
 
@@ -11184,6 +11220,14 @@ function getStageImage(stageId) {
 
     return null;
 }
+function stopAllTextCubeAudio() {
+for (const cube of textCubes) {
+if (cube._audio) {             cube._audio.pause();
+            cube._audio.currentTime = 0;
+            window._currentTextCubeId = null;
+ }}
+}
+
 
      function setStage(stageId) {
 	//     showLoadingScreen();
@@ -11200,7 +11244,8 @@ camera.zoom = project.cameraZoom || 1.0;
 
 	//freeUnusedStageBg(); => te agressief atm
 	freeUnusedStageBgSoft(10);
-	updateStageAccess(project.currentStageId) 
+	updateStageAccess(project.currentStageId) ;
+	 stopAllTextCubeAudio(); 
 	freeStageAudio();
 	
 
@@ -11209,11 +11254,16 @@ camera.zoom = project.cameraZoom || 1.0;
 
    resetTravelCubes();// nota no reset between rounds (only after full reset)
  textCubes = (stage.textcubeConfigs || []).map(cfg => {
-    const cube = { ...cfg, active: false, image: null };
+    const cube = { ...cfg,id: cfg.id || 'tc_' + stageId,   active: false, image: null, _audio: null };
     if (cfg.imageData) {
         const img = new Image();
         img.src = cfg.imageData;
         cube.image = img;
+    }
+    if (cfg.audioData) {
+        cube._audio = new Audio(cfg.audioData);
+        cube._audio.loop = true;
+        cube._audio.volume = 0.5;
     }
     return cube;
 });
@@ -13364,11 +13414,21 @@ function buildStageTargetOptions(selected) {
                 <input type="number" class="tc-fontsize" value="${cfg.fontSize || 20}" style="width:50px;" />
                 <label style="font-size:10px;color:#7a7a9a;">Color</label>
                 <input type="color" class="tc-color" value="${cfg.color || '#ffffff'}" style="width:40px;" />
+				                <label style="font-size:10px;color:#7a7a9a;">Image:</label>
+
                 <span id="tcImage_${i}Status" style="font-size:9px;color:#5a5a8a;">${cfg.imageData ? '🖼️' : ''}</span>
                 <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                     <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${i}" style="width:80px;font-size:8px;" />
                     <button class="clear-file" data-field="tcImage_${i}" type="button">✕</button>
                 </div>
+                <label style="font-size:10px;color:#7a7a9a;">Audio:</label>
+				          
+						  <span id="tcAudio_${i}Status" style="font-size:9px;color:#5a5a8a;">${cfg.audioData ? '🔊' : ''}</span>
+            <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
+                <input type="file" class="tc-audio" accept="audio/*" data-field="tcAudio_${i}" style="width:80px;font-size:8px;" />
+                <button class="clear-file" data-field="tcAudio_${i}" type="button">✕</button>
+            </div>
+
                 <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
             </div>
         </div>
@@ -13697,11 +13757,18 @@ modalBody.addEventListener('click', function(e) {
             <input type="number" class="tc-fontsize" value="20" style="width:50px;" />
             <label style="font-size:10px;color:#7a7a9a;">Color</label>
             <input type="color" class="tc-color" value="#ffffff" style="width:40px;" />
+			            <label style="font-size:10px;color:#7a7a9a;">Image</label>  
             <span id="tcImage_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
             <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
                 <input type="file" class="tc-img" accept="image/*" data-field="tcImage_${idx}" style="width:80px;font-size:8px;" />
                 <button class="clear-file" data-field="tcImage_${idx}" type="button">✕</button>
+            </div>			            <label style="font-size:10px;color:#7a7a9a;">Audio:</label>
+			            <span id="tcAudio_${idx}Status" style="font-size:9px;color:#5a5a8a;"></span>
+            <div class="file-input-wrap" style="display:inline-flex;gap:2px;align-items:center;">
+                <input type="file" class="tc-audio" accept="audio/*" data-field="tcAudio_${idx}" style="width:80px;font-size:8px;" />
+                <button class="clear-file" data-field="tcAudio_${idx}" type="button">✕</button>
             </div>
+
             <button class="btn danger remove-tc" style="padding:2px 8px;">✕</button>
         </div>
     `;
@@ -13778,6 +13845,23 @@ const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item'
     const field = 'tcImage_' + i;
     const input = row.querySelector('.tc-img');
     if (input) readFileIfSelected(field, input);
+	
+	    const audioInput = row.querySelector('.tc-audio');
+    if (audioInput && audioInput.files && audioInput.files[0]) {
+        const field = 'tcAudio_' + i;
+        if (!removalFlags[field]) {
+            pendingReads++;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                newFileData[field] = e.target.result;
+                pendingReads--;
+                checkAllLoaded();
+            };
+            reader.onerror = () => { pendingReads--; checkAllLoaded(); };
+            reader.readAsDataURL(audioInput.files[0]);
+        }
+    }
+
 });
 
 		
@@ -13869,7 +13953,23 @@ const tagSwitch = row.querySelector('.tc-tagswitch').value || 'none';
         const existing = (!isNew && stage.textcubeConfigs && stage.textcubeConfigs[i]) ? stage.textcubeConfigs[i] : null;
         imageData = existing ? existing.imageData : null;
     }
-    textcubeConfigs.push({ x, y, width, height, text, fontFamily, fontSize, color, imageData });
+ 
+     const audioField = 'tcAudio_' + i;
+    let audioData = null;
+    if (removalFlags[audioField]) {
+        audioData = null;
+    } else if (newFileData[audioField]) {
+        audioData = newFileData[audioField];
+    } else {
+        const existing = (!isNew && stage.textcubeConfigs && stage.textcubeConfigs[i]) ? stage.textcubeConfigs[i] : null;
+        audioData = existing ? existing.audioData : null;
+    }
+
+    textcubeConfigs.push({
+        x, y, width, height, text, fontFamily, fontSize, color,
+        imageData, audioData
+    });
+ 
 });
 
             // ─── Bepaal imageData en audioData ────────────────────────
