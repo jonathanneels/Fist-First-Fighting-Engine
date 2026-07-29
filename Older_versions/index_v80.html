@@ -10247,10 +10247,12 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
                 if (!mob._dead) {
                     mob._dead = true;
                     mob.state = 'ko';
-                    mob.vx = 0;
+                /*    mob.vx = 0;
                     mob.vy = 0;
                     mob.onGround = true;
-                    mob.health = 0;
+                    mob.health = 0;*/
+					                mobs.splice(i, 1);
+
                 }
                 continue;
             } else {
