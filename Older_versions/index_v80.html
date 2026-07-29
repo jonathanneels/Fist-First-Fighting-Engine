@@ -1367,7 +1367,7 @@ let remapTimeout = null;
 
 let mobs = [];
 let mobSpawnTimers = {};
-let mobSpawned = {};
+ let mobSpawnCounts = {}; 
  
     let params;
     let diffKey 
@@ -8330,18 +8330,7 @@ function drawDefaultTravelcube(ctx, x, y, w, h) {
 
 const isVideoStage = stage && stage.imageData && stage.imageData.startsWith('data:video/');
 
-    // ─── Kleurthema (filter) ──────────────────────────────
-    const theme = stage ? stage.colorTheme : 'default';
-    ctx.save();
-  if (theme === 'sepia') ctx.filter = 'sepia(0.8)';
-else if (theme === 'grayscale') ctx.filter = 'grayscale(1)';
-else if (theme === 'vintage') ctx.filter = 'sepia(0.5) contrast(1.2) brightness(0.9)';
-else if (theme === 'nightvision') ctx.filter = 'hue-rotate(90deg) brightness(1.5) contrast(1.2)';
-else if (theme === 'cyberpunk') ctx.filter = 'hue-rotate(180deg) saturate(2) brightness(1.1)';
-else if (theme === 'warm') ctx.filter = 'sepia(0.3) hue-rotate(-20deg) brightness(1.1)';
-else if (theme === 'cold') ctx.filter = 'hue-rotate(180deg) saturate(0.8) brightness(0.9)';
-else if (theme === 'negative') ctx.filter = 'invert(1) brightness(1.2)';
-else ctx.filter = 'none';
+   ctx.filter = 'none';
 
                 for (const item of activeFallingItems) {
                     const sx = (item.x - camera.offsetX) * camera.zoom;
@@ -8524,7 +8513,18 @@ for (const cube of textCubes) {
     }
 }
 
-                ctx.restore();
+	
+	    if (activeStageEffect === 'dark') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    } else if (activeStageEffect === 'bright') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    }
             }
 
 function aiPerformAttack(fighter, moveList) {
@@ -10179,12 +10179,11 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 				
 				
 // ─── Mob spawnen ──────────────────────────────────────
- if (currentMode === 'adventure'|| currentMode === 'coop') {
-    const stage = project.stages.find(s => s.id === project.currentStageId);
-      if (stage && stage.mobConfigs) { 
+ if (currentMode === 'adventure' || currentMode === 'coop') {
+     if (stage && stage.mobConfigs) {
         stage.mobConfigs.forEach((cfg, idx) => {
             const key = stage.id + '_' + idx;
-if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
+            if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
             mobSpawnTimers[key]--;
 
             if (mobSpawnTimers[key] <= 0) {
@@ -10192,20 +10191,23 @@ if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
 
                 let canSpawn = true;
 
-                // 1. Until_defeat blokkade
+                // 1. Until_defeat blokkade: zodra er een dode mob van deze config is, stoppen we
                 if (cfg.behavior === 'until_defeat') {
                     const deadMobs = mobs.filter(m => m._configKey === key && m._dead);
                     if (deadMobs.length > 0) canSpawn = false;
                 }
 
-                // 2. Loop check: als isLoop false is en er zijn al mobs gespawned en geen levende meer → stoppen
-                if (!cfg.isLoop && mobSpawned[key] === true) {
-                    const activeMobs = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
-                    if (activeMobs.length === 0) canSpawn = false;
+                // 2. Loop uit: alleen spawnen tot het maximum totaal bereikt is
+                if (!cfg.isLoop) {
+                    const totalSpawned = mobSpawnCounts[key] || 0;
+                    if (totalSpawned >= cfg.maxTotal) {
+                        canSpawn = false;
+                    }
                 }
 
                 if (canSpawn) {
                     const activeMobs = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
+                    // Voor zowel loop aan als uit: niet meer levende mobs dan maxTotal
                     if (activeMobs.length < cfg.maxTotal) {
                         const availableChars = cfg.characterIds.filter(id => project.characters[id]);
                         if (availableChars.length > 0) {
@@ -10225,9 +10227,10 @@ if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
                             mob.groundY = cfg.startY || GROUND_Y;
                             mob.onGround = true;
                             mob.vy = 0;
-                            mob._aiTarget = null; // wordt later bepaald in de update
+                            mob._aiTarget = null;
                             mobs.push(mob);
-                            mobSpawned[key] = true;
+                            // Totaal aantal gespawnde mobs verhogen
+                            mobSpawnCounts[key] = (mobSpawnCounts[key] || 0) + 1;
                         }
                     }
                 }
@@ -10235,91 +10238,82 @@ if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
         });
     }
 
-
- // ─── Mobs updaten ─────────────────────────────────────────────
-for (let i = mobs.length - 1; i >= 0; i--) {
-    const mob = mobs[i];
-    if (mob.health <= 0) {
-        if (mob._behavior === 'until_defeat') {
-            // Alleen als hij nog niet dead is gemarkeerd
-            if (!mob._dead) {
-           /*     mob._dead = true;
-                mob.state = 'ko';
-                mob.vx = 0;
-                mob.vy = 0;
-                mob.onGround = true;
-                 mob.health = 0;*/
-				
-				 mobs.splice(i, 1);
+    // ─── Mobs updaten ──────────────────────────────────────────────
+    for (let i = mobs.length - 1; i >= 0; i--) {
+        const mob = mobs[i];
+        if (mob.health <= 0) {
+            if (mob._behavior === 'until_defeat') {
+                if (!mob._dead) {
+                    mob._dead = true;
+                    mob.state = 'ko';
+                    mob.vx = 0;
+                    mob.vy = 0;
+                    mob.onGround = true;
+                    mob.health = 0;
+                }
+                continue;
+            } else {
+                mobs.splice(i, 1);
+                continue;
             }
-            // Blijf in array, maar update niet verder
-            continue;
-        } else {
-            // short: verwijder
-            mobs.splice(i, 1);
-            continue;
         }
-    }
-    // Reset dead flag als health > 0 (bijv. na heal, maar dat gebeurt niet)
-    if (mob._dead) mob._dead = false;
+        if (mob._dead) mob._dead = false;
 
-    // Short: check levensduur
-    if (mob._behavior === 'short') {
-        if ((performance.now() - mob._spawnTime) > mob._lifeTime * 16.67) {
-            mobs.splice(i, 1);
-            continue;
+        if (mob._behavior === 'short') {
+            if ((performance.now() - mob._spawnTime) > mob._lifeTime * 16.67) {
+                mobs.splice(i, 1);
+                continue;
+            }
+        } else if (mob._behavior === 'until_defeat') {
+            mob._lifeTime = 1000;
         }
-    } else if (mob._behavior === 'until_defeat') {
-	 
-	mob._lifeTime=1000;
-	}
-    // Alleen updaten als niet dead
-   if (!mob._dead) {
-    // Bepaal dichtstbijzijnde levende speler
-    let target = null;
-    let minDist = Infinity;
-    if (p1 && p1.health > 0) {
-        const d = Math.abs(mob.cx - p1.cx);
-        if (d < minDist) { minDist = d; target = p1; }
-    }
-    if (p2 && p2.health > 0) {
-        const d = Math.abs(mob.cx - p2.cx);
-        if (d < minDist) { minDist = d; target = p2; }
-    }
-    if (target) {
-        mob.update(target);
-    } else {
-        // Geen levende speler, update met null (aanvallen worden dan overgeslagen)
-        mob.update(null);
-    }
-}
-}
-// ─── Victory check: winWhenDefeat ──────────────────────────
- if (stage && stage.mobConfigs) {
-    let allDefeated = false;
-    for (let idx = 0; idx < stage.mobConfigs.length; idx++) {
-        const cfg = stage.mobConfigs[idx];
-        if (cfg.winWhenDefeat) {
-            const key = stage.id + '_' + idx;
-            const alive = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
-            if (alive.length === 0 && mobSpawned[key] === true) {
-                allDefeated = true;
-                break;
+
+        if (!mob._dead) {
+            let target = null;
+            let minDist = Infinity;
+            if (p1 && p1.health > 0) {
+                const d = Math.abs(mob.cx - p1.cx);
+                if (d < minDist) { minDist = d; target = p1; }
+            }
+            if (p2 && p2.health > 0) {
+                const d = Math.abs(mob.cx - p2.cx);
+                if (d < minDist) { minDist = d; target = p2; }
+            }
+            if (target) {
+                mob.update(target);
+            } else {
+                mob.update(null);
             }
         }
     }
-	
-    if (allDefeated  && winner === null ) {
-		setTimeout(() => {// time to show the down frame
-            roundActive = false;
-}, 50);
-	winner="draw";
 
-  		handleRoundEnd(winner)
+    // ─── Victory check: winWhenDefeat ──────────────────────────
+    if (stage && stage.mobConfigs) {
+        let allDefeated = false;
+        for (let idx = 0; idx < stage.mobConfigs.length; idx++) {
+            const cfg = stage.mobConfigs[idx];
+            if (cfg.winWhenDefeat) {
+                const key = stage.id + '_' + idx;
+                const alive = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
+                if (alive.length === 0) {
+                    // Controleer of er ooit minstens één mob is gespawnd
+                    const totalSpawned = mobSpawnCounts[key] || 0;
+                    if (totalSpawned > 0) {
+                        allDefeated = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (allDefeated && winner === null) {
+            setTimeout(() => {
+                roundActive = false;
+            }, 50);
+            winner = "draw";
+            handleRoundEnd(winner);
+        }
     }
 }
-
-                 }
 
 }
 function drawAttackRanges(ctx, camera) {
@@ -10425,18 +10419,6 @@ function drawAttackRanges(ctx, camera) {
             function render() {
                 drawBackground(); 
     drawWeather(ctx, camera);
-	
-	    if (activeStageEffect === 'dark') {
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
-    } else if (activeStageEffect === 'bright') {
-        ctx.save();
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
-    }
 
 	
 	if (currentMode === 'training') drawAttackRanges(ctx, camera);
@@ -10741,8 +10723,8 @@ timerFrameCounter = 0;
 freeUnusedSprites();
 mobs = [];
 mobSpawnTimers = {};
-mobSpawned = {};
- 
+ mobSpawnCounts = {};
+
 				startFightSoundPlayed = false;
 
 isSoloLevel=isAdventureSolo()
@@ -10938,8 +10920,8 @@ fatalityActive = false;
 fatalityTimer = 0;
 mobs = [];
 mobSpawnTimers = {};
-mobSpawned = {};
- 
+ mobSpawnCounts = {};
+
 isSoloLevel=isAdventureSolo()
    
        diffKey = project.settings.aiDifficulty || 'normal'; 
@@ -11723,15 +11705,53 @@ if (cube._audio) {             cube._audio.pause();
  }}
 }
 
+function applySCanvasFilter(type) {
+    toggleScanlines(false);
 
+    let filter = 'none';
+    switch(type) {
+        case 'blur': filter = 'blur(2px)'; break;
+        case 'grayscale': filter = 'grayscale(1)'; break;
+        case 'sepia': filter = 'sepia(0.8)'; break;
+        case 'invert': filter = 'invert(0.8)'; break;
+        case 'contrast': filter = 'contrast(1.5) brightness(0.9)'; break;
+		    case 'gameboy': filter = 'sepia(0.9) hue-rotate(70deg) saturate(0.6) contrast(1.1)'; break;
+		 case 'virtualboy': filter = 'sepia(1) hue-rotate(-30deg) saturate(4) contrast(1.1) brightness(1.2)';  break; 
+         case 'crt': filter = 'blur(0.5px) contrast(1.2) brightness(0.95)'; toggleScanlines(true); break;
+        case 'vhs': filter = 'blur(0.3px) saturate(0.9) hue-rotate(2deg) contrast(1.1)'; toggleScanlines(true); break;
+
+        default: filter = 'none';
+    }
+    document.body.style.filter = filter;
+    project.settings.screenFilter = type;
+ }
+ function applyCanvasFilter(type) {
+    toggleScanlines(false);
+
+    let filter = 'none';
+ 
+    switch(type) {
+ case'sepia': filter = 'sepia(0.8)';break;
+case 'grayscale': filter = 'grayscale(1)';break;
+case 'vintage': filter = 'sepia(0.5) contrast(1.2) brightness(0.9)';break;
+case'nightvision':  filter = 'hue-rotate(90deg) brightness(1.5) contrast(1.2)';break;
+case'cyberpunk': ctx.filter = 'hue-rotate(180deg) saturate(2) brightness(1.1)';break;
+case 'warm': filter = 'sepia(0.3) hue-rotate(-20deg) brightness(1.1)';break;
+case'cold': filter = 'hue-rotate(180deg) saturate(0.8) brightness(0.9)';break;
+case'negative': filter = 'invert(1) brightness(1.2)';break;
+ 
+        default: filter = 'none';break;
+    }
+     document.getElementById('gameCanvas').style.filter = filter;
+  }
      function setStage(stageId) {
 	//     showLoadingScreen();
 cameraAnim = null;
 camera.zoom = project.cameraZoom || 1.0;
 mobs = [];
 mobSpawnTimers = {};
-mobSpawned = {};
- 
+ mobSpawnCounts = {};
+
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
 	GROUND_Y = stage.floorY;
@@ -11792,7 +11812,8 @@ mobSpawned = {};
     fallingItemSpawnTimer = FALLING_ITEM_SPAWN_INTERVAL;
 
     initWeather(stage);
-	
+	    const theme = stage ? stage.colorTheme : 'default'; 
+	applyCanvasFilter(theme)
     stageSelect.selectedIndex = 0;
     stageSelect[0].innerHTML = stage.name;
 	//hideLoadingScreen();
