@@ -6691,9 +6691,9 @@ if (move && this.state === 'attack') {
     ctx.restore();
     }
 
-// ─── Mob AI ──────────────────────────────────────────────────
+ // ─── Mob AI ──────────────────────────────────────────────────
 if (this.isMob && !this._dead) {
-    // Reset input (mob reageert alleen op AI)
+    // Reset input (behalve als we later dingen zetten)
     this.input.up = false;
     this.input.down = false;
     this.input.left = false;
@@ -6702,7 +6702,7 @@ if (this.isMob && !this._dead) {
     this.input.back = false;
 
     let target = this._aiTarget || p1;
-	    if (p2 && p2.health > 0 && currentMode === 'coop') {
+    if (p2 && p2.health > 0 && currentMode === 'coop') {
         const d1 = Math.abs(this.cx - p1.cx);
         const d2 = Math.abs(this.cx - p2.cx);
         target = (d2 < d1) ? p2 : p1;
@@ -6710,26 +6710,133 @@ if (this.isMob && !this._dead) {
 
     if (target && target.health > 0) {
         const dx = target.cx - this.cx;
+        const dy = target.cy - this.cy;
         const dist = Math.abs(dx);
+        const distY = Math.abs(dy);
 
         // Kijkrichting
         this.facing = (target.cx > this.cx) ? 1 : -1;
 
-        // Bewegen naar doelwit
-        if (dist > 50) {
-            if (dx > 0) this.input.right = true;
-            else this.input.left = true;
+        // ─── Cursor-modus (ignorePhysics) ──────────────────
+     if (this.ignorePhysics) {
+	 
+    // ─── Cooldowns initialiseren ──────────────────────────────
+    if (this._aiActionCooldown === undefined) this._aiActionCooldown = 0;
+    if (this._aiWanderTimer === undefined) this._aiWanderTimer = 0;
+    if (this._aiWanderDir === undefined) this._aiWanderDir = 0; // -1 = omhoog, 1 = omlaag
+
+    if (this._aiActionCooldown > 0) this._aiActionCooldown--;
+
+    // ─── Horizontale beweging ──────────────────────────────────
+    const dx = target.cx - this.cx;
+    const distX = Math.abs(dx);
+    const thresholdX = 40; // dode zone om trillen te voorkomen
+    if (distX > thresholdX) {
+        this.input.left = dx < 0;
+        this.input.right = dx > 0;
+    } else {
+        // Dichtbij: kleine kans om links/rechts te ontwijken
+        if (Math.random() < 0.03) {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            this.input.left = dir === -1;
+            this.input.right = dir === 1;
         } else {
-            // Aanvallen met 5% kans per frame
+            this.input.left = false;
+            this.input.right = false;
+        }
+    }
+
+    // ─── Verticale beweging met willekeurige drift ──────────
+    // Update de wander timer
+    if (this._aiWanderTimer > 0) {
+        this._aiWanderTimer--;
+        // Tijdens wander: overschrijf de verticale input met de gekozen richting
+        this.input.up = this._aiWanderDir === -1;
+        this.input.down = this._aiWanderDir === 1;
+    } else {
+        // Geen actieve wander: start er een met kleine kans
+        if (Math.random() < 0.04) { // ~4% per frame -> ongeveer elke 1,5 seconde
+            this._aiWanderTimer = 20 + Math.floor(Math.random() * 30); // duur 20-50 frames
+            this._aiWanderDir = Math.random() < 0.5 ? -1 : 1; // -1 = up, 1 = down
+        } else {
+            // Normaal volgen van de tegenstander
+            const dy = target.cy - this.cy;
+            const thresholdY = 5;
+            this.input.up = dy < -thresholdY;
+            this.input.down = dy > thresholdY;
+        }
+    }
+
+ }
+    // ─── Normale fysica-modus ──────────────────────────────
+    // Bewegen naar doelwit (horizontaal)
+    if (dist > 30) {
+        if (dx > 0) this.input.right = true;
+        else this.input.left = true;
+    } else {
+        // Dichtbij: kleine kans om te ontwijken
+        if (Math.random() < 0.02) {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            this.input.left = dir === -1;
+            this.input.right = dir === 1;
+        }
+    }
+
+    // ─── Lane switching (alleen als laneMode actief) ────
+    if (laneMode) {
+        if (this.lane !== target.lane) {
             if (Math.random() < 0.05) {
-                const moves = this.moves.filter(m => m.command && m.command.trim() !== '');
-                if (moves.length > 0) {
-                    const move = moves[Math.floor(Math.random() * moves.length)];
-                    const idx = this.moves.indexOf(move);
-                    this.startAttack(idx);
+                const delta = target.lane - this.lane;
+                this.switchLane(delta);
+            }
+        } else {
+            if (Math.random() < 0.02) {
+                const delta = Math.random() < 0.5 ? 1 : -1;
+                if (this.lane + delta >= 0 && this.lane + delta <= 2) {
+                    this.switchLane(delta);
                 }
             }
         }
+    }
+
+    // ─── Springen (verbeterd) ──────────────────────────────
+    if (this.onGround) {
+        let shouldJump = false;
+
+        // 1) Spring als de target duidelijk hoger staat (verschil > 20px)
+        if (dy < -20 && Math.random() < 0.15) {
+            shouldJump = true;
+        }
+        // 2) Willekeurig springen voor variatie (kleine kans)
+        if (Math.random() < 0.03) {
+            shouldJump = true;
+        }
+        // 3) Super jump als target veel hoger staat (verschil > 60px) en we hebben superJumpPower
+        if (dy < -60 && Math.random() < 0.1 && this.superJumpPower) {
+            // Gebruik super jump (overschrijf normale jump)
+            this.vy = this.superJumpPower;
+            this.onGround = false;
+            this.state = 'jump';
+            shouldJump = false; // we hebben al gesprongen
+        }
+
+        if (shouldJump) {
+            this.input.up = true; // standaard sprong
+        }
+    }
+
+    // ─── Aanvallen ──────────────────────────────────────────
+    // Als we dichtbij zijn en target is niet te ver
+    if (dist < 100 && Math.random() < 0.06) { // kans verhoogd van 4% naar 6%
+        const moves = this.moves.filter(m => m.command && m.command.trim() !== '');
+        if (moves.length > 0) {
+            const move = moves[Math.floor(Math.random() * moves.length)];
+            const idx = this.moves.indexOf(move);
+            this.startAttack(idx);
+        }
+     
+}
+
     }
 }
     
@@ -8473,7 +8580,55 @@ var timeToJumpTONextLane=0;
     fighter.input.forward = false;
     fighter.input.back = false;}
 
+if (fighter.ignorePhysics) {
+    // ─── Cooldowns initialiseren ──────────────────────────────
+    if (fighter._aiActionCooldown === undefined) fighter._aiActionCooldown = 0;
+    if (fighter._aiWanderTimer === undefined) fighter._aiWanderTimer = 0;
+    if (fighter._aiWanderDir === undefined) fighter._aiWanderDir = 0; // -1 = omhoog, 1 = omlaag
 
+    if (fighter._aiActionCooldown > 0) fighter._aiActionCooldown--;
+
+    // ─── Horizontale beweging ──────────────────────────────────
+    const dx = opponent.cx - fighter.cx;
+    const distX = Math.abs(dx);
+    const thresholdX = 40; // dode zone om trillen te voorkomen
+    if (distX > thresholdX) {
+        fighter.input.left = dx < 0;
+        fighter.input.right = dx > 0;
+    } else {
+        // Dichtbij: kleine kans om links/rechts te ontwijken
+        if (Math.random() < 0.03) {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            fighter.input.left = dir === -1;
+            fighter.input.right = dir === 1;
+        } else {
+            fighter.input.left = false;
+            fighter.input.right = false;
+        }
+    }
+
+    // ─── Verticale beweging met willekeurige drift ──────────
+    // Update de wander timer
+    if (fighter._aiWanderTimer > 0) {
+        fighter._aiWanderTimer--;
+        // Tijdens wander: overschrijf de verticale input met de gekozen richting
+        fighter.input.up = fighter._aiWanderDir === -1;
+        fighter.input.down = fighter._aiWanderDir === 1;
+    } else {
+        // Geen actieve wander: start er een met kleine kans
+        if (Math.random() < 0.04) { // ~4% per frame -> ongeveer elke 1,5 seconde
+            fighter._aiWanderTimer = 20 + Math.floor(Math.random() * 30); // duur 20-50 frames
+            fighter._aiWanderDir = Math.random() < 0.5 ? -1 : 1; // -1 = up, 1 = down
+        } else {
+            // Normaal volgen van de tegenstander
+            const dy = opponent.cy - fighter.cy;
+            const thresholdY = 5;
+            fighter.input.up = dy < -thresholdY;
+            fighter.input.down = dy > thresholdY;
+        }
+    }
+
+ }
  if (fighter._aiJumpCooldown > 0) {
         fighter._aiJumpCooldown--;
      }
