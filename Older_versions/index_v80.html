@@ -1238,13 +1238,13 @@
         <select id="modeSelect">
             <option value=""></option>
 			<option value="adventure">Adventure</option>
+			 	<option value="coop">  Co‑op (vs mobs)</option> 
             <option value="arcade"> Arcade (8 matches)</option>
             <option value="timeattack">Time Attack</option>
             <option value="survival">Survival</option>
             <option value="pvai">PvAI</option>
             <option value="pvp" >PvP</option>
             <option value="aivai">AIvsAI</option>
-			<option value="coop">  Co‑op (vs mobs)</option>
             <option value="training" selected>Training</option>
 			            <option   value="network">Network (experimental)</option>
 
@@ -2365,7 +2365,7 @@ selectedP2TagChar: 'fighter',
                 audio: {},
                 sprites: {},
 				    publish : {
-           modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'coop','aivai', 'training'],
+           modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
     actions: ['characters',  'settings'],
     utilities: ['fullscreen'],
     ui: ['pauseBtn','modeSelect','stageSelect', 'hamburgerBtn'],
@@ -3431,13 +3431,13 @@ else flawlessVictory = false;
     playSystemSound('matchEnd');
     matchEndSoundPlayed = true;
 }
-   if (currentMode === 'adventure' && winner === 'p1') {
+   if ((currentMode === 'adventure' && winner === 'p1') || (currentMode === 'coop' && winner === 'draw') ){
          const stage = project.stages.find(s => s.id === project.currentStageId);
         if (stage && stage.nextStageId) {
          handleAdventureAdvance(stage.nextStageId);
   return;
         }
-    } else if (currentMode === 'adventure' && winner !== 'p1') {
+    } else if ((currentMode === 'adventure' && winner !== 'p1') || (currentMode === 'coop' && winner !== 'draw')) {
     const stage = project.stages.find(s => s.id === project.currentStageId);
     if (stage && stage.gameOverStageId) {
       handleAdventureGameOver(stage.gameOverStageId);  
@@ -7703,7 +7703,7 @@ if (p1GamepadIndex !== -1 && useP1) {
         }
     }
 }
-if (p2GamepadIndex !== -1 && useP2) {
+if (p2GamepadIndex !== -1 && useP2 && !isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' ))  {
     const gp = connected.find(g => g.index === p2GamepadIndex);
     if (gp && p2) {
         if (!networkMode || networkRole === 'joiner') {
@@ -10155,7 +10155,11 @@ for (let i = mobs.length - 1; i >= 0; i--) {
     }
 	
     if (allDefeated  && winner === null ) {
+		setTimeout(() => {// time to show the down frame
+            roundActive = false;
+}, 50);
 	winner="draw";
+
   		handleRoundEnd(winner)
     }
 }
@@ -13622,13 +13626,13 @@ function buildStageTargetOptions(selected) {
 </div>
 
         <div class="form-group">
-            <label>Next level after WIN (ADVENTURE)</label>
+            <label>Next level after WIN (ADVENTURE & COOP)</label>
     <select id="editStageNext" style="width:100%;">
         ${buildStageOptionsWithNone(stage.nextStageId || null)}
     </select>
 </div>
  <div class="form-group">
-            <label>Next level after LOST (ADVENTURE)</label>
+            <label>Next level after LOST (ADVENTURE & COOP)</label>
     <select id="editStageGameOver" style="width:100%;">
         ${buildStageOptionsWithNone(stage.gameOverStageId || null)}
     </select>
@@ -15939,6 +15943,7 @@ fullReset();//resetRound();
     const isJoiner = networkMode && networkRole === 'joiner';
 
     // P1
+	    if (p1GamepadIndex === -1) { 
      for (const [action, mappedKey] of Object.entries(p1Mappings)) {
         if (key === mappedKey) {
             if (isJoiner) return; // joiner mag P1 niet besturen
@@ -15952,8 +15957,11 @@ fullReset();//resetRound();
                 p1.input[action] = true;
             }
             break;
-        }
+        }}
     }
+		    if (p2GamepadIndex === -1) { 
+
+	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' )){
      for (const [action, mappedKey] of Object.entries(p2Mappings)) {
         if (key === mappedKey) {
             if (isHost) return; 
@@ -15968,8 +15976,9 @@ fullReset();//resetRound();
             }
             break;
         }
+		}
     }
-
+}
    
 });
 document.addEventListener('keyup', (e) => {
@@ -15986,19 +15995,26 @@ document.addEventListener('keyup', (e) => {
     const isHost = networkMode && networkRole === 'host';
     const isJoiner = networkMode && networkRole === 'joiner';
 
+    if (p1GamepadIndex === -1) {
+
      for (const [action, mappedKey] of Object.entries(p1Mappings)) {
         if (key === mappedKey && !action.startsWith('attack')) {
             if (!isJoiner) p1.input[action] = false;
             break;
         }
     }
+}
+    if (p2GamepadIndex === -1) {
 
+	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' )){
      for (const [action, mappedKey] of Object.entries(p2Mappings)) {
         if (key === mappedKey && !action.startsWith('attack')) {
             if (!isHost) p2.input[action] = false;
             break;
         }
     }
+	}
+	}
 });
            stageSelect.addEventListener('change', (e) => {
     const stageId = e.target.value;
