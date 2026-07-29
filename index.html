@@ -8515,16 +8515,17 @@ for (const cube of textCubes) {
 
 	
 	    if (activeStageEffect === 'dark') {
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, W, H);
         ctx.restore();
     } else if (activeStageEffect === 'bright') {
-        ctx.save();
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.fillRect(0, 0, W, H);
         ctx.restore();
-    }
+    } else{
+	        ctx.restore();
+
+	}
             }
 
 function aiPerformAttack(fighter, moveList) {
@@ -11726,9 +11727,7 @@ function applySCanvasFilter(type) {
     project.settings.screenFilter = type;
  }
  function applyCanvasFilter(type) {
-    toggleScanlines(false);
-
-    let filter = 'none';
+     let filter = 'none';
  
     switch(type) {
  case'sepia': filter = 'sepia(0.8)';break;
