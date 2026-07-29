@@ -1244,6 +1244,7 @@
             <option value="pvai">PvAI</option>
             <option value="pvp" >PvP</option>
             <option value="aivai">AIvsAI</option>
+			<option value="coop">  Co‑op (vs mobs)</option>
             <option value="training" selected>Training</option>
 			            <option   value="network">Network (experimental)</option>
 
@@ -1335,6 +1336,8 @@ let isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) ||
 
 const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
 
+let activeStageEffect;
+
             const W = 1280,
                 H = 720;
             let GROUND_Y = 560;
@@ -1362,6 +1365,10 @@ let p2GamepadIndex = -1;
 let waitingForInput = null; 
 let remapTimeout = null;
 
+let mobs = [];
+let mobSpawnTimers = {};
+let mobSpawned = {};
+ 
     let params;
     let diffKey 
 	
@@ -1392,6 +1399,7 @@ const LOADING_HTML = `
 
 
 var lTimeout;
+var moveStageEffectTimeout;
 
 			function showLoadingScreen() {
     if (document.getElementById('loadingOverlay')) return;
@@ -2028,27 +2036,29 @@ const DEFAULT_AI_PARAMS = {
                 { id: 'punch_l', name: 'Light', damage: 8, range: 55, speed: 12, button: 0, command: '1',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                  fatalityOnly: false,  unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' ,  fallbackVisual: 'punch_l'  },
+                  fatalityOnly: false,  unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none' ,  fallbackVisual: 'punch_l',
+        stageEffect: 'none'   // 'none' | 'dark' | 'bright'
+		},
                 { id: 'punch_m', name: 'Middle', damage: 14, range: 70, speed: 18, button: 1, command: '2',
                      row: 3,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'punch_m'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'punch_m',stageEffect: 'none'   },
                 { id: 'punch_h', name: 'Heavy', damage: 22, range: 85, speed: 28, button: 2, command: '3',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'punch_h'   },
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'punch_h' ,stageEffect: 'none'  },
                 { id: 'uppercutL', name: 'Attack L', damage: 7, range: 50, speed: 10, button: 3, command: '4',
                      row: 5,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'low',
-                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'jab_l'   },
+                 fatalityOnly: false,   unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none',  fallbackVisual: 'jab_l' ,stageEffect: 'none'  },
                 { id: 'uppercutM', name: 'Attack M', damage: 13, range: 65, speed: 16, button: 4, command: '5',
                     row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                      row: 6,projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'mid',
-                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'jab_m'   },
+                   fatalityOnly: false, unblockable: false, chipDamage: false, energyRequired: 0,teleportX: 0, teleportY: 0,generatesEnergy: 0,counterType: 'none' ,  fallbackVisual: 'jab_m' ,stageEffect: 'none'  },
                 { id: 'uppercutH', name: 'Attack H', damage: 20, range: 90, speed: 26, button: 5, command: '6',
                      row: 7,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
-                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'jab_h'  },
+                   fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'jab_h'  ,stageEffect: 'none'},
             ];
 
 const DEFAULT_STATES = {
@@ -2274,25 +2284,25 @@ let textCubes=[];
             const DEFAULT_STAGES = [
                 { id: 'dojo', name: 'Dojo', bg: 'dojo', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false   , nextStageId: null, gameOverStageId: null,   platformColor: '#66ccff',    platformImage: null,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'street', name: 'Street', bg: 'street',floorY: 560, audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'arena', name: 'Arena', bg: 'arena', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [] , soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'sunset', name: 'Sunset', bg: 'sunset', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none' ,travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'cyber', name: 'Cyber', bg: 'cyber', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [] , colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false , nextStageId: null,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null ,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'jungle', name: 'Jungle', bg: 'jungle', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [] , soloAdventure: false , nextStageId: null ,  gameOverStageId: null,  platformColor: '#66ccff',    platformImage: null,
-					startAnimation: 'none',platformMarginLeft: 3, floorY: 560, platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3, floorY: 560, platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
                 { id: 'lava', name: 'Lava', bg: 'lava', floorY: 560,audioData: null, imageData: null, hasSpringPlatform: false,
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,gameOverStageId: null,    platformColor: '#66ccff',    platformImage: null ,
-					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false},
+					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
             ];
 
             const canvas = document.getElementById('gameCanvas');
@@ -2355,7 +2365,7 @@ selectedP2TagChar: 'fighter',
                 audio: {},
                 sprites: {},
 				    publish : {
-           modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
+           modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'coop','aivai', 'training'],
     actions: ['characters',  'settings'],
     utilities: ['fullscreen'],
     ui: ['pauseBtn','modeSelect','stageSelect', 'hamburgerBtn'],
@@ -4217,6 +4227,14 @@ this._historyTimes = [];
                     this.bloodImage = charData.bloodImage || null;
                     this.hitEffectImage = charData.hitEffectImage || null;
                     this.bloodEnabled = charData.bloodEnabled !== undefined ? charData.bloodEnabled : true;
+					
+					this.isMob = false;
+this._aiTarget = null;
+this._behavior = 'short';
+this._spawnTime = 0;
+this._lifeTime = 600; // 10 seconden (600 frames)
+this._configKey = '';
+this._dead = false; 
                 }
 
                 get cx() { return this.x + this.w / 2; }
@@ -4351,7 +4369,13 @@ this._historyTimes = [];
                       this.spriteLoaded = false;
     this.spriteImg = null;
     this.loadSprite(this.charId); 
-
+this.isMob = false;
+this._aiTarget = null;
+this._behavior = 'short';
+this._spawnTime = 0;
+this._lifeTime = 600; // 10 seconden (600 frames)
+this._configKey = '';
+this._dead = false; 
                 }
 
 isButtonActive(idx) {
@@ -4456,6 +4480,18 @@ if (move.type  == 'projectile' ||  move.type  == 'mine') {
         const required = parseInt(move.energyRequired) || 0;
         if (required > 0 && this.energy < required) return false;
     }
+
+
+ if (move.stageEffect && move.stageEffect !== 'none') {
+    activeStageEffect = move.stageEffect;
+	clearTimeout(moveStageEffectTimeout);
+moveStageEffectTimeout = setTimeout(() => {
+    activeStageEffect = 'none';
+}, 500);
+
+} else {activeStageEffect = 'none';}
+
+ 
 
  	if (move.counterType && move.counterType !== 'none') {
     this.counterActive = true;
@@ -5038,15 +5074,38 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
                             const frame = move.speed - this.attackTimer;
                             if (frame >= activeStart && frame <= activeEnd ) {
                                 this.attackActive = true;
-                                if (!this.attackHit && opponent && opponent.health > 0 &&!isSoloLevel ) {
-                                    const dx = opponent.cx - this.cx;
+						
+                                if ( !this.attackHit && opponent && opponent.health > 0 ) { 
+								
+ 									if (currentMode === 'adventure' || currentMode === 'coop' ) { 
+	            if (typeof mobs !== 'undefined' && mobs.length > 0) {
+                for (const mob of mobs) {
+    if (mob.health <= 0 || mob._dead) continue;
+                    const dx = Math.abs(mob.cx - this.cx);
+                    const dist = Math.abs(dx);
+                    if (dist < move.range && this.facing === Math.sign(mob.cx - this.cx)) {
+                        const dy = Math.abs(mob.cy - this.cy);
+                        if (dy < 80) {
+                            this.attackHit = true;
+                            const dmg = move.damage || 10;
+                            mob.takeDamage(dmg, this.facing);
+                            this.playSound('hit');
+                            break;
+                        }
+                    }
+                }
+            }}
+			
+
+								if(isSoloLevel && !opponent.isMob && !this.isMob){return;}
+								
+                                     const dx = opponent.cx - this.cx;
                                     const dist = Math.abs(dx);
                                     const dir = Math.sign(dx);
                                     if (laneMode && this.lane !== opponent.lane) {
                                     } else if (this.facing === dir && dist < move.range) {
-                                        const dy = Math.abs(opponent.cy - this.cy);
+                                        const dy = Math.abs(opponent.cy - this.cy); 
                                         if (dy < 80) {
-										
 										       if (opponent.counterActive) {
                 const counterType = opponent.counterType;
                 const attackType = this._currentMoveType;
@@ -6632,6 +6691,47 @@ if (move && this.state === 'attack') {
     ctx.restore();
     }
 
+// ─── Mob AI ──────────────────────────────────────────────────
+if (this.isMob && !this._dead) {
+    // Reset input (mob reageert alleen op AI)
+    this.input.up = false;
+    this.input.down = false;
+    this.input.left = false;
+    this.input.right = false;
+    this.input.forward = false;
+    this.input.back = false;
+
+    let target = this._aiTarget || p1;
+	    if (p2 && p2.health > 0 && currentMode === 'coop') {
+        const d1 = Math.abs(this.cx - p1.cx);
+        const d2 = Math.abs(this.cx - p2.cx);
+        target = (d2 < d1) ? p2 : p1;
+    }
+
+    if (target && target.health > 0) {
+        const dx = target.cx - this.cx;
+        const dist = Math.abs(dx);
+
+        // Kijkrichting
+        this.facing = (target.cx > this.cx) ? 1 : -1;
+
+        // Bewegen naar doelwit
+        if (dist > 50) {
+            if (dx > 0) this.input.right = true;
+            else this.input.left = true;
+        } else {
+            // Aanvallen met 5% kans per frame
+            if (Math.random() < 0.05) {
+                const moves = this.moves.filter(m => m.command && m.command.trim() !== '');
+                if (moves.length > 0) {
+                    const move = moves[Math.floor(Math.random() * moves.length)];
+                    const idx = this.moves.indexOf(move);
+                    this.startAttack(idx);
+                }
+            }
+        }
+    }
+}
     
 }  
 
@@ -7265,11 +7365,11 @@ function isImageLoaded(img) {
      return true;
 }
 async function getSpriteForChar(charId) {
-showLoadingScreen();
+//showLoadingScreen();
 freeUnusedSprites();
 
     if (assetCache.sprites.has(charId)) {
-	hideLoadingScreen(100);
+//	hideLoadingScreen(100);
         return assetCache.sprites.get(charId);
     }
     const base64 = project.sprites[charId];
@@ -8766,7 +8866,15 @@ if (mode === 'network') {
 				disconnectNetwork()
 				}
 				
-				if (mode === 'adventure') {
+				if (mode === 'coop') {
+    currentMode = 'coop';
+    singlePlayer.active = false;
+    document.getElementById('singlePlayerInfo').style.display = 'none';
+    fullReset();
+    // Zorg dat P2 actief is en bestuurd kan worden
+    p2.health = p2.maxHealth;
+    p2.state = 'idle';
+} else				if (mode === 'adventure') {
     singlePlayer.active = false;
     document.getElementById('singlePlayerInfo').style.display = 'none'; 
     timerDisplay.textContent = '∞'; 
@@ -8829,74 +8937,131 @@ if (mode === 'network') {
                 fullReset();
             }
 
-          function updateProjectilesAndMines() {
+ function updateProjectilesAndMines() {
+    const isCoop = (currentMode === 'coop' || currentMode === 'adventure'); // adventure ook coop-achtig?
+
+    // ─── Projectielen ──────────────────────────────────────────
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
-        if (!proj) continue; 
-
+        if (!proj) continue;
         proj.update();
-
         if (!proj.active) {
             projectiles.splice(i, 1);
             continue;
         }
 
-        const target = (proj.owner === p1) ? p2 : p1;
-        if (!target || target.health <= 0 || isSoloLevel) continue;
-
-        if (proj.startDistance > 0 && proj.owner) {
-            const ownerDist = Math.abs(proj.x - proj.owner.cx);
-            if (ownerDist < proj.startDistance) continue;
+        // Bepaal doelen
+        let targets = [];
+        if (isCoop) {
+            if (proj.owner === p1 || proj.owner === p2) {
+                // Speler projectiel: raakt de andere speler + alle levende mobs
+                const otherPlayer = (proj.owner === p1) ? p2 : p1;
+                if (otherPlayer && otherPlayer.health > 0) targets.push(otherPlayer);
+                for (const mob of mobs) {
+                    if (mob.health > 0 && !mob._dead) targets.push(mob);
+                }
+            } else if (proj.owner && proj.owner.isMob) {
+                // Mob projectiel: raakt alle levende spelers
+                if (p1 && p1.health > 0) targets.push(p1);
+                if (p2 && p2.health > 0) targets.push(p2);
+            }
+        } else {
+            // Normale modi (PvP, PvAI, training, etc.)
+            if (proj.owner === p1) targets = [p2];
+            else if (proj.owner === p2) targets = [p1];
+            else if (proj.owner && proj.owner.isMob) {
+                const players = [p1, p2].filter(p => p.health > 0);
+                if (players.length > 0) targets = [players[Math.floor(Math.random() * players.length)]];
+            }
         }
 
-        const dx = Math.abs(target.cx - proj.x);
-        const dy = Math.abs(target.cy - proj.y);
-        const hitRadius = 40;
-        if (dx < hitRadius && dy < hitRadius ) {
-            target.takeDamage(proj.damage || 10, proj.dir);
+        // Filter ongeldige doelen
+        targets = targets.filter(t => t && t.health > 0 && !t._dead);
 
-            const tx = proj.teleportX || 0;
-            const ty = proj.teleportY || 0;
-            if (tx !== 0 || ty !== 0) {
-                target.x += tx * (-target.facing);
-                target.y -= ty;
-                const leftBound = project.settings.ringOutLeft ?? -100;
-                const rightBound = project.settings.ringOutRight ?? (1280 + 100);
-                if (target.x < leftBound) target.x = leftBound;
-                if (target.x + target.w > rightBound) target.x = rightBound - target.w;
-                if (target.y < 0) target.y = 0;
-                if (!laneMode) {
-                    if (target.y + target.h > GROUND_Y) target.y = GROUND_Y - target.h;
-                } else {
-                    let closest = 0;
-                    let minDist = Infinity;
-                    for (let j = 0; j < LANE_Y.length; j++) {
-                        const dist = Math.abs(target.y + target.h - LANE_Y[j]);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            closest = j;
+        // Hit detectie voor elk doel
+        for (const target of targets) {
+            if (proj.startDistance > 0 && proj.distanceTraveled < proj.startDistance) continue;
+            if (laneMode && proj.owner && proj.owner.lane !== target.lane) continue;
+
+            const dx = Math.abs(target.cx - proj.x);
+            const dy = Math.abs(target.cy - proj.y);
+            const hitRadius = proj.range || 40;
+            if (dx < hitRadius && dy < hitRadius) {
+                let blocked = false;
+                let damageToApply = proj.damage || 10;
+                if (target.state === 'block' || target.state === 'block_crouch') {
+                    let blockSuccess = true;
+                    if (proj.height === 'low' && target.state === 'block') blockSuccess = false;
+                    if (proj.height === 'high' && target.state === 'block_crouch') blockSuccess = false;
+                    if (proj.unblockable) blockSuccess = false;
+                    if (blockSuccess) {
+                        blocked = true;
+                        if (proj.chipDamage) {
+                            damageToApply = Math.max(1, Math.floor(proj.damage * 0.1));
+                        } else {
+                            damageToApply = 0;
                         }
                     }
-                    target.lane = closest;
-                    target.y = LANE_Y[closest] - target.h;
                 }
-            }
+                target.takeDamage(damageToApply, proj.dir, blocked);
 
-            proj.active = false;
-            projectiles.splice(i, 1);
+                // Teleport
+                if (proj.teleportX !== 0 || proj.teleportY !== 0) {
+                    target.x += proj.teleportX * (-target.facing);
+                    target.y -= proj.teleportY;
+                    const leftBound = project.settings.ringOutLeft ?? -100;
+                    const rightBound = project.settings.ringOutRight ?? (1280 + 100);
+                    if (target.x < leftBound) target.x = leftBound;
+                    if (target.x + target.w > rightBound) target.x = rightBound - target.w;
+                    if (target.y < 0) target.y = 0;
+                    if (!laneMode) {
+                        if (target.y + target.h > GROUND_Y) target.y = GROUND_Y - target.h;
+                    } else {
+                        let closest = 0, minDist = Infinity;
+                        for (let j = 0; j < LANE_Y.length; j++) {
+                            const dist = Math.abs(target.y + target.h - LANE_Y[j]);
+                            if (dist < minDist) { minDist = dist; closest = j; }
+                        }
+                        target.lane = closest;
+                        target.y = LANE_Y[closest] - target.h;
+                    }
+                }
+
+                proj.active = false;
+                break; // één doel per projectiel
+            }
         }
+        if (!proj.active) projectiles.splice(i, 1);
     }
 
+    // ─── Mines ──────────────────────────────────────────────────
     for (let i = mines.length - 1; i >= 0; i--) {
         const mine = mines[i];
         if (!mine) continue;
 
-        const opponents = [p1, p2];
-        mine.update(opponents);
-
-        if (!mine.active) {
-            mines.splice(i, 1);
+        let opponents = [];
+        if (isCoop) {
+            if (mine.owner === p1 || mine.owner === p2) {
+                const otherPlayer = (mine.owner === p1) ? p2 : p1;
+                if (otherPlayer && otherPlayer.health > 0) opponents.push(otherPlayer);
+                for (const mob of mobs) {
+                    if (mob.health > 0 && !mob._dead) opponents.push(mob);
+                }
+            } else if (mine.owner && mine.owner.isMob) {
+                if (p1 && p1.health > 0) opponents.push(p1);
+                if (p2 && p2.health > 0) opponents.push(p2);
+            }
+        } else {
+            if (mine.owner === p1) opponents = [p2];
+            else if (mine.owner === p2) opponents = [p1];
+            else if (mine.owner && mine.owner.isMob) {
+                const players = [p1, p2].filter(p => p.health > 0);
+                if (players.length > 0) opponents = [players[Math.floor(Math.random() * players.length)]];
+            }
         }
+
+        mine.update(opponents);
+        if (!mine.active) mines.splice(i, 1);
     }
 }
 function saveAdventureProgress() {
@@ -8989,7 +9154,7 @@ function getRandomChar(vp) {
 }
 
 function getRandomMode() {
-    const modes = ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'];
+    const modes = ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'coop','aivai', 'training'];
     return modes[Math.floor(Math.random() * modes.length)];
 }
 
@@ -9111,7 +9276,13 @@ if (project.settings.tagMatch && activeTravelcube.tagSwitch && activeTravelcube.
             }
 	
             // ─── Teleport uitvoeren ──────────────────────────
-           if(targetId != 'none'){  setStage(targetId);}
+           if(targetId != 'none'){  setStage(targetId);
+		   
+		   if (currentMode === 'adventure') {
+    saveAdventureProgress();
+}
+
+		   }
 
             let needsReset = false;
             if (mode) {
@@ -9406,8 +9577,9 @@ if((p1.health+p1_tag.health) >0 && (p2.health+p2_tag.health) > 0)
  
 
 }
+ 
 
-
+ 
   if (isOkTOHandle && roundActive && winner === null && project.settings.fatalityEnabled ){ 
 
     const maxRounds = project.settings.roundCount || 3;
@@ -9608,10 +9780,10 @@ p2.comboCount=0;
 
                 if (!roundActive &&  project.settings.isWaitBeforeAfterFightStart){ return;  }
 				
-  
+                      const stage = project.stages.find(s => s.id === project.currentStageId);
+
                 // ─── FALLING ITEMS SPAWNEN ──────────────────────────
                 if (roundActive && !gamePaused) {
-                    const stage = project.stages.find(s => s.id === project.currentStageId);
                     if (stage && stage.itemConfigs && stage.itemConfigs.length > 0) {
                         fallingItemSpawnTimer--;
                         if (fallingItemSpawnTimer <= 0) {
@@ -9702,9 +9874,9 @@ if (!networkMode && !isSoloLevel) {
                 if (currentMode === 'aivai') {
     updateAIFor(p1, p2, true);
     updateAIFor(p2, p1, true);
-                } else if (currentMode === 'pvai' || currentMode === 'adventure' ||  currentMode === 'arcade' || currentMode === 'timeattack' || currentMode === 'survival') {
+                } else if (currentMode === 'pvai' || currentMode === 'adventure'  ||    currentMode === 'arcade' || currentMode === 'timeattack' || currentMode === 'survival') {
                         updateAIFor(p2, p1, false); 
-                 } else if (currentMode === 'pvp') {
+                 } else if (currentMode === 'pvp' || currentMode === 'coop') {
                     if (p1._aiTimer) p1._aiTimer = 0;
                     if (p2._aiTimer) p2._aiTimer = 0;
                 } else if (currentMode === 'training') {
@@ -9847,11 +10019,149 @@ if (networkMode && ws && ws.readyState === WebSocket.OPEN) {
 				
                 updateProjectilesAndMines();
 				updateWeather();
+				
+				
+				
+				
+// ─── Mob spawnen ──────────────────────────────────────
+ if (currentMode === 'adventure'|| currentMode === 'coop') {
+    const stage = project.stages.find(s => s.id === project.currentStageId);
+      if (stage && stage.mobConfigs) { 
+        stage.mobConfigs.forEach((cfg, idx) => {
+            const key = stage.id + '_' + idx;
+if (!mobSpawnTimers[key]) mobSpawnTimers[key] = cfg.spawnRate || 60;
+            mobSpawnTimers[key]--;
+
+            if (mobSpawnTimers[key] <= 0) {
+                mobSpawnTimers[key] = cfg.spawnRate || 60;
+
+                let canSpawn = true;
+
+                // 1. Until_defeat blokkade
+                if (cfg.behavior === 'until_defeat') {
+                    const deadMobs = mobs.filter(m => m._configKey === key && m._dead);
+                    if (deadMobs.length > 0) canSpawn = false;
+                }
+
+                // 2. Loop check: als isLoop false is en er zijn al mobs gespawned en geen levende meer → stoppen
+                if (!cfg.isLoop && mobSpawned[key] === true) {
+                    const activeMobs = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
+                    if (activeMobs.length === 0) canSpawn = false;
+                }
+
+                if (canSpawn) {
+                    const activeMobs = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
+                    if (activeMobs.length < cfg.maxTotal) {
+                        const availableChars = cfg.characterIds.filter(id => project.characters[id]);
+                        if (availableChars.length > 0) {
+                            const charId = availableChars[Math.floor(Math.random() * availableChars.length)];
+                            const charData = project.characters[charId];
+                            const mob = new Fighter(charId, cfg.startX, 1, -1);
+                            mob.health = charData.health || 100;
+                            mob.maxHealth = charData.health || 100;
+                            mob.isMob = true;
+                            mob._configKey = key;
+                            mob._behavior = cfg.behavior || 'short';
+                            mob._spawnTime = performance.now();
+                            mob._lifeTime = 600;
+                            mob._dead = false;
+                            mob.spriteImg = spriteImages[charId] || null;
+                            mob.y = cfg.startY || GROUND_Y - mob.h;
+                            mob.groundY = cfg.startY || GROUND_Y;
+                            mob.onGround = true;
+                            mob.vy = 0;
+                            mob._aiTarget = null; // wordt later bepaald in de update
+                            mobs.push(mob);
+                            mobSpawned[key] = true;
+                        }
+                    }
+                }
+            }
+        });
+    }
 
 
+ // ─── Mobs updaten ─────────────────────────────────────────────
+for (let i = mobs.length - 1; i >= 0; i--) {
+    const mob = mobs[i];
+    if (mob.health <= 0) {
+        if (mob._behavior === 'until_defeat') {
+            // Alleen als hij nog niet dead is gemarkeerd
+            if (!mob._dead) {
+           /*     mob._dead = true;
+                mob.state = 'ko';
+                mob.vx = 0;
+                mob.vy = 0;
+                mob.onGround = true;
+                 mob.health = 0;*/
+				
+				 mobs.splice(i, 1);
+            }
+            // Blijf in array, maar update niet verder
+            continue;
+        } else {
+            // short: verwijder
+            mobs.splice(i, 1);
+            continue;
+        }
+    }
+    // Reset dead flag als health > 0 (bijv. na heal, maar dat gebeurt niet)
+    if (mob._dead) mob._dead = false;
 
+    // Short: check levensduur
+    if (mob._behavior === 'short') {
+        if ((performance.now() - mob._spawnTime) > mob._lifeTime * 16.67) {
+            mobs.splice(i, 1);
+            continue;
+        }
+    } else if (mob._behavior === 'until_defeat') {
+	 
+	mob._lifeTime=1000;
+	}
+    // Alleen updaten als niet dead
+   if (!mob._dead) {
+    // Bepaal dichtstbijzijnde levende speler
+    let target = null;
+    let minDist = Infinity;
+    if (p1 && p1.health > 0) {
+        const d = Math.abs(mob.cx - p1.cx);
+        if (d < minDist) { minDist = d; target = p1; }
+    }
+    if (p2 && p2.health > 0) {
+        const d = Math.abs(mob.cx - p2.cx);
+        if (d < minDist) { minDist = d; target = p2; }
+    }
+    if (target) {
+        mob.update(target);
+    } else {
+        // Geen levende speler, update met null (aanvallen worden dan overgeslagen)
+        mob.update(null);
+    }
+}
+}
+// ─── Victory check: winWhenDefeat ──────────────────────────
+ if (stage && stage.mobConfigs) {
+    let allDefeated = false;
+    for (let idx = 0; idx < stage.mobConfigs.length; idx++) {
+        const cfg = stage.mobConfigs[idx];
+        if (cfg.winWhenDefeat) {
+            const key = stage.id + '_' + idx;
+            const alive = mobs.filter(m => m._configKey === key && !m._dead && m.health > 0);
+            if (alive.length === 0 && mobSpawned[key] === true) {
+                allDefeated = true;
+                break;
+            }
+        }
+    }
+	
+    if (allDefeated  && winner === null ) {
+	winner="draw";
+  		handleRoundEnd(winner)
+    }
+}
 
-             
+                 }
+
 }
 function drawAttackRanges(ctx, camera) {
     if (!project.settings.showAttackRange) return;
@@ -9956,6 +10266,19 @@ function drawAttackRanges(ctx, camera) {
             function render() {
                 drawBackground(); 
     drawWeather(ctx, camera);
+	
+	    if (activeStageEffect === 'dark') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    } else if (activeStageEffect === 'bright') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    }
+
 	
 	if (currentMode === 'training') drawAttackRanges(ctx, camera);
 
@@ -10147,6 +10470,11 @@ if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
     fightDisplayTimer--;
 }
 ctx.fillStyle = project.settings.ringOutColor || '#ff4444';
+
+
+for (const mob of mobs) {
+    mob.draw(ctx, camera);
+}
              }
 
 function resetFighterUI() {
@@ -10252,7 +10580,10 @@ fatalityTimer = 0;
 timerFrameCounter = 0; 
 				    startFightTimer = project.settings.instantRoundReset ? 60 : 180;
 freeUnusedSprites();
-
+mobs = [];
+mobSpawnTimers = {};
+mobSpawned = {};
+ 
 				startFightSoundPlayed = false;
 
 isSoloLevel=isAdventureSolo()
@@ -10446,7 +10777,10 @@ matchEndSoundPlayed = false;
 flawlessVictory = false;
 fatalityActive = false;
 fatalityTimer = 0;
-
+mobs = [];
+mobSpawnTimers = {};
+mobSpawned = {};
+ 
 isSoloLevel=isAdventureSolo()
    
        diffKey = project.settings.aiDifficulty || 'normal'; 
@@ -10668,6 +11002,8 @@ project.projectId =data.projectId;
 			if (!stage.soloAdventure) stage.soloAdventure = false;
 			if (!stage.nextStageId) stage.nextStageId = null;
 						if (!stage.floorY) stage.floorY = 560;
+		  if (!stage.mobConfigs) stage.mobConfigs = [];
+
 	GROUND_Y = stage.floorY;
     LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
 
@@ -10766,7 +11102,7 @@ guardShape: 'rounded'
 
         };
 project.publish = data.publish || {
-    modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
+    modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'coop','aivai', 'training'],
     actions: ['characters',  'settings'],
     utilities: ['fullscreen'],
     ui: ['stageSelect'],
@@ -11233,7 +11569,10 @@ if (cube._audio) {             cube._audio.pause();
 	//     showLoadingScreen();
 cameraAnim = null;
 camera.zoom = project.cameraZoom || 1.0;
-
+mobs = [];
+mobSpawnTimers = {};
+mobSpawned = {};
+ 
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
 	GROUND_Y = stage.floorY;
@@ -11807,6 +12146,14 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
             <div class="form-group frame-fields"><label>Start frame</label><input type="number" class="move-start" value="${data.startFrame || 0}" /></div>
             <div class="form-group frame-fields"><label>End frame</label><input type="number" class="move-end" value="${data.endFrame || 3}" /></div>
         </div>
+		<div class="form-group">
+    <label>Stage effect</label>
+    <select class="move-stage-effect">
+        <option value="none" ${data.stageEffect === 'none' ? 'selected' : ''}>None</option>
+        <option value="dark" ${data.stageEffect === 'dark' ? 'selected' : ''}>Dark</option>
+        <option value="bright" ${data.stageEffect === 'bright' ? 'selected' : ''}>Bright</option>
+    </select>
+</div>
         <div class="form-row-4">
             <div class="form-group"><label>Type</label>
                 <select class="move-type">
@@ -12704,6 +13051,7 @@ function collectMoves() {
         const counterType = row.querySelector('.move-counter')?.value || 'none';
 const fatalityOnly = row.querySelector('.move-fatalityonly')?.checked || false;
 const fallbackVisual = row.querySelector('.move-fallback')?.value || 'auto';
+const stageEffect = row.querySelector('.move-stage-effect')?.value || 'none';
 
         // ─── Bepaal sleutels voor deze move ──────────────────────
         const attackKey = 'attack_' + moveId;
@@ -12764,7 +13112,8 @@ const fallbackVisual = row.querySelector('.move-fallback')?.value || 'auto';
             generatesEnergy: mGainEnergy,
             counterType: counterType,
 			fallbackVisual:fallbackVisual,
-			    spawnYOffset: mSpawnYOffset
+			    spawnYOffset: mSpawnYOffset,
+				    stageEffect: stageEffect
         });
     });
     return moves;
@@ -13112,6 +13461,7 @@ function duplicateStage(idx) {
             audioData: null,
             platforms: [],
             itemConfigs: [],
+			mobConfigs: [],
             travelcubeConfigs: [],
             colorTheme: 'default',
             weather: 'none',
@@ -13137,6 +13487,7 @@ function duplicateStage(idx) {
             audioData: null,
             platforms: [],
             itemConfigs: [],
+			            mobConfigs: [],
             travelcubeConfigs: [],
             colorTheme: 'default',
             weather: 'none',
@@ -13195,7 +13546,34 @@ function buildStageTargetOptions(selected) {
         opts += `<option value="${s.id}" ${s.id === selected ? 'selected' : ''}>${s.name}</option>`;
     }
     return opts;
-}
+}                
+
+    function buildMobConfigsHTML() {
+        return (stage.mobConfigs || []).map((cfg, i) => `
+            <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <label style="font-size:10px;color:#7a7a9a;">Characters</label>
+<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:200px; max-height:80px; overflow-y:auto; padding:4px; background:#0a0a16; border-radius:4px; border:1px solid #2a2a4a;">
+    ${Object.keys(project.characters).map(id => `
+        <label style="font-size:11px; display:flex; align-items:center; gap:2px; color:#c0c0e0;">
+            <input type="checkbox" class="mob-char-check" value="${id}" ${cfg.characterIds && cfg.characterIds.includes(id) ? 'checked' : ''}>
+            ${project.characters[id].name}
+        </label>
+    `).join('')}
+</div>                    <label style="font-size:10px;color:#7a7a9a;">Spawn rate (frames)</label>
+                    <input type="number" class="mob-rate" value="${cfg.spawnRate || 60}" style="width:60px;" />
+                    <label style="font-size:10px;color:#7a7a9a;">Max total</label>
+                    <input type="number" class="mob-max" value="${cfg.maxTotal || 3}" style="width:50px;" />
+                    <label style="font-size:10px;color:#7a7a9a;">Start X</label>
+                    <input type="number" class="mob-startx" value="${cfg.startX || 100}" style="width:60px;" />
+                    <label style="font-size:10px;color:#7a7a9a;">Start Y</label>
+                    <input type="number" class="mob-starty" value="${cfg.startY || GROUND_Y}" style="width:60px;" />
+                    <button class="btn danger remove-mob-config" style="padding:2px 8px;">✕</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
     function buildModeOptions(selected) {
         const modes = [
             { val: '', label: '-' },
@@ -13207,7 +13585,9 @@ function buildStageTargetOptions(selected) {
             { val: 'pvp', label: 'PvP' },
             { val: 'aivai', label: 'AIvsAI' },
             { val: 'training', label: 'Training' },
-            { val: 'adventure', label: 'Adventure' }
+            { val: 'adventure', label: 'Adventure' },
+			   { val: 'coop', label: 'coop' }
+
         ];
         return modes.map(m => `<option value="${m.val}" ${m.val === selected ? 'selected' : ''}>${m.label}</option>`).join('');
     }
@@ -13534,6 +13914,51 @@ function buildStageTargetOptions(selected) {
             }).join('')}
         </div>
         <button class="btn" id="addEditStageTravelcube">➕ Add travelcube</button>
+ 
+         <h3>👾 Mob Spawners</h3>
+        <div id="editStageMobConfigs">
+            ${(stage.mobConfigs || []).map((cfg, i) => `
+                <div class="stage-item" data-idx="${i}" style="background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                        <label style="font-size:10px;color:#7a7a9a;">Characters</label>
+                <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:200px; max-height:80px; overflow-y:auto; padding:4px; background:#0a0a16; border-radius:4px; border:1px solid #2a2a4a;">
+                    ${Object.keys(project.characters).map(id => {
+                        const checked = (cfg.characterIds && Array.isArray(cfg.characterIds) && cfg.characterIds.includes(id)) ? 'checked' : '';
+                        return `
+                            <label style="font-size:11px; display:flex; align-items:center; gap:2px; color:#c0c0e0;">
+                                <input type="checkbox" class="mob-char-check" value="${id}" ${checked}>
+                                ${project.characters[id].name}
+                            </label>
+                        `;
+                    }).join('')}
+                </div>
+				<label style="font-size:10px;color:#7a7a9a;">Behavior</label>
+<select class="mob-behavior">
+    <option value="short" ${cfg.behavior === 'short' ? 'selected' : ''}>Short</option>
+    <option value="until_defeat" ${cfg.behavior === 'until_defeat' ? 'selected' : ''}>Until defeat</option>
+</select>
+
+                        <label style="font-size:10px;color:#7a7a9a;">Spawn rate (frames)</label>
+                        <input type="number" class="mob-rate" value="${cfg.spawnRate || 60}" style="width:60px;" />
+						<label style="font-size:10px;color:#7a7a9a;">Loop</label>
+<input type="checkbox" class="mob-loop" ${cfg.isLoop ? 'checked' : ''} />
+
+<label style="font-size:10px;color:#7a7a9a;">Win on defeat</label>
+<input type="checkbox" class="mob-win" ${cfg.winWhenDefeat ? 'checked' : ''} />
+
+                        <label style="font-size:10px;color:#7a7a9a;">Max total</label>
+                        <input type="number" class="mob-max" value="${cfg.maxTotal || 3}" style="width:50px;" />
+                        <label style="font-size:10px;color:#7a7a9a;">Start X</label>
+                        <input type="number" class="mob-startx" value="${cfg.startX || 100}" style="width:60px;" />
+                        <label style="font-size:10px;color:#7a7a9a;">Start Y</label>
+                        <input type="number" class="mob-starty" value="${cfg.startY || GROUND_Y}" style="width:60px;" />
+<button class="btn danger remove-mob-config" style="padding:2px 8px;" onclick="this.closest('.stage-item').remove();">✕</button>
+                    </div>
+                </div>
+            `).join('')}
+
+</div>
+<button class="btn" id="addEditStageMobConfig">➕ Add mob spawner</button>
 <hr>
         <div class="btn-group" style="margin-top:16px;">
             <button class="btn primary" id="saveEditStage">💾 Save</button>
@@ -13545,6 +13970,52 @@ function buildStageTargetOptions(selected) {
     modalOverlay.classList.add('open');
 
 document.getElementById('editStageStartAnim').value = stage.startAnimation || 'none';
+
+document.getElementById('addEditStageMobConfig')?.addEventListener('click', function() {
+    const container = document.getElementById('editStageMobConfigs');
+    const div = document.createElement('div');
+    div.className = 'stage-item';
+    div.style.cssText = 'background:#0f0f1e;padding:6px;border-radius:6px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px;';
+    div.innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:200px; max-height:80px; overflow-y:auto; padding:4px; background:#0a0a16; border-radius:4px; border:1px solid #2a2a4a;">
+                ${Object.keys(project.characters).map(id => `
+                    <label style="font-size:11px; display:flex; align-items:center; gap:2px; color:#c0c0e0;">
+                        <input type="checkbox" class="mob-char-check" value="${id}">
+                        ${project.characters[id].name}
+                    </label>
+                `).join('')}
+            </div>
+			<label style="font-size:10px;color:#7a7a9a;">Behavior</label>
+<select class="mob-behavior">
+    <option value="short">Short</option>
+    <option value="until_defeat">Until defeat</option>
+</select>
+
+            <label style="font-size:10px;color:#7a7a9a;">Spawn rate (frames)</label>
+            <input type="number" class="mob-rate" value="60" style="width:60px;" min="10" />
+			<label style="font-size:10px;color:#7a7a9a;">Loop</label>
+<input type="checkbox" class="mob-loop" />
+
+<label style="font-size:10px;color:#7a7a9a;">Win on defeat</label>
+<input type="checkbox" class="mob-win" />
+
+            <label style="font-size:10px;color:#7a7a9a;">Max total</label>
+            <input type="number" class="mob-max" value="3" style="width:50px;" min="0" />
+            <label style="font-size:10px;color:#7a7a9a;">Start X</label>
+            <input type="number" class="mob-startx" value="100" style="width:60px;" />
+            <label style="font-size:10px;color:#7a7a9a;">Start Y</label>
+            <input type="number" class="mob-starty" value="${GROUND_Y}" style="width:60px;" />
+            <button class="btn danger remove-mob-config" style="padding:2px 8px;">✕</button>
+        </div>
+    `;
+    container.appendChild(div);
+    div.querySelector('.remove-mob-config').addEventListener('click', function() {
+        div.remove();
+    });
+});
+
+
 
 // ─── Delegate voor clear/remove knoppen ───────────────────
 modalBody.addEventListener('click', function(e) {
@@ -13580,6 +14051,8 @@ modalBody.addEventListener('click', function(e) {
         return;
     }
 
+  
+   
     const removeItemBtn = e.target.closest('.remove-item');
     if (removeItemBtn) {
         e.stopPropagation();
@@ -13802,9 +14275,10 @@ const floorY = parseInt(document.getElementById('editStageFloor').value) ?? 560;
         const platformMarginRight = parseFloat(document.getElementById('editPlatformMarginRight').value) ?? 30;
         const platformYOffset = parseFloat(document.getElementById('editPlatformYOffset').value) ?? 0;
 const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item');
-
+        const mobRows = document.querySelectorAll('#editStageMobConfigs .stage-item');
         const itemRows = document.querySelectorAll('#editStageItemConfigs .stage-item');
         const travelcubeRows = document.querySelectorAll('#editStageTravelcubes .stage-item');
+
 
         let pendingReads = 0;
 
@@ -13972,6 +14446,33 @@ const tagSwitch = row.querySelector('.tc-tagswitch').value || 'none';
  
 });
 
+            // ─── Mob configs ──────────────────────────────────
+const mobConfigs = [];
+mobRows.forEach(row => {
+    const charChecks = row.querySelectorAll('.mob-char-check:checked');
+    const selectedOptions = Array.from(charChecks).map(cb => cb.value);
+    const rate = parseInt(row.querySelector('.mob-rate').value) || 60;
+    const maxTotal = parseInt(row.querySelector('.mob-max').value) || 3;
+    const startX = parseInt(row.querySelector('.mob-startx').value) || 100;
+    const startY = parseInt(row.querySelector('.mob-starty').value) || GROUND_Y;
+	const behavior = row.querySelector('.mob-behavior').value || 'short';
+const isLoop = row.querySelector('.mob-loop')?.checked || false;
+const winWhenDefeat = row.querySelector('.mob-win')?.checked || false;
+
+    if (selectedOptions.length > 0 && maxTotal > 0) {
+        mobConfigs.push({
+            characterIds: selectedOptions,
+            spawnRate: Math.max(1, rate),
+            maxTotal: Math.max(0, maxTotal),
+            startX: startX,
+    startY: startY,
+    behavior: behavior,
+	  isLoop: isLoop,       
+    winWhenDefeat: winWhenDefeat
+        });
+    }
+});
+
             // ─── Bepaal imageData en audioData ────────────────────────
             let finalImageData = null;
             if (removalFlags.imageData) {
@@ -14023,7 +14524,9 @@ const tagSwitch = row.querySelector('.tc-tagswitch').value || 'none';
                 platformMarginLeft: platformMarginLeft,
                 platformMarginRight: platformMarginRight,
                 platformYOffset: platformYOffset,
-				    textcubeConfigs: textcubeConfigs
+				    textcubeConfigs: textcubeConfigs,
+					mobConfigs : mobConfigs
+
             };
 
             if (isNew) {
@@ -15232,6 +15735,10 @@ fullReset();//resetRound();
                             <li><strong>➕ New stage:</strong> creates a new stage with a name, background image or color, background audio, and an optional spring platform.</li>
                             <li><strong>✏️ Edit:</strong> modifies an existing stage (image, color, audio, spring platform).</li>
                             <li><strong>🗑 Delete:</strong> removes a stage from the list. If the active stage is deleted, the game automatically switches to the first available stage.</li>
+<li><strong>Platforms:</strong> Create up to 6 random platforms for jumping. Adjust the X/Y offset in the settings for smaller sprites.</li>
+<li><strong>Falling items:</strong> Items fall from the sky. Can heal or damage players. Offline only.</li>
+<li><strong>Cubes:</strong> Use travel cubes for teleporting, text cubes for messages.</li>
+<li><strong>Mob spawner:</strong> Spawn enemies the stage. Offline only, works in coop/adventure. If all enemies are 'dead', the match ends in a draw. If a player is 'dead' first, the other player wins.</li>
                         </ul>
 
                         <h3>⚙️ Settings</h3>
@@ -15599,7 +16106,7 @@ function openPublishModal() {
  
     if (!project.publish) {
         project.publish = {
-            modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'aivai', 'training'],
+            modes: ['arcade', 'timeattack', 'survival', 'pvai', 'pvp', 'coop','aivai', 'training'],
             actions: [],
             utilities: ['fullscreen'],
             ui: ['stageSelect'],
