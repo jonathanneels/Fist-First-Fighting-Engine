@@ -362,7 +362,7 @@
           "image": null
         },
         "hit": {
-          "row": 5,
+          "row": 6,
           "startFrame": 0,
           "endFrame": 7,
           "image": null
@@ -461,7 +461,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_2",
@@ -490,7 +492,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_4",
@@ -519,7 +523,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_6",
@@ -548,7 +554,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_8",
@@ -577,7 +585,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_10",
@@ -606,7 +616,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_12",
@@ -635,7 +647,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         }
       ],
       "hasEnergy": false,
@@ -663,7 +677,13 @@
       "shoes": "none",
       "glasses": "none",
       "shoulderPads": "none",
-      "belt": "none"
+      "belt": "none",
+      "guardEnabled": false,
+      "guardMax": 100,
+      "guardCost": 10,
+      "guardRecoveryRate": 5,
+      "hudOpacity": 1,
+      "ignorePhysics": false
     },
     "char_1783184918617": {
       "id": "char_1783184918617",
@@ -1255,7 +1275,8 @@
     "touchShape": "square",
     "instantRoundReset": false,
     "guardColor": "#66ccff",
-    "guardShape": "rounded"
+    "guardShape": "rounded",
+    "showAttackRange": false
   },
   "currentBg": "sunset",
   "selectedP1Char": "char_1783184918617",
@@ -1291,7 +1312,9 @@
       "platformMarginLeft": 3,
       "platformMarginRight": 3,
       "platformYOffset": 2,
-      "textcubeConfigs": []
+      "textcubeConfigs": [],
+      "floorY": 560,
+      "mobConfigs": []
     },
     {
       "id": "stage_1783421853640",
@@ -1335,7 +1358,9 @@
       "platformMarginLeft": 50,
       "platformMarginRight": -3,
       "platformYOffset": 7,
-      "textcubeConfigs": []
+      "textcubeConfigs": [],
+      "floorY": 560,
+      "mobConfigs": []
     }
   ],
   "currentStageId": "stage_1783421853640",
