@@ -1,6 +1,6 @@
 {
   "version": "70.6",
-  "projectId": "proj_1784812674986_evb9xb",
+  "projectId": "proj_1784812663613_68j0pj",
   "characters": {
     "fighter": {
       "id": "fighter",
@@ -362,7 +362,7 @@
           "image": null
         },
         "hit": {
-          "row": 5,
+          "row": 6,
           "startFrame": 0,
           "endFrame": 7,
           "image": null
@@ -461,7 +461,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_2",
@@ -490,7 +492,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_4",
@@ -519,7 +523,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_6",
@@ -548,7 +554,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_8",
@@ -577,7 +585,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_10",
@@ -606,7 +616,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         },
         {
           "id": "m_1783208895575_12",
@@ -635,7 +647,9 @@
           "teleportY": 0,
           "generatesEnergy": 0,
           "counterType": "none",
-          "fallbackVisual": "auto"
+          "fallbackVisual": "auto",
+          "spawnYOffset": 0,
+          "stageEffect": "none"
         }
       ],
       "hasEnergy": false,
@@ -663,7 +677,13 @@
       "shoes": "none",
       "glasses": "none",
       "shoulderPads": "none",
-      "belt": "none"
+      "belt": "none",
+      "guardEnabled": false,
+      "guardMax": 100,
+      "guardCost": 10,
+      "guardRecoveryRate": 5,
+      "hudOpacity": 1,
+      "ignorePhysics": false
     },
     "char_1783184918617": {
       "id": "char_1783184918617",
@@ -1012,8 +1032,8 @@
     "roundDrawText": "DRAW!",
     "matchWinText": "{winner} wins the match!",
     "isStatusTextAbovePlayer": false,
-    "startX1": 530,
-    "startX2": 730,
+    "startX1": 450,
+    "startX2": 650,
     "victoryPoints": 0,
     "vpPerWin": 1,
     "healthColorP1": "#bdd1c1",
@@ -1163,7 +1183,7 @@
     },
     "plugins": [],
     "autoFreezeOnBlock": false,
-    "cameraOffsetX": -35,
+    "cameraOffsetX": 0,
     "cameraOffsetY": 0,
     "adventureCurrentStageId": "",
     "adventurePlayerChar": "",
@@ -1255,7 +1275,8 @@
     "touchShape": "square",
     "instantRoundReset": false,
     "guardColor": "#66ccff",
-    "guardShape": "rounded"
+    "guardShape": "rounded",
+    "showAttackRange": false
   },
   "currentBg": "dojo",
   "selectedP1Char": "char_1783184918617",
@@ -1280,16 +1301,20 @@
       "itemConfigs": [],
       "travelcubeConfigs": [],
       "colorTheme": "default",
+      "startAnimation": "left",
       "weather": "none",
       "vpRequired": 0,
       "soloAdventure": false,
+      "freeLook": false,
       "nextStageId": null,
+      "gameOverStageId": null,
+      "platformColor": "#66ccff",
       "platformMarginLeft": 3,
       "platformMarginRight": 3,
       "platformYOffset": 2,
       "textcubeConfigs": [],
-      "gameOverStageId": null,
-      "startAnimation": "none"
+      "floorY": 560,
+      "mobConfigs": []
     }
   ],
   "currentStageId": "dojo",
