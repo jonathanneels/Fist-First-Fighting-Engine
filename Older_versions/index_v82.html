@@ -1648,21 +1648,25 @@ function serializeGameStateCompact() {
         p2: serializeFighterCompact(p2),
         p1id: p1.charId,
         p2id: p2.charId,
-        proj: projectiles.map(p => ({
-            x: p.x, y: p.y, dir: p.dir, dmg: p.damage, spd: p.speed,
-            owner: p.owner === p1 ? 1 : 2,
-            row: p.row, sf: p.startFrame, co: p.currentOffset,
-            life: p.life, tx: p.teleportX, ty: p.teleportY,
-            range: p.range, chip: p.chipDamage, act: p.active, mi: p.moveIndex  
-        })),
-        mines: mines.map(m => ({
-            x: m.x, y: m.y, dmg: m.damage,
-            owner: m.owner === p1 ? 1 : 2,
-            row: m.row, sf: m.startFrame, co: m.currentOffset,
-            life: m.life, tx: m.teleportX, ty: m.teleportY,
-            range: m.range, chip: m.chipDamage, act: m.active,
-            expl: m.exploded, ext: m.explosionTimer,    mi: m.moveIndex
-        })),
+proj: projectiles.map(p => ({
+    x: p.x, y: p.y, dir: p.dir, dmg: p.damage, spd: p.speed,
+    owner: p.owner === p1 ? 1 : 2,
+    row: p.row, sf: p.startFrame, co: p.currentOffset,
+    life: p.life, tx: p.teleportX, ty: p.teleportY,
+    range: p.range, chip: p.chipDamage, act: p.active, mi: p.moveIndex,
+    height: p.height || 'mid',          
+    unblockable: p.unblockable || false  
+})),
+ mines: mines.map(m => ({
+    x: m.x, y: m.y, dmg: m.damage,
+    owner: m.owner === p1 ? 1 : 2,
+    row: m.row, sf: m.startFrame, co: m.currentOffset,
+    life: m.life, tx: m.teleportX, ty: m.teleportY,
+    range: m.range, chip: m.chipDamage, act: m.active,
+    expl: m.exploded, ext: m.explosionTimer, mi: m.moveIndex,
+    height: m.height || 'mid',         
+    unblockable: m.unblockable || false  
+})),
         t: gameTimer,
         st: project.currentStageId,
         ra: roundActive,
@@ -1752,7 +1756,9 @@ function deserializeGameStateCompact(data) {
         pd.x, pd.y, pd.dir, pd.dmg, pd.spd, owner,
         sprite, pd.row, pd.sf, pd.sf+3, 0, extraImg, pd.life,
         pd.tx, pd.ty, pd.range, pd.chip !== false, 5,
-        pd.mi  // geef de moveIndex mee
+        pd.mi,
+        pd.height || 'mid',            
+        pd.unblockable || false        
     );
     proj.currentOffset = pd.co || 0;
     proj.active = pd.act !== false;
@@ -1779,7 +1785,9 @@ mines = data.mines.map(md => {
         md.x, md.y, md.dmg, owner,
         sprite, md.row, md.sf, md.sf+3, md.range, 0,
         false, extraImg, md.life, md.tx, md.ty,
-        md.chip !== false, 5, md.mi
+        md.chip !== false, 5, md.mi,
+        md.height || 'mid',            
+        md.unblockable || false        
     );
     mine.currentOffset = md.co || 0;
     mine.active = md.act !== false;
@@ -3506,7 +3514,8 @@ class Projectile {
                 row = 0, startFrame = 0, endFrame = 3,
                 startDistance = 0, extraImage = null, life = 300,
                 teleportX = 0, teleportY = 0, range = 40, chipDamage = true,
-                animSpeed = 5,moveIndex = -1) {
+                animSpeed = 5,moveIndex = -1,
+                height = 'mid', unblockable = false) {
 				
 				        this.moveIndex = moveIndex;
         this.x = x;
@@ -3535,6 +3544,9 @@ class Projectile {
         this.range = range || 40;
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
+		        this.height = height || 'mid';         
+        this.unblockable = unblockable || false;  
+
         if (this.extraImage) {
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
                 this.imageLoaded = true;
@@ -3704,6 +3716,9 @@ class Mine {
         this.teleportY = teleportY || 0;
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
+		        this.height = height || 'mid'; 
+        this.unblockable = unblockable || false;  
+
         if (this.extraImage) { 
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
                 this.imageLoaded = true;
@@ -3751,17 +3766,25 @@ class Mine {
 
         let damageToApply = this.damage;
         let blocked = false;
-        if (target.state === 'block' || target.state === 'block_crouch') {
-            if (target.state === 'block') {
-            } else {
-                blocked = true;
-                if (this.chipDamage) {
-                    damageToApply = Math.max(1, Math.floor(this.damage * 0.1));
-                } else {
-                    damageToApply = 0;
-                }
-            }
+  if (target.state === 'block' || target.state === 'block_crouch') {
+    let blockSuccess = true;
+    if (this.height === 'low' && target.state === 'block') blockSuccess = false;
+    if (this.height === 'high' && target.state === 'block_crouch') blockSuccess = false;
+    if (this.unblockable) blockSuccess = false;
+
+    if (blockSuccess) {
+        blocked = true;
+        if (this.chipDamage) {
+            damageToApply = Math.max(1, Math.floor(this.damage * 0.1));
+        } else {
+            damageToApply = 0;
         }
+    } else {
+        blocked = false;
+        damageToApply = this.damage;
+    }
+}
+
         target.takeDamage(damageToApply, this.owner ? this.owner.facing : 1, blocked);
         if (this.teleportX !== 0 || this.teleportY !== 0) {
             let victim = this.friendlyFire ? this.owner : target;
@@ -4411,27 +4434,29 @@ const distance = this.w / 2 + offsetX;
 let projX = this.cx + this.facing * distance;
  
 
-    const proj = new Projectile(
-        projX,
-        this.cy - 8 + (move.spawnYOffset ?? 0), 
-        this.facing,
-        move.damage || 10,
-        move.speed || 10,
-        this,
-        sprite,
-        row,
-        startFrame,
-        endFrame,
-        move.startDistance || 0,
-        extraImg,
-        120,
-        move.teleportX || 0,
-        move.teleportY || 0,
-        move.range || 40,
-        move.chipDamage !== false,
-        5,
-    idx 
-    );
+const proj = new Projectile(
+    projX,
+    this.cy - 8 + (move.spawnYOffset ?? 0),
+    this.facing,
+    move.damage || 10,
+    move.speed || 10,
+    this,
+    sprite,
+    row,
+    startFrame,
+    endFrame,
+    move.startDistance || 0,
+    extraImg,
+    120,
+    move.teleportX || 0,
+    move.teleportY || 0,
+    move.range || 40,
+    move.chipDamage !== false,
+    5,
+    idx,
+    move.height || 'mid',      // ← hoogte
+    move.unblockable || false  // ← unblockable
+);
     projectiles.push(proj);
     this.playSound('projectile');
 	  this.sendMoveEvent(idx); 
@@ -4486,26 +4511,28 @@ let mineX = this.cx + this.facing * distance;
 const mineY = this.y + this.h - 10 + (move.spawnYOffset ?? 0);
  const mineLife = move.speed ? move.speed : 300;
 
-    const mine = new Mine(
-        mineX,
-        mineY,
-        move.damage || 15,
-        this,
-        sprite,
-        row,
-        startFrame,
-        endFrame,
-        move.range || 60,
-        0,
-        move.friendlyFire || false,
-        extraImg,
-        mineLife,
-        move.teleportX || 0,
-        move.teleportY || 0,
-        move.chipDamage !== false,
-        5,
-    idx
-    );
+const mine = new Mine(
+    mineX,
+    mineY,
+    move.damage || 15,
+    this,
+    sprite,
+    row,
+    startFrame,
+    endFrame,
+    move.range || 60,
+    0,
+    move.friendlyFire || false,
+    extraImg,
+    mineLife,
+    move.teleportX || 0,
+    move.teleportY || 0,
+    move.chipDamage !== false,
+    5,
+    idx,
+    move.height || 'mid',      // ← hoogte
+    move.unblockable || false  // ← unblockable
+);
     mines.push(mine);
     this.playSound('mine');
 	  this.sendMoveEvent(idx); 
@@ -8947,20 +8974,25 @@ if (mode === 'network') {
             if (dx < hitRadius && dy < hitRadius) {
                 let blocked = false;
                 let damageToApply = proj.damage || 10;
-                if (target.state === 'block' || target.state === 'block_crouch') {
-                    let blockSuccess = true;
-                    if (proj.height === 'low' && target.state === 'block') blockSuccess = false;
-                    if (proj.height === 'high' && target.state === 'block_crouch') blockSuccess = false;
-                    if (proj.unblockable) blockSuccess = false;
-                    if (blockSuccess) {
-                        blocked = true;
-                        if (proj.chipDamage) {
-                            damageToApply = Math.max(1, Math.floor(proj.damage * 0.1));
-                        } else {
-                            damageToApply = 0;
-                        }
-                    }
-                }
+if (target.state === 'block' || target.state === 'block_crouch') {
+    let blockSuccess = true;
+     if (this.height === 'low' && target.state === 'block') blockSuccess = false;
+    if (this.height === 'high' && target.state === 'block_crouch') blockSuccess = false;
+    if (this.unblockable) blockSuccess = false;
+
+    if (blockSuccess) {
+        blocked = true;
+        if (this.chipDamage) {
+            damageToApply = Math.max(1, Math.floor(this.damage * 0.1));
+        } else {
+            damageToApply = 0;
+        }
+    } else {
+         blocked = false;
+        damageToApply = this.damage;
+    }
+}
+
                 target.takeDamage(damageToApply, proj.dir, blocked);
 
                 // Teleport
@@ -15711,7 +15743,10 @@ fullReset();//resetRound();
                         <ul style="margin-left:20px;color:#b0b0d0;line-height:1.6;">
 						
 						    <li><strong>Dash</strong> Quick double press left or right to dash</li>
-						   	  <li><strong>Block</strong> Press back (or down + back for a low block)</li> 
+						   	  <li><strong>Block</strong> Press back (or down + back for a low block). 
+							  <br>Low block defends against low attacks & middle,<br>high block defends against middle & high attacks.<br>
+							 Each move in CharacterEdit can be set as low, middle or high.</li> 
+							 <li> <strong> Flinch</strong> A state based on flinchtime. A sweep is a "stun". </li>
 						    <li><strong>Counter</strong> Set counter inside a move (character settings)</li>
 						    <li><strong>Recover</strong> Press down + button 1 to recover</li>
 						    <li><strong>Drop from platform</strong> Double press down to drop from a platform</li> 
