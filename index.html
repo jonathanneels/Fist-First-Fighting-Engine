@@ -1330,21 +1330,16 @@
     <script>
         (() => {
             'use strict';
-
 let isLowPower = /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent) || 
                    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-
 const VP_ALLOWED_MODES = ['arcade', 'timeattack', 'survival', 'pvai'];
-
 let activeStageEffect;
-
             const W = 1280,
                 H = 720;
             let GROUND_Y = 560;
              const PLAYER_W = 60,
                 PLAYER_H = 100;
             let LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
-
             let activeFallingItems = [];
             let fallingItemSpawnTimer = 0;
             const FALLING_ITEM_SPAWN_INTERVAL = 300;
@@ -1352,32 +1347,24 @@ let activeStageEffect;
 let isSoloLevel= false;
 let isFreeLook = false;
 let tagCooldown = { p1: 0, p2: 0 };
-
             let p1Wins = 0;
             let p2Wins = 0;
             let matchOver = false;
 			let startFightTimer = 180;
 			let startFightSoundPlayed = false;
 			let matchEndSoundPlayed  = false;
-
 let p1GamepadIndex = -1;
 let p2GamepadIndex = -1;
 let waitingForInput = null; 
 let remapTimeout = null;
-
 let mobs = [];
 let mobSpawnTimers = {};
  let mobSpawnCounts = {}; 
- 
     let params;
     let diffKey 
-	
 let fps = 0;
 let frameCount = 0;
 let lastFpsTime = performance.now();
-
- 
-// Bovenaan je script (bij de andere variabelen)
 const LOADING_HTML = `
 <div id="loadingOverlay" style="
   position:fixed; top:0; left:0; width:100%; height:100%;
@@ -1396,10 +1383,8 @@ const LOADING_HTML = `
   </style>
 </div>
 `;
-
-
-var lTimeout;
-var moveStageEffectTimeout;
+let lTimeout;
+let moveStageEffectTimeout;
 
 			function showLoadingScreen() {
     if (document.getElementById('loadingOverlay')) return;
@@ -1413,20 +1398,18 @@ var moveStageEffectTimeout;
          overlay.style.display = 'flex';
      
 } 
-
  function hideLoadingScreen(time) {
  if(!time){time = 1000}
  
  clearTimeout(lTimeout);
   lTimeout= setTimeout(() => {
- var overlay = document.getElementById('loadingOverlay');
+ let overlay = document.getElementById('loadingOverlay');
     if (overlay) {
         overlay.remove();
     }
 	}, time);
 
 }
- 
  // ─── NETWERK LOGICA ──────────────────────────────────
 const networkOverlay = document.getElementById('networkOverlay');
 const hostBtn = document.getElementById('hostBtn');
@@ -1437,7 +1420,6 @@ const ipInput = document.getElementById('ipInput');
 const connectBtn = document.getElementById('connectBtn');
 const networkStatus = document.getElementById('networkStatus');
 const uidDisplay = document.getElementById('uidDisplay');
-
 function disconnectNetwork() {
 const ns = document.getElementById('networkStatus');
 
@@ -1497,9 +1479,6 @@ connectBtn.addEventListener('click', () => {
     connectWebSocket(uid, 'joiner', ip);
     joinInput.style.display = 'none';
 });
-
-
-
 function connectWebSocket(uid, role, ip) {
     const wsUrl = `ws://${ip}:8765`;
     ws = new WebSocket(wsUrl);
@@ -1507,7 +1486,6 @@ function connectWebSocket(uid, role, ip) {
     ws.onopen = () => {
         ws.send(JSON.stringify({ type: 'join', uid, role }));
     };
-
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === 'joined') {
@@ -1533,8 +1511,6 @@ ws.onmessage = (event) => {
             const state = serializeGameStateCompact();
             ws.send(JSON.stringify({ type: 'state', state }));
         }
-		
-			
     } 
 else if (data.type === 'move') {
     if (networkRole === 'joiner') {
@@ -1545,7 +1521,6 @@ else if (data.type === 'move') {
         }
     }
 }
-
 	else if (data.type === 'state') {
          if (networkRole === 'joiner') {
             receivedState = data.state;
@@ -1580,7 +1555,6 @@ fullReset()
  } else {
     console.log('Fighter not found');
 }
-
 }
 }else if (data.type === 'p1Name' && networkRole === 'joiner') {
  
@@ -1642,15 +1616,12 @@ console.log(data.input)
     }
     networkStatus.textContent = '🔴 Connection closed';
 };
-
 }
-
 function sendMyInput(input) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'input', input }));
     }
 }
-  
             networkOverlay.style.display = 'none';
 			
 function serializeFighterCompact(fighter) {
@@ -1671,7 +1642,6 @@ function serializeFighterCompact(fighter) {
 		c: fighter.charId
     };
 }
-
 function serializeGameStateCompact() {
     return {
         p1: serializeFighterCompact(p1),
@@ -1706,8 +1676,6 @@ function serializeGameStateCompact() {
 } 
 function deserializeFighterCompact(fighter, data) {
     if (!fighter || !data) return;
-    
- 
     fighter.x = data.x;
     fighter.y = data.y;
     fighter.vx = data.vx || 0;
@@ -1724,25 +1692,19 @@ function deserializeFighterCompact(fighter, data) {
         fighter.animTimer = 0;
 	 
     }
-
-
     fighter.onGround = data.g !== undefined ? data.g : true;
     fighter.lane = data.l || 1;
     fighter.groundY = data.gy || (laneMode ? LANE_Y[fighter.lane] : GROUND_Y);
     fighter.ringOut = data.r || false;
     fighter.attackActive = data.aa || false;
-    
     fighter.hitTimer = data.ht || 0;
     fighter.comboCount = data.cc || 0;
     fighter.comboTimer = data.ct || 0;
     fighter.blockTimer = data.bt || 0;
-
-   
     if (fighter.comboTimer === 0 && fighter.comboCount > 0) {
         fighter.comboCount = 0; 
     }
 }
-
 function deserializeGameStateCompact(data) {
     if (networkMode && networkRole === 'host') return;
 
@@ -1770,12 +1732,9 @@ function deserializeGameStateCompact(data) {
         }
         deserializeFighterCompact(p2, data.p2);
     }
-
-
  projectiles = data.proj.map(pd => {
     const owner = pd.owner === 1 ? p1 : p2;
     const sprite = owner ? owner.spriteImg : null;
-    // Haal de move op
     const move = (owner && pd.mi !== undefined && pd.mi >= 0) ? owner.moves[pd.mi] : null;
     let extraImg = null;
     if (move && move.projectileImage) {
@@ -1801,7 +1760,6 @@ function deserializeGameStateCompact(data) {
     return proj;
 });
 
-// mines
 mines = data.mines.map(md => {
     const owner = md.owner === 1 ? p1 : p2;
     const sprite = owner ? owner.spriteImg : null;
@@ -1827,7 +1785,6 @@ mines = data.mines.map(md => {
     mine.active = md.act !== false;
     mine.exploded = md.expl || false;
     mine.explosionTimer = md.ext || 0;
- 
     return mine;
 });
 
@@ -1839,7 +1796,6 @@ mines = data.mines.map(md => {
     if (data.st && data.st !== project.currentStageId) {
         setStage(data.st);
     }
-
     p1Wins = data.p1w || 0;
     p2Wins = data.p2w || 0;
     roundActive = data.ra !== undefined ? data.ra : true;
@@ -1858,7 +1814,6 @@ mines = data.mines.map(md => {
         startFightSoundPlayed = true;
     }
 } 
-
     updateWinIndicators();
 
     if (prevMatchOver && !matchOver) {
@@ -1866,9 +1821,6 @@ mines = data.mines.map(md => {
         document.getElementById('textP1').style.opacity = '0';
         document.getElementById('textP2').style.opacity = '0';
     }
-
-
-
      // ─── 3. Geluiden afspelen (alleen voor joiner) ──────────────
     if (networkRole === 'joiner') {
         function playIfChanged(fighter, oldHealth, oldState, oldAttackActive) {
@@ -1882,7 +1834,6 @@ mines = data.mines.map(md => {
                 return true;
             };
 
-            // Health
             if (fighter.health < oldHealth) {
                 if (fighter.state !== 'block' && fighter.state !== 'block_crouch') {
                     if (canPlay('damage')) fighter.playSound('damage');
@@ -1891,7 +1842,6 @@ mines = data.mines.map(md => {
                 if (canPlay('recover')) fighter.playSound('recover');
             }
 
-            // State
             if (fighter.state !== oldState) {
                 if (fighter.state === 'block' || fighter.state === 'block_crouch') {
                    // if (canPlay('block')) fighter.playSound('block');=> only when block successful
@@ -1909,12 +1859,9 @@ mines = data.mines.map(md => {
 				}*/
         }
 
-        // Pas toe op P1 en P2
         if (p1 && oldP1) playIfChanged(p1, oldP1.health, oldP1.state, oldP1.attackActive);
         if (p2 && oldP2) playIfChanged(p2, oldP2.health, oldP2.state, oldP2.attackActive);
 		}
- 
-
     if (prevRoundActive && !roundActive) {
         playSystemSound('roundEnd');
         if (winner) {
@@ -1923,14 +1870,12 @@ mines = data.mines.map(md => {
             if (winText) showIntroOutroText(winner === 'p1' ? 1 : 2, winText, false);
         }
     }
-
     if (!prevMatchOver && matchOver) {
         if (!matchEndSoundPlayed) {
             playSystemSound('matchEnd');
             matchEndSoundPlayed = true;
         }
     }
-
     if (p1 && p2) {
         const hP1 = document.getElementById('healthP1');
         const hP2 = document.getElementById('healthP2');
@@ -1941,9 +1886,6 @@ mines = data.mines.map(md => {
         if (p2.hasEnergy) document.getElementById('energyP2').style.width = Math.max(0, Math.min(100, p2.energy)) + '%';
     }
 }
-
- 
-
 function collectJoinerInput() {
     const input = {
         up: p2.input.up || false,
@@ -1966,12 +1908,9 @@ function playerHOSTIdSend()
 {
 return { name:p1.name}
 }
-
 let weatherParticles = [];
 let weatherState = { type: 'none', intensity: 1 };
- 
-            var ringOutOccurred = false;
-
+            let ringOutOccurred = false;
             let singlePlayer = {
                 active: false,
                 mode: '',
@@ -1989,9 +1928,7 @@ let weatherState = { type: 'none', intensity: 1 };
                 gameOver: false,
                 totalTime: 0,
             };
-
             const HIGH_SCORE_KEY = 'fighting_timeattack_highscore';
-
 const WIN_STYLES = {
     circle:   { full: '●', empty: '○' },
     square:   { full: '■', empty: '□' },
@@ -2031,7 +1968,6 @@ const DEFAULT_AI_PARAMS = {
         oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
     }
 };
-
     const DEFAULT_MOVES = [
                 { id: 'punch_l', name: 'Light', damage: 8, range: 55, speed: 12, button: 0, command: '1',
                      row: 4,startFrame: 0, endFrame: 3, type: 'normal', throwPower: 0, throwHeight: 0, attackImage: null,
@@ -2060,7 +1996,6 @@ const DEFAULT_AI_PARAMS = {
                     projectileImage: null, mineImage: null, startDistance: 0, friendlyFire: false, height: 'high',
                    fatalityOnly: false, unblockable: false, chipDamage: true, energyRequired: 0 ,teleportX: 0, teleportY: 0,generatesEnergy: 0 ,counterType: 'none',  fallbackVisual: 'jab_h'  ,stageEffect: 'none'},
             ];
-
 const DEFAULT_STATES = {
   idle:      { row: 0, startFrame: 0, endFrame: 7, image: null },
   walk:      { row: 1, startFrame: 0, endFrame: 7, image: null },
@@ -2073,7 +2008,6 @@ const DEFAULT_STATES = {
   swept:     { row: 9, startFrame: 0, endFrame: 7, image: null },
   victory:   { row:12, startFrame: 0, endFrame: 7, image: null } 
 };
-
             const DEFAULT_CHARACTER = {
                 id: 'fighter',
 				states: JSON.parse(JSON.stringify(DEFAULT_STATES)),
@@ -2134,14 +2068,9 @@ belt: 'none',
 	guardEnabled: false,
 guardMax: 100,
 guardCost: 10,
-guardRecoveryRate: 5
-
-					
+guardRecoveryRate: 5					
             };
-			 
-			
 	const FALLBACK_VISUAL_CONFIG = {
-    // Opties voor de dropdown (value en label)
     options: [
         { value: 'auto', label: 'Auto' },
         { value: 'punch_l', label: 'Punch Light' },
@@ -2156,19 +2085,16 @@ guardRecoveryRate: 5
         { value: 'throwing', label: 'throwing' },
          { value: 'none', label: 'None' }
     ],
-
        configs: {
-        // ─── PUNCHES – cirkel swoosh, vaste arm ──────────
         punch_l: { angle:  0.6, swoosh: true, swooshType: 'circle', armLen: 1.3, fist: true, swooshRadius: 1.5, swooshWidth: 20 },
         punch_m: { angle:  0.2, swoosh: true, swooshType: 'circle', armLen: 1.35, fist: true, swooshRadius: 1.6, swooshWidth: 22 },
         punch_h: { angle: -0.3, swoosh: true, swooshType: 'circle', armLen: 1.1, fist: true, swooshRadius: 1.7, swooshWidth: 23 },
 
-        // ─── UPPERCUTS – boog swoosh, dynamische arm ─────
         jab_l: {
-            angle: 20 * Math.PI/180,          // wordt niet gebruikt (dynamisch)
+            angle: 20 * Math.PI/180,          
             swoosh: true,
             swooshType: 'arc',
-            armLen: 7.5,                       // basis voor maximale lengte
+            armLen: 7.5,                       
             fist: true,
             swooshStartAngle: -30 * Math.PI/180,
             swooshEndAngle: 70 * Math.PI/180,
@@ -2197,8 +2123,6 @@ guardRecoveryRate: 5
             swooshRadius: 2,
             swooshWidth: 30
         },
-
-        // ─── SMASH & THROWING – ook boog, dynamisch ────
         smash: {
             angle: 90,
             swoosh: true,
@@ -2222,21 +2146,15 @@ guardRecoveryRate: 5
             swooshWidth: 16
         },
 
-        // ─── GEEN SWOOSH ──────────────────────────────────
         sweep: { angle: 50 * Math.PI/180, swoosh: false, armLen: 1.5, fist: true, sweepEffect: true },
         grab:  { angle: 10 * Math.PI/180, swoosh: false, armLen: 0.5, fist: true },
         none:  { angle: 0, swoosh: false, armLen: 0, fist: false }
     },
-
-
-    // Bepaal de visual voor een move (auto‑detectie)
     getVisualForMove(move) {
         if (!move) return 'none';
         if (move.fallbackVisual && move.fallbackVisual !== 'auto') return move.fallbackVisual;
         const name = (move.name || '').toLowerCase();
         const type = move.type || 'normal';
-
-        // Specifieke detectie
         if (name.includes('light') || name.includes('l')) {
             if (name.includes('uppercut')) return 'jab_l';
             return 'punch_l';
@@ -2273,12 +2191,10 @@ const HEADGEAR_TYPES = [
      'knight_helmet', 'viking_helmet', 'space_helmet', 'construction_helmet', 'military_helmet', 'biker_helmet',
      'crown', 'tiara', 'headband', 'bandana', 'hood', 'turban', 'sombrero', 'pith_helmet', 'sun_hat'
 ];
-
 const SHOE_TYPES = ['none', 'boots', 'sneakers', 'high_heels', 'sandals', 'combat_boots'];
 const GLASSES_TYPES = ['none', 'sunglasses', 'monocle', 'visor', 'nerd_glasses', 'aviator'];
 const SHOULDER_PAD_TYPES = ['none', 'spiked', 'round', 'square', 'winged', 'bulky'];
 const BELT_TYPES = ['none', 'leather', 'studded', 'golden', 'silver', 'utility'];
-
 let travelCubes = [];
 let textCubes=[];
             const DEFAULT_STAGES = [
@@ -2304,7 +2220,6 @@ let textCubes=[];
                     itemConfigs: [], colorTheme: 'default', weather: 'none',travelcubeConfigs: [], soloAdventure: false, nextStageId: null  ,gameOverStageId: null,    platformColor: '#66ccff',    platformImage: null ,
 					startAnimation: 'none',platformMarginLeft: 3,  platformMarginRight: 3,  platformYOffset: 2, textcubeConfigs: [],freeLook: false,mobConfigs: []  },
             ];
-
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
             const healthP1 = document.getElementById('healthP1');
@@ -2319,23 +2234,19 @@ let textCubes=[];
             const modalBody = document.getElementById('modalBody');
             const modalClose = document.getElementById('modalClose');
             const stageSelect = document.getElementById('stageSelect');
-
             const modeSelect = document.getElementById('modeSelect');
             const actionSelect = document.getElementById('actionSelect');
             const utilitySelect = document.getElementById('utilitySelect');
-
             let gameRunning = true;
             let gameTimer = 99;
              let roundActive = true;
             let winner = null;
             let roundCount = 0;
 			let fightDisplayTimer = 0;
-
             let currentMode = 'training';
             let laneMode = false;
             let camera = { zoom: 1.0, offsetX: 0, offsetY: 0 };
 			let cameraAnim = null;
-
 const FONT_LIST = [
     'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Verdana',
     'Tahoma', 'Courier New', 'Impact', 'Comic Sans MS', 'Trebuchet MS',
@@ -2343,7 +2254,6 @@ const FONT_LIST = [
     'Montserrat', 'Poppins', 'Oswald', 'Raleway', 'Merriweather',
     'Playfair Display', 'Ubuntu', 'Nunito', 'Quicksand', 'Work Sans'
 ];
-
 let timerFrameCounter = 0;         
 const TIMER_STEP_FRAMES = 30;        
 let travelCubeStartTime = 0;
@@ -2461,12 +2371,10 @@ aiParams: DEFAULT_AI_PARAMS
 			if (!project.isPublished) {
     localStorage.clear();
  } else{
-
   try {
     const saved = localStorage.getItem('fighting_settings');
     if (saved) {
         const parsed = JSON.parse(saved);
-        // Alleen inladen als de projectId matcht (of als er geen projectId is opgeslagen)
         if (parsed.projectId && parsed.projectId === project.projectId) {
             delete parsed.projectId; // niet overschrijven
             delete parsed.screenFilter; // filter apart bewaren
@@ -2482,7 +2390,6 @@ aiParams: DEFAULT_AI_PARAMS
     applyScreenFilter('none');
 }
 }
-
  if (!project.settings.controls || typeof project.settings.controls !== 'object') {
     project.settings.controls = getDefaultControls();
 } else {
@@ -2504,7 +2411,6 @@ aiParams: DEFAULT_AI_PARAMS
         }
     }
 }
-
 if (!project.settings.aiParams || typeof project.settings.aiParams !== 'object') {
     project.settings.aiParams = JSON.parse(JSON.stringify(DEFAULT_AI_PARAMS));
 } else {
@@ -2540,7 +2446,6 @@ let p2_tag = null;
 let flawlessVictory = false;
 let fatalityActive = false;
 let fatalityTimer = 0;
-
             let springPlatforms = [];
 
             const BG_COLORS = {
@@ -2587,9 +2492,7 @@ let networkUID  = null
                 }
             }
 			
-	 	  
 		  function clearAllCaches() {
-    // ─── Sprites (karakters) ──────────────────────────
     for (const [key, img] of assetCache.sprites) {
         if (img) {
             if (typeof img.close === 'function') img.close();
@@ -2616,8 +2519,6 @@ let networkUID  = null
     for (const key in bloodImages) delete bloodImages[key];
     for (const key in hitEffectImages) delete hitEffectImages[key];
     for (const key in stageBackgroundImages) delete stageBackgroundImages[key];
-
-    // ─── State‑images (indien gebruikt in Fighter) ──
     if (assetCache.stateImages) {
         for (const [key, img] of assetCache.stateImages) {
             if (img) {
@@ -2659,7 +2560,6 @@ function freeUnusedStageBg() {
     const activeId = project.currentStageId;
     for (const [id, img] of assetCache.stageBg) {
         if (id !== activeId) {
-            // Alleen als img een geldig object is
             if (img && typeof img === 'object') {
                 if (typeof img.close === 'function') {
                     img.close(); // voor ImageBitmap
@@ -2671,13 +2571,10 @@ function freeUnusedStageBg() {
         }
     }
 }
-
 let stageAccessOrder = [];  
 function updateStageAccess(stageId) {
-    // Verwijder de ID als hij al in de lijst staat
     const idx = stageAccessOrder.indexOf(stageId);
     if (idx !== -1) stageAccessOrder.splice(idx, 1);
-    // Voeg de ID toe aan het einde (meest recent)
     stageAccessOrder.push(stageId);
 }
 function freeUnusedStageBgSoft(maxCacheSize = 10) {
@@ -2690,7 +2587,6 @@ function freeUnusedStageBgSoft(maxCacheSize = 10) {
                 else if (img.src) img.src = '';
             }
             assetCache.stageBg.delete(id);
-            // Verwijder ook uit de volgorde
             const idx = stageAccessOrder.indexOf(id);
             if (idx !== -1) stageAccessOrder.splice(idx, 1);
         }
@@ -2714,7 +2610,6 @@ function freeStageAudio() {
         stageAudio = null;
         currentStageAudioId = null;
     }
-    // Verwijder ook uit cache
     const key = 'stage_' + project.currentStageId;
     if (assetCache.audio.has(key)) {
         const el = assetCache.audio.get(key);
@@ -2779,7 +2674,6 @@ function initWeather(stage) {
     weatherState.type = type;
     weatherState.intensity = 1;
     if (type === 'none') return;
-
     const mobileFactor = isLowPower ? 0.35 : 1; // ← nieuw
     let count = Math.floor(150 * mobileFactor);
     if (type === 'storm') count = Math.floor(200 * mobileFactor);
@@ -2827,7 +2721,6 @@ function initWeather(stage) {
         weatherParticles.push({ x, y, vx, vy, size, ...extra });
     }
 }
-
 function updateWeather() {
     if (weatherState.type === 'none') return;
 
@@ -2847,7 +2740,6 @@ function updateWeather() {
     }
     if (weatherState.flash > 0) weatherState.flash--;
 }
-
 function drawWeather(ctx, camera) {
     if (weatherState.type === 'none') return;
 
@@ -2892,7 +2784,6 @@ function drawWeather(ctx, camera) {
             ctx.fill();
         }
     }
-
     if (weatherState.flash > 0) {
         ctx.fillStyle = `rgba(255, 255, 255, ${weatherState.flash / 10 * 0.6})`;
         ctx.fillRect(0, 0, W, H);
@@ -2900,7 +2791,6 @@ function drawWeather(ctx, camera) {
 
     ctx.restore();
 }
-
             function getRandomText(textArray) {
                 if (!textArray) return '';
                 const parts = textArray.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -2927,7 +2817,6 @@ function resetSinglePlayerRound() {
     const p1Char = project.selectedP1Char || 'fighter';
     const p2Char = singlePlayer.currentOpponentId || 'fighter';
     const tagMatch = project.settings.tagMatch || false;
-
     let oldP1Health = null, oldP1MaxHealth = null;
     let oldP1TagHealth = null, oldP1TagMaxHealth = null;
     if (singlePlayer.mode === 'survival' && p1) {
@@ -2938,7 +2827,6 @@ function resetSinglePlayerRound() {
             oldP1TagMaxHealth = p1_tag.maxHealth;
         }
     }
-
     p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
     p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
     p1.spriteImg = spriteImages[p1Char] || null;
@@ -2948,7 +2836,6 @@ function resetSinglePlayerRound() {
         p1.health = Math.min(oldP1Health, p1.maxHealth);
         p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
     }
-
     if (tagMatch) {
         const tagX1 = project.settings.startX1 - 50;
         const tagX2 = project.settings.startX2 + 50;
@@ -2966,7 +2853,6 @@ function resetSinglePlayerRound() {
         p1_tag = null;
         p2_tag = null;
     }
-
     winner = null;
     roundActive = true;
     projectiles = [];
@@ -2977,7 +2863,6 @@ function resetSinglePlayerRound() {
     ringOutOccurred = false;
     timerFrameCounter = 0;
     tagCooldown = { p1: 0, p2: 0 };
-
     const introP1 = getRandomText(p1.introText);
     const introP2 = getRandomText(p2.introText);
     if (introP1) showIntroOutroText(1, introP1, true);
@@ -2993,7 +2878,6 @@ function resetSinglePlayerRound() {
     resetPositions();
     updateCamera();
 }
-
             function handleSinglePlayerRoundEnd(winnerId) {
                 if (singlePlayer.gameOver) return;
                 const winnerChar = winner === 'p1' ? p1 : p2;
@@ -3003,7 +2887,6 @@ function resetSinglePlayerRound() {
                 if (winnerText) showIntroOutroText(winner === 'p1' ? 1 : 2, winnerText, false);
                 if (loserText) showIntroOutroText(winner === 'p1' ? 2 : 1, loserText, false);
 playSystemSound('roundEnd');
-
 if (winner === 'p1' && p1.health === p1.maxHealth) flawlessVictory = true;
 else if (winner === 'p2' && p2.health === p2.maxHealth) flawlessVictory = true;
 else flawlessVictory = false;
@@ -3022,7 +2905,6 @@ else flawlessVictory = false;
                 }
 
 					                updateWinIndicators();
-
                 if (singlePlayer.matchRoundsWon >= roundsNeeded) {
                     singlePlayer.wins++;
                     singlePlayer.kills++;
@@ -3038,7 +2920,6 @@ else flawlessVictory = false;
 
                     return;
                 }
-
                 if (singlePlayer.matchRoundsLost >= roundsNeeded) {
                     singlePlayer.gameOver = true;
                     showGameOverModal(false);
@@ -3050,9 +2931,6 @@ if (project.settings.instantRoundReset) {
     setTimeout(() => { resetSinglePlayerRound(); }, 2000);
 }
             }
-
- 
-
  function getRandomBossCharacter() {
     const bossIds = [];
     for (const id in project.characters) {
@@ -3061,7 +2939,6 @@ if (project.settings.instantRoundReset) {
     if (bossIds.length === 0) return null;
     return bossIds[Math.floor(Math.random() * bossIds.length)];
 }
-
          function initSinglePlayerMode(mode) {
     singlePlayer.active = true;
     singlePlayer.mode = mode;
@@ -3088,11 +2965,8 @@ if (project.settings.instantRoundReset) {
         }
 
     }
-
-
     const allChars = Object.keys(project.characters);
     const playerChar = project.selectedP1Char || 'fighter';
-
     // ─── TEGENSTANDERPOOL: alle karakters   EN behalve bosses ───
     singlePlayer.opponentPool = allChars.filter(id => {
         return !project.characters[id].isBoss;
@@ -3116,7 +2990,6 @@ if (project.settings.instantRoundReset) {
 	resetPositions();
 
 }
-
 function startNextSinglePlayerMatch() {
     if (singlePlayer.gameOver) return;
     singlePlayer.matchNumber++;
@@ -3139,53 +3012,40 @@ function startNextSinglePlayerMatch() {
     let opponentTagId = null;
     const isLastRound = (singlePlayer.matchNumber === singlePlayer.maxRounds);
     const isSurvival = (singlePlayer.mode === 'survival');
-
-    // Verzamel alle normale (niet-baas) karakters
     let normalChars = Object.keys(project.characters).filter(id => !project.characters[id].isBoss);
-    // Verwijder de speler uit de normale lijst
     let available = normalChars.slice(); //let available = normalChars.filter(id => id !== playerChar);
     if (available.length === 0) {
-        // Fallback: alle normale karakters (inclusief speler) – dit is zeldzaam
         available = normalChars;
         if (available.length === 0) available = Object.keys(project.characters); // valt terug op alles
     }
 
     let bossId = null;
-    // Alleen in de laatste ronde (en niet survival) proberen we een baas te kiezen
     if (isLastRound && !isSurvival) {
         bossId = getRandomBossCharacter();
     }
-
-    // Als er een baas is en dit is de laatste ronde (niet survival), gebruik de baas
     if (bossId && available.includes(bossId)) {
         opponentId = bossId;
     } else {
-        // Normale selectie: vermijd vorige tegenstander indien mogelijk
         let candidates = available;
         if (singlePlayer.currentOpponentId && candidates.length > 1) {
             candidates = candidates.filter(id => id !== singlePlayer.currentOpponentId);
             if (candidates.length === 0) candidates = available;
         }
-        // Shuffle en kies een willekeurige
         const shuffled = candidates.sort(() => Math.random() - 0.5);
         opponentId = shuffled[0] || available[0] || 'fighter';
     }
     singlePlayer.currentOpponentId = opponentId;
 
-    // ─── TAGPARTNER VOOR TEGENSTANDER (indien tagMatch) ────
     if (tagMatch) {
         const p1TagChar = project.selectedP1TagChar || 'fighter';
-        // Uitsluitingen: actieve tegenstander, speler, tag van speler, en ook bazen vermijden (tenzij geen keuze)
         let tagCandidates = Object.keys(project.characters).filter(id =>
             id !== opponentId && id !== playerChar && id !== p1TagChar && !project.characters[id].isBoss
         );
         if (tagCandidates.length === 0) {
-            // Geen normale karakters over, probeer zonder baas-uitsluiting
             tagCandidates = Object.keys(project.characters).filter(id =>
                 id !== opponentId && id !== playerChar && id !== p1TagChar
             );
             if (tagCandidates.length === 0) {
-                // laatste redmiddel: alleen actieve tegenstander uitsluiten
                 tagCandidates = Object.keys(project.characters).filter(id => id !== opponentId);
                 if (tagCandidates.length === 0) tagCandidates = Object.keys(project.characters);
             }
@@ -3194,19 +3054,15 @@ function startNextSinglePlayerMatch() {
         opponentTagId = shuffledTag[0] || 'fighter';
     }
 
-    // ─── STAGE SELECTIE ──────────────────────────────────────
     let stageId;
     do {
         stageId = singlePlayer.stagePool[Math.floor(Math.random() * singlePlayer.stagePool.length)];
     } while (stageId === singlePlayer.currentStageId && singlePlayer.stagePool.length > 1);
     singlePlayer.currentStageId = stageId;
     setStage(stageId);
-
-    // ─── FIGHTERS OPSTARTEN ──────────────────────────────────
     const p1Char = playerChar;
     const p2Char = opponentId;
 
-    // Oude health opslaan voor survival (P1 en tag)
     let oldP1Health = null, oldP1MaxHealth = null;
     let oldP1TagHealth = null, oldP1TagMaxHealth = null;
     if (singlePlayer.mode === 'survival') {
@@ -3220,7 +3076,6 @@ function startNextSinglePlayerMatch() {
         }
     }
 
-    // Actieve vechters
     p1 = new Fighter(p1Char, project.settings.startX1, 1, 0);
     p2 = new Fighter(p2Char, project.settings.startX2, -1, 1);
     p1.spriteImg = spriteImages[p1Char] || null;
@@ -3230,8 +3085,6 @@ function startNextSinglePlayerMatch() {
         p1.health = Math.min(oldP1Health, p1.maxHealth);
         p1.maxHealth = oldP1MaxHealth || p1.maxHealth;
     }
-
-    // Tag vechters
     if (tagMatch) {
         const tagX1 = project.settings.startX1 - 50;
         const tagX2 = project.settings.startX2 + 50;
@@ -3240,10 +3093,7 @@ function startNextSinglePlayerMatch() {
         p1_tag = new Fighter(p1TagChar, tagX1, 1, 0);
         p1_tag.spriteImg = spriteImages[p1TagChar] || null;
         p1_tag.isTag = true;
-
         let p2TagChar = opponentTagId || project.selectedP2TagChar || 'fighter';
-        // Extra veiligheid: als de tag nog steeds gelijk is aan de actieve tegenstander,
-        // probeer dan een andere te kiezen (tenzij er echt geen andere is)
         if (p2TagChar === p2Char) {
             const otherChars = Object.keys(project.characters).filter(id =>
                 id !== p2Char && id !== p1TagChar && id !== playerChar
@@ -3251,7 +3101,6 @@ function startNextSinglePlayerMatch() {
             if (otherChars.length > 0) {
                 p2TagChar = otherChars[Math.floor(Math.random() * otherChars.length)];
             } else {
-                // Geen andere keuze, dan maar dezelfde (dit zou niet moeten gebeuren)
                 const allOthers = Object.keys(project.characters).filter(id => id !== p2Char);
                 if (allOthers.length > 0) p2TagChar = allOthers[Math.floor(Math.random() * allOthers.length)];
             }
@@ -3268,7 +3117,6 @@ function startNextSinglePlayerMatch() {
         p1_tag = null;
         p2_tag = null;
     }
-
     winner = null;
     roundActive = true;
     projectiles = [];
@@ -3276,12 +3124,10 @@ function startNextSinglePlayerMatch() {
     matchOver = false;
     tagCooldown = { p1: 0, p2: 0 };
 
-    // ─── TIMER ──────────────────────────────────────────────
     gameTimer = project.settings.timerSeconds || 99;
     timerDisplay.textContent = gameTimer;
     timerDisplay.textContent = Math.ceil(gameTimer);
 
-    // ─── UI BIJWERKEN ──────────────────────────────────────
     updateWinIndicators();
     updatePlayerIcons();
     updateSinglePlayerHUD();
@@ -3291,28 +3137,24 @@ function startNextSinglePlayerMatch() {
     applyBarStyles();
     resetFighterUI();
 }
-
             function loadBloodImage(charId, base64) {
                 if (!base64) return;
                 const img = new Image();
                 img.onload = () => { bloodImages[charId] = img; };
                 img.src = base64;
             }
-
             function loadHitEffectImage(charId, base64) {
                 if (!base64) return;
                 const img = new Image();
                 img.onload = () => { hitEffectImages[charId] = img; };
                 img.src = base64;
             }
-
             function updateSinglePlayerHUD() {
                 const info = document.getElementById('singlePlayerInfo');
                 if (!singlePlayer.active) {
                     info.style.display = 'none';
                     return;
                 }
-				
                 info.style.display = 'block';
                 const roundsNeeded = singlePlayer.mode === 'survival' ? 1 : Math.floor(project.settings.roundCount / 2) + 1;
                 let text = '';
@@ -3340,8 +3182,6 @@ function resetPositions() {
     }
     p1.vx = 0; p1.vy = 0; p1.onGround = true;
     p2.vx = 0; p2.vy = 0; p2.onGround = true;
-	
-	
 	    if (p1_tag) {
         p1_tag.x = project.settings.startX1 - 50;
         p1_tag.y = laneMode ? LANE_Y[1] - p1_tag.h : GROUND_Y - p1_tag.h;
@@ -3352,12 +3192,8 @@ function resetPositions() {
         p2_tag.y = laneMode ? LANE_Y[1] - p2_tag.h : GROUND_Y - p2_tag.h;
         p2_tag.vx = 0; p2_tag.vy = 0; p2_tag.onGround = true;
     }
-
-
-
     updateCamera();
 }
-
 function updateWinIndicators() {
     const winIndP1 = document.getElementById('winIndP1');
     const winIndP2 = document.getElementById('winIndP2');
@@ -3373,29 +3209,24 @@ function updateWinIndicators() {
         p1Score = p1Wins;
         p2Score = p2Wins;
     }
-
     const style = project.settings.winIndicatorStyle || 'circle';
     const fullColor = project.settings.winIndicatorColor || '#f1c40f';
     const emptyColor = project.settings.winIndicatorEmptyColor || '#444';
     const symbols = WIN_STYLES[style] || WIN_STYLES.circle;
-
     let p1Str = '';
     let p2Str = '';
-
     for (let i = 0; i < totalRounds; i++) {
         const isFull = i < p1Score;
         const sym = isFull ? symbols.full : symbols.empty;
         const color = isFull ? fullColor : emptyColor;
         p1Str = `<span style="color:${color};">${sym}</span>` + p1Str;
     }
-
     for (let i = 0; i < totalRounds; i++) {
         const isFull = i < p2Score;
         const sym = isFull ? symbols.full : symbols.empty;
         const color = isFull ? fullColor : emptyColor;
         p2Str += `<span style="color:${color};">${sym}</span>`;
     }
-
     winIndP1.innerHTML = p1Str;
     winIndP2.innerHTML = p2Str;
 }
@@ -3422,7 +3253,6 @@ function awardVictoryPoints() {
 				if (winner === 'p1' && p1.health === p1.maxHealth) flawlessVictory = true;
 else if (winner === 'p2' && p2.health === p2.maxHealth) flawlessVictory = true;
 else flawlessVictory = false;
-
                 const maxRounds = project.settings.roundCount || 3;
                 if (p1Wins >= maxRounds || p2Wins >= maxRounds) {
                     matchOver = true;
@@ -3444,7 +3274,6 @@ else flawlessVictory = false;
         return;
     }
 }
-	
                     setTimeout(() => {
                         fullReset();
                         matchOver = false;
@@ -3458,7 +3287,6 @@ else flawlessVictory = false;
                 }
                 }
             }
-			
 			const hiddenMediaContainer = document.createElement('div');
 hiddenMediaContainer.style.cssText = 'position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;';
 function loadStageMedia(stageId, dataUrl) {
@@ -3467,7 +3295,6 @@ function loadStageMedia(stageId, dataUrl) {
         assetCache.stageBg.set(stageId, null);  
         return;
     }
-
     const img = new Image();
     img.onload = function() {
         assetCache.stageBg.set(stageId, img);
@@ -3539,11 +3366,8 @@ const BIO_TRAITS = [
                 char.darkColor = `hsl(${hue}, ${sat-10}%, ${light-20}%)`;
                 char.speed = 3 + Math.floor(Math.random() * 4);
                 char.health = 80 + Math.floor(Math.random() * 60);
-				
 const raw = 0.4 + Math.random() * 0.5;
 char.gravity = Math.round(raw * 100) / 100;
-
-
                 char.doubleJump = Math.random() > 0.5;
                  char.flinchTime = 10 + Math.floor(Math.random() * 12);
 				    char.headgear = HEADGEAR_TYPES[Math.floor(Math.random() * HEADGEAR_TYPES.length)];
@@ -3591,7 +3415,6 @@ function getCurrentDir(fighter) {
 
     return { dirs, button };
 }
-
 function matchCommand(history, buttonPressed, command) {
     if (!command || typeof command !== 'string' || command.trim() === '') return false;
 
@@ -3607,7 +3430,6 @@ function matchCommand(history, buttonPressed, command) {
     if (dirs.length === 0) return true;
 
     const dirHistory = history.filter(entry => !/^\d+$/.test(entry));
-
     // Flatten gecombineerde inputs zoals "b+d" → ["b","d"]
     const flatDirHistory = [];
     for (const entry of dirHistory) {
@@ -3617,7 +3439,6 @@ function matchCommand(history, buttonPressed, command) {
             flatDirHistory.push(entry);
         }
     }
-
     if (flatDirHistory.length < dirs.length) return false;
 
     const startIdx = flatDirHistory.length - dirs.length;
@@ -3627,8 +3448,6 @@ function matchCommand(history, buttonPressed, command) {
 
     return true;
 }
-
-            // ─── PROJECTILE / MINE CLASSES ──────────────────────
 class Projectile {
     constructor(x, y, dir, damage, speed = 8, owner, spriteImg,
                 row = 0, startFrame = 0, endFrame = 3,
@@ -3637,7 +3456,6 @@ class Projectile {
                 animSpeed = 5,moveIndex = -1) {
 				
 				        this.moveIndex = moveIndex;
-
         this.x = x;
         this.y = y;
         this.dir = dir;
@@ -3664,7 +3482,6 @@ class Projectile {
         this.range = range || 40;
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
-
         if (this.extraImage) {
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
                 this.imageLoaded = true;
@@ -3674,7 +3491,6 @@ class Projectile {
             }
         }
     }
-
     update() {
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
@@ -3687,19 +3503,15 @@ class Projectile {
                 this.currentOffset = (this.currentOffset + 1) % range;
             }
         }
-
         this.x += this.dir * this.speed;
         this.distanceTraveled += this.speed;
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > 10) this.trail.shift();
         if (this.x < -50 || this.x > 1280 + 50) this.active = false;
-
         const target = (this.owner === p1) ? p2 : p1;
         if (!target || target.health <= 0) return;
-
         if (this.startDistance > 0 && this.distanceTraveled < this.startDistance) return;
         if (laneMode && this.owner && this.owner.lane !== target.lane) return;
-
         const dx = Math.abs(target.cx - this.x);
         const dy = Math.abs(target.cy - this.y);
         const hitRadius = this.range || 40;
@@ -3722,9 +3534,7 @@ class Projectile {
                     }
                 }
             }
-
             target.takeDamage(damageToApply, this.dir, blocked);
-
             if (this.teleportX !== 0 || this.teleportY !== 0) {
                 target.x += this.teleportX * (-target.facing);
                 target.y -= this.teleportY;
@@ -3752,7 +3562,6 @@ class Projectile {
             this.active = false;
         }
     }
-
     draw(ctx, camera) {
         if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0) return;
         const sx = (this.x - camera.offsetX) * camera.zoom;
@@ -3769,7 +3578,6 @@ class Projectile {
             ctx.restore();
             return;
         }
-
         if (this.spriteImg  ) {
             const owner = this.owner;
             const fw = owner?.spriteFrameWidth ?? 64;
@@ -3787,8 +3595,6 @@ class Projectile {
             ctx.restore();
             return;
         }
-
-        // Fallback
         if (!isFinite(r) || r <= 0) return;
         const maxR = 200;
         const safeR = Math.min(r, maxR * camera.zoom);
@@ -3845,7 +3651,6 @@ class Mine {
         this.teleportY = teleportY || 0;
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
-
         if (this.extraImage) { 
             if (this.extraImage.complete && this.extraImage.naturalWidth > 0) {
                 this.imageLoaded = true;
@@ -3855,17 +3660,14 @@ class Mine {
             }
         }
     }
-
     update(opponents) {
         if (this.exploded) {
             this.explosionTimer--;
             if (this.explosionTimer <= 0) this.active = false;
             return;
         }
-
         this.life--;
         if (this.life <= 0) { this.active = false; return; }
-
         this.animTimer++;
         if (this.animTimer >= this.animSpeed) {
             this.animTimer = 0;
@@ -3874,7 +3676,6 @@ class Mine {
                 this.currentOffset = (this.currentOffset + 1) % range;
             }
         }
-
         for (const opp of opponents) {
             if (!opp || opp.health <= 0  || isSoloLevel) continue;
             const isOwner = (opp === this.owner);
@@ -3890,7 +3691,6 @@ class Mine {
             }
         }
     }
-
     explode(target) {
         if (this.exploded) return;
         this.exploded = true;
@@ -3910,7 +3710,6 @@ class Mine {
             }
         }
         target.takeDamage(damageToApply, this.owner ? this.owner.facing : 1, blocked);
-
         if (this.teleportX !== 0 || this.teleportY !== 0) {
             let victim = this.friendlyFire ? this.owner : target;
             if (victim) {
@@ -3943,13 +3742,11 @@ class Mine {
             this.owner.playSound('mine');
         }
     }
-
     draw(ctx, camera) {
         if (!isFinite(this.x) || !isFinite(this.y) || !camera || !isFinite(camera.zoom) || camera.zoom <= 0) return;
         const sx = (this.x - camera.offsetX) * camera.zoom;
         const sy = (this.y - camera.offsetY) * camera.zoom;
         const r = (this.radius || 20) * camera.zoom;
-
       if (this.extraImage && this.imageLoaded) {
     const w = r * 2;
     const h = r * 2;
@@ -3960,7 +3757,6 @@ class Mine {
     ctx.restore();
     return;
 }
-
 if (this.spriteLoaded && this.spriteImg) {
         // ─── Sprite ───
         ctx.save();
@@ -3974,8 +3770,7 @@ if (this.spriteLoaded && this.spriteImg) {
         ctx.restore();
 		return;
     }
-        // Fallback
-        if (!isFinite(r) || r <= 0) return;
+	if (!isFinite(r) || r <= 0) return;
         const maxR = 200;
         const safeR = Math.min(r, maxR * camera.zoom);
         const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, safeR * 1.8);
@@ -3999,18 +3794,14 @@ if (this.spriteLoaded && this.spriteImg) {
     }
 }
 function applyBarStyles() {
- 
     const healthRadius = project.settings.healthBarBorderRadius;// || 12;
-
     document.querySelectorAll('.health-bar').forEach(bar => {
         bar.style.borderRadius = healthRadius + 'px';
     });
-
      const energyRadius = project.settings.energyBarBorderRadius;// || 4;
     document.querySelectorAll('.energy-bar').forEach(bar => {
         bar.style.borderRadius = energyRadius + 'px';
     });
-	
 	    const healthHeight = project.settings.healthBarHeight ?? 20;
     document.getElementById('healthP1').style.height = healthHeight + 'px';
     document.getElementById('healthP2').style.height = healthHeight + 'px';
@@ -4020,10 +3811,6 @@ function applyBarStyles() {
     document.querySelectorAll('.energy-track').forEach(el => {
         el.style.height = energyHeight + 'px';
     });
-
-
-
-	
  	if (p1) {
     const opacity1 = p1.hudOpacity ?? 1;
     document.getElementById('energyP1').style.opacity = opacity1;
@@ -4045,9 +3832,7 @@ if (p2) {
 document.getElementById('healthP2').style.opacity = opacity2;
 document.getElementById('winIndP2').style.opacity = opacity2; 
 
-}
-
-	
+}	
 }
             // ─── FIGHTER CLASS ────────────────────────────────────
             class Fighter {
@@ -4059,13 +3844,11 @@ document.getElementById('winIndP2').style.opacity = opacity2;
         this.spriteLoaded = true;
     }
 }
-
                 constructor(charId, x, facing, playerIdx) {
                     const charData = project.characters[charId] || project.characters.fighter;
 
 this.states = charData.states ? JSON.parse(JSON.stringify(charData.states)) : {};
 this.name = charData.name || 'Vechter';
-
 this._ignorePlatform = null;
 this._lastAttackTime = 0;
 this._aiActionCooldown = 0;
@@ -4166,19 +3949,16 @@ this.counterTimer = 0;
 this.counterMove = null;
 this._currentMoveType = 'normal';
 this._currentMoveHeight = 'mid';
-
                     // ─── Energie ──────────────────────────────────
                     this.energy = 0;
                     this.maxEnergy = 100;
                     this.energyChargeRate = 0.15; 
-
 this.counterActive = false;
 this.counterType = 'none';
 this.counterTimer = 0;
 this.counterMove = null;
 this._currentMoveType = 'normal';
 this._currentMoveHeight = 'mid';
-
                     this.health = charData.health || 100;
                     this.maxHealth = this.health;
                     this.speed = charData.speed || 4;
@@ -4200,30 +3980,24 @@ this._currentMoveHeight = 'mid';
                     this.mineSound = charData.mineSound || null;
                     this.damageSound = charData.damageSound || null;
 					    this.tagSound = charData.tagSound || null;
-
                     this.introText = charData.introText || 'Good luck, You are done!';
                     this.outroText = charData.outroText || 'Thanks for the match, Exciting!';
                     this.canRecoverFromFlinch = charData.canRecoverFromFlinch || false;
-
                     this.dashEnabled = charData.dashEnabled || false;
                     this.dashSpeed = charData.dashSpeed ?? 20;
                     this.dashDuration = charData.dashDuration ?? 10;
                     this.dashCooldown = charData.dashCooldown ?? 1;
-
 this._history = [];
 this._historyTimes = [];
-
                     this.maxJumps = this.doubleJump ? 2 : 1;
                     this.moves = charData.moves || DEFAULT_MOVES.map(m => ({ ...m }));
                     this.spriteFrameWidth = charData.spriteFrameWidth || 64;
                     this.spriteFrameHeight = charData.spriteFrameHeight || 64;
                     this.spriteCols = charData.spriteCols || 8;
-                    this.spriteRows = charData.spriteRows || 12;
-                   
+                    this.spriteRows = charData.spriteRows || 12;  
 				       this.spriteLoaded = false;
     this.spriteImg = null;
-    this.loadSprite(this.charId); 
-				   
+    this.loadSprite(this.charId); 				   
                     this.bloodImage = charData.bloodImage || null;
                     this.hitEffectImage = charData.hitEffectImage || null;
                     this.bloodEnabled = charData.bloodEnabled !== undefined ? charData.bloodEnabled : true;
@@ -4454,7 +4228,7 @@ startAttack(idx) {
         return false;
     if (idx < 0 || idx >= this.moves.length) return false;
 	
-	    var move = this.moves[idx];
+	    let move = this.moves[idx];
 		 if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null}
     if (!move) return false;
  
@@ -4580,12 +4354,8 @@ else{
 	
 	const offsetX = startDist || 0;
 const distance = this.w / 2 + offsetX;   
-var projX = this.cx + this.facing * distance;
-if( move.mineImage || sprite  )
-{
-      projX = this.x +     (offsetX*this.facing);
-
-}
+let projX = this.cx + this.facing * distance;
+ 
 
     const proj = new Projectile(
         projX,
@@ -4656,12 +4426,8 @@ else{
 }
 const offsetX = move.startDistance || 0;
 const distance = this.w / 2 + offsetX;   
-var mineX = this.cx + this.facing * distance;
-if( move.mineImage || sprite  )
-{
-      mineX = this.x +     (offsetX*this.facing);
-
-}
+let mineX = this.cx + this.facing * distance;
+ 
 const mineY = this.y + this.h - 10 + (move.spawnYOffset ?? 0);
  const mineLife = move.speed ? move.speed : 300;
 
@@ -4939,9 +4705,8 @@ else if (p2) {
 
                     // ─── SWEPT STATE ──────────────────────────────────────────────
 if (this.state === 'swept' || this.state === 'ko') {
-    var flatHeight =65
-	 if(this.spriteImg){ flatHeight = 65;  }
-     if (laneMode) {
+    let flatHeight =65
+      if (laneMode) {
         this.y = LANE_Y[this.lane] - flatHeight;
     } else if (this.state !== 'ko'  ) {// ok to fall of platform
         this.y =  this.groundY  -flatHeight;// GROUND_Y-flatHeight; 
@@ -5048,7 +4813,7 @@ if (laneMode && this.autoReturnToMiddleLane && this.state !== 'hit' && this.stat
                     // ─── ATTACK STATE ─────────────────────────────────────────
                     if (this.state === 'attack') {
                         this.attackTimer--;
-                        var move = this.getMove(this.attackIdx);
+                        let move = this.getMove(this.attackIdx);
 						
  						if  (move && move.fatalityOnly &&!fatalityActive  ) {move=null;}
 
@@ -5772,11 +5537,8 @@ if (this.statusTimer > 0) {
     ctx.shadowColor = 'rgba(255,255,255,0.3)';
         const textY = (this.y + visualOffsetWorld - camera.offsetY) * camera.zoom - 60 * camera.zoom;
     if (project.settings.isStatusTextAbovePlayer) {
-	var cx=sx + w / 2;
-		if(spriteImages[this.charId])
-				{
-				cx = sx;
-				}
+	let cx=sx + w / 2;
+ 
 				 
         ctx.fillText(this.statusMessage, cx, textY);
     } else {
@@ -5853,12 +5615,8 @@ ctx.fillText(`FPS: ${fps}`, x, y);
  if (project.settings.showCounterShield  &&this.counterActive) {
     ctx.save();
     const alpha = 0.3 + 0.7 * (this.counterTimer / 90);
- 	    var cx = sx + w / 2;
-				if(spriteImages[this.charId])
-				{
-				cx = sx;
-				}
-				
+ 	    let cx = sx + w / 2;
+ 
         const cy = (this.cy + visualOffsetWorld - camera.offsetY) * camera.zoom;
     const baseRadius = 60 * camera.zoom;
     let color;
@@ -5934,13 +5692,10 @@ ctx.fillText(`FPS: ${fps}`, x, y);
     let shadowY = this.groundY + 4 + visualOffsetWorld;
 const shadowWorldX = this.cx;
 let shadowOffsetX = 0;
-
- if (this.spriteImg ) {
-    shadowOffsetX = -(this.w / 2);
-}
+ 
 
 const shadowSx = (shadowWorldX - camera.offsetX + shadowOffsetX) * camera.zoom;
-var shadowSy = (shadowY - camera.offsetY) * camera.zoom;  
+let shadowSy = (shadowY - camera.offsetY) * camera.zoom;  
   if (this.state === 'crouch' || this.state === 'block_crouch') {
         shadowY += 10;
     }
@@ -6014,7 +5769,7 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
  
     if (attackImg && isImageLoaded(attackImg)  ) {    
         ctx.save();
-        ctx.translate(sx, drawY + h / 2);
+         ctx.translate(sx + w / 2, drawY + h / 2);
         if (f < 0) ctx.scale(-1, 1);
         if (scaleY !== 1) ctx.scale(1, scaleY);
         const imgW = w * 1.2;
@@ -6050,7 +5805,7 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
         // ─── TEKEN STATE‑AFBEELDING ──────────────────────────
         if (stateImg && isImageLoaded(stateImg)) {    
             ctx.save();
-            ctx.translate(sx, drawY + h / 2);
+             ctx.translate(sx + w / 2, drawY + h / 2);
             if (f < 0) ctx.scale(-1, 1);
             if (scaleY !== 1) ctx.scale(1, scaleY);
             ctx.drawImage(stateImg, -w / 2, -h / 2, w, h);
@@ -6078,7 +5833,7 @@ var shadowSy = (shadowY - camera.offsetY) * camera.zoom;
                 colToUse = this.animFrame % this.spriteCols;
             }
             ctx.save();
-            ctx.translate(sx, drawY + h / 2);
+             ctx.translate(sx + w / 2, drawY + h / 2);
             if (f < 0) ctx.scale(-1, 1);
             if (scaleY !== 1) ctx.scale(1, scaleY);
         try {
@@ -6623,11 +6378,8 @@ if (move && this.state === 'attack') {
                 ctx.lineWidth = 4 * camera.zoom;
                 ctx.shadowColor = 'rgba(100,200,255,0.3)';
                 const blockY = drawY + this.h / 2 * camera.zoom * scaleY;
-                   var cx = sx + w / 2;
-				if(spriteImages[this.charId])
-				{
-				cx = sx;
-				}
+                   let cx = sx + w / 2;
+			 
                 const cy = blockY;
                 const radius = 50 * camera.zoom;
                 ctx.translate(cx, cy);
@@ -6647,11 +6399,8 @@ if (move && this.state === 'attack') {
         ctx.strokeStyle = `rgba(100,255,100,${alpha * 0.8})`;
         ctx.lineWidth = 6 * camera.zoom;
         ctx.beginPath();
-		       var cx = sx + w / 2;
-				if(spriteImages[this.charId])
-				{
-				cx = sx;
-				}
+		       let cx = sx + w / 2;
+			 
         ctx.arc(cx, drawY + this.h / 2 * camera.zoom * scaleY, radius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
@@ -6676,11 +6425,8 @@ if (move && this.state === 'attack') {
     ctx.fillStyle = project.settings.comboColor || '#ffdd44';
     ctx.shadowColor = 'rgba(255,200,50,0.4)';
     if (project.settings.isStatusTextAbovePlayer) {
-	var cx =sx + w / 2;
-	if(spriteImages[this.charId])
-				{
-				cx = sx;
-				}
+	let cx =sx + w / 2;
+ 
 			 
         ctx.fillText(`${this.comboCount} COMBO!`, cx, drawY - 30 * camera.zoom);
     } else {
@@ -8536,7 +8282,7 @@ function aiPerformAttack(fighter, moveList) {
     return fighter.startAttack(idx);
 }
 
-var timeToJumpTONextLane=0;
+let timeToJumpTONextLane=0;
   function updateAIFor(fighter, opponent, isAIvsAI) {
     if ((fatalityActive   && fighter.health <= 0.1 ) ||fighter.health <= 0 || opponent.health <= 0 || !roundActive) {
         fighter.input.up = false;
@@ -8697,7 +8443,7 @@ if (fighter.ignorePhysics) {
 	
 	
         if (heightDiff > 20) fighter._aiForceSuperJump = true;// lower for certainty?
-        var jumpPower = fighter._aiForceSuperJump ? (fighter.superJumpPower || -18) : -12;
+        let jumpPower = fighter._aiForceSuperJump ? (fighter.superJumpPower || -18) : -12;
  		if(fighter.doubleJump)
 		{
 		jumpPower = fighter.superJumpPower +( fighter.superJumpPower*0.6);//9); => happens direct, would be too crazy
@@ -9318,7 +9064,7 @@ function getRandomDifficulty() {
     const diffs = ['beginner', 'easy', 'normal', 'hard'];
     return diffs[Math.floor(Math.random() * diffs.length)];
 }
- var frameSaveTimer=0;
+ let frameSaveTimer=0;
             function update() {
 			
 			 updateTravelCubes() ;
@@ -9575,9 +9321,9 @@ healthP1.classList.toggle('bad', hp1Pct < 25);
 healthP2.classList.toggle('bad', hp2Pct < 25);
 
                 // ─── Energiebalken updaten ──────────────────────────
-              var energy1 = (p1.energy / p1.maxEnergy) * 100;
+              let energy1 = (p1.energy / p1.maxEnergy) * 100;
 			  			  if (energy1 < 0){energy1=0}
-var energy2 = (p2.energy / p2.maxEnergy) * 100;
+let energy2 = (p2.energy / p2.maxEnergy) * 100;
 			  if (energy2 < 0){energy2=0}
 
 const eBar1 = document.getElementById('energyP1');
@@ -10333,23 +10079,15 @@ function drawAttackRanges(ctx, camera) {
         if (fighter.state === 'attack') {
             const move = fighter.getMove(fighter.attackIdx);
             if (move && move.range && move.range > 0) {
-                var sx = (fighter.x - camera.offsetX) * zoom ;
+                let sx = (fighter.x - camera.offsetX) * zoom ;
                 const cy = (fighter.cy - camera.offsetY) * zoom;
                 const rangeWorld = move.range * zoom* 0.75; // ←   zoom*X closer/further body
                 const dir = fighter.facing; 
 				
 				
-				     var cx = sx + fighter.width / 2;
+ 				                let cx = (fighter.cx - camera.offsetX) * zoom;
 
-				if(spriteImages[fighter.charId]  )
-				{
-				cx = sx;
-
-
-				} else{
-				                var cx = (fighter.cx - camera.offsetX) * zoom;
-
-				}
+				 
 				
                 ctx.save();
                 ctx.globalAlpha = 0.3;
@@ -10374,11 +10112,8 @@ function drawAttackRanges(ctx, camera) {
             const sy = (proj.y - camera.offsetY) * zoom;
             const rangeWorld = proj.range * zoom;
 			
-							      var cx = sx + fighter.width / 2;
-				if(spriteImages[fighter.charId])
-				{
-				cx = sx;
-				}
+							      let cx = sx + fighter.width / 2;
+			 
 
             ctx.save();
             ctx.globalAlpha = 0.25;
@@ -10399,11 +10134,8 @@ function drawAttackRanges(ctx, camera) {
             const sx = (mine.x - camera.offsetX) * zoom;
             const sy = (mine.y - camera.offsetY) * zoom;
             const rangeWorld = mine.range * zoom;
-			      var cx = sx + fighter.width / 2;
-				if(spriteImages[fighter.charId])
-				{
-				cx = sx;
-				}
+			      let cx = sx + fighter.width / 2;
+			 
             ctx.save();
             ctx.globalAlpha = 0.25;
             ctx.strokeStyle = '#ff3333';
@@ -10417,7 +10149,7 @@ function drawAttackRanges(ctx, camera) {
         }
     }
 }}
-            var isOutrRendered = false;
+            let isOutrRendered = false;
 
             function render() {
                 drawBackground(); 
@@ -11118,7 +10850,7 @@ function processProjectData(jsonString) {
 showLoadingScreen();
 
     try {
-        var data = JSON.parse(jsonString);
+        let data = JSON.parse(jsonString);
         if (!data.characters) throw new Error('Invalid projectfile: no characters');
 			if (!data.projectId)     data.projectId = 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 project.projectId =data.projectId;
@@ -11133,8 +10865,8 @@ project.projectId =data.projectId;
         project.audio = data.audio || {};
         project.stages = data.stages || DEFAULT_STAGES.map(function(s) { return { ...s }; });
         // Zorg voor ontbrekende velden in stages
-        for (var i = 0; i < project.stages.length; i++) {
-            var stage = project.stages[i];
+        for (let i = 0; i < project.stages.length; i++) {
+            let stage = project.stages[i];
             if (!stage.colorTheme) stage.colorTheme = 'default';
             if (!stage.weather) stage.weather = 'none';
             if (!stage.platforms) stage.platforms = [];
@@ -11325,8 +11057,8 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         updateActionSelectZoom();
 
         // --- Karakter eigenschappen aanvullen ---
-        for (var id in project.characters) {
-            var char = project.characters[id];
+        for (let id in project.characters) {
+            let char = project.characters[id];
             if (char.hitSound === undefined) char.hitSound = null;
             if (char.projectileSound === undefined) char.projectileSound = null;
             if (char.sweepSound === undefined) char.sweepSound = null;
@@ -11365,16 +11097,16 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         }
 
         // --- Sprites laden ---
-        for (var spriteId in project.sprites) {
+        for (let spriteId in project.sprites) {
             if (project.sprites[spriteId]) loadSpriteForChar(spriteId, project.sprites[spriteId]);
         }
         // --- Audio laden ---
-        for (var audioName in project.audio) {
+        for (let audioName in project.audio) {
             if (project.audio[audioName]) loadAudioFromBase64(audioName, project.audio[audioName]);
         }
         // --- Stage media laden ---
-        for (var s = 0; s < project.stages.length; s++) {
-            var st = project.stages[s];
+        for (let s = 0; s < project.stages.length; s++) {
+            let st = project.stages[s];
             if (st.imageData) loadStageMedia(st.id, st.imageData);
 			st.travelcubeConfigs.forEach(cfg => {
     if (cfg.timeToLive === undefined) cfg.timeToLive = 0;
@@ -11433,7 +11165,7 @@ clearAllCaches();
     if (typeof source === 'string') {
         processProjectData(source);
     } else if (source instanceof File) {
-        var reader = new FileReader();
+        let reader = new FileReader();
         reader.onload = function(e) {
             processProjectData(e.target.result);
         };
@@ -16004,7 +15736,7 @@ fullReset();//resetRound();
             }
 
             modeSelect.addEventListener('change', (e) => {
-                var val = e.target.value;
+                let val = e.target.value;
                 setMode(val);
                 modeSelect.selectedIndex = 0;
                 modeSelect[0].innerHTML = val;
@@ -16527,7 +16259,7 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
 		hideLoadingScreen(1000);
      });
    window.generateHTML = function(title, faviconData, videoData, watermarkData) {
-    var html = document.documentElement.outerHTML;
+    let html = document.documentElement.outerHTML;
 
     // Titel aanpassen
     html = html.replace(/<title>.*?<\/title>/, '<title>' + title + '</title>');
@@ -16541,11 +16273,11 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         html = html.replace(/<div[^>]*id="hamburgerBtn"[^>]*>/, '<div id="hamburgerBtn" style="display:none !important;">');
     }
 	else if (  project.publish.ui.includes('hamburgerBtn')) {
-    var topMenuRegex = /<div[^>]*id="topMenu"[^>]*>/;
-    var match = html.match(topMenuRegex);
+    let topMenuRegex = /<div[^>]*id="topMenu"[^>]*>/;
+    let match = html.match(topMenuRegex);
     if (match) {
-        var tag = match[0];
-        var newTag = tag;
+        let tag = match[0];
+        let newTag = tag;
         if (!tag.includes('class=')) {
             newTag = tag.replace('>', ' class="hidden">');
         } else {
@@ -16554,30 +16286,27 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         html = html.replace(tag, newTag);
     }
 }
-
-
-    var projectJson = JSON.stringify(project);
-    var escapedJson = projectJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/<\//g, '<\\/');
-    var projectDataScript = '<script>' +
+    let projectJson = JSON.stringify(project);
+    let escapedJson = projectJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/<\//g, '<\\/');
+    let projectDataScript = '<script>' +
         'window.projectData = JSON.parse("' + escapedJson + '");' +
         'window.project = window.projectData;' +
         'window.project.isPublished = true;' +
         '<\/script>';
-
     // Vervang de bestaande project-definitie in de HTML door de geladen data
     function replaceProjectDefinition(str) {
-        var match = str.match(/(?:let|var|const)\s+project\s*=\s*\{/);
+        let match = str.match(/(?:let|var|const)\s+project\s*=\s*\{/);
         if (!match) return str;
-        var start = match.index;
-        var i = start + match[0].length - 1;
-        var depth = 0;
+        let start = match.index;
+        let i = start + match[0].length - 1;
+        let depth = 0;
         while (i < str.length) {
-            var ch = str[i];
+            let ch = str[i];
             if (ch === '{') depth++;
             else if (ch === '}') {
                 depth--;
                 if (depth === 0) {
-                    var end = i + 1;
+                    let end = i + 1;
                     while (end < str.length && (str[end] === ';' || str[end] === ' ' || str[end] === '\n' || str[end] === '\r')) end++;
                     return str.substring(0, start) + 'project = window.project;' + str.substring(end);
                 }
@@ -16588,10 +16317,10 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
     }
     html = replaceProjectDefinition(html);
 
-    var globalFunctionsScript = '<script>' +
+    let globalFunctionsScript = '<script>' +
         'window.processProjectData = function(json) {' +
         '  try {' +
-        '    var data = JSON.parse(json);' +
+        '    let data = JSON.parse(json);' +
         '    window.project = data;' +
         '    window.project.isPublished = true;' +
         '    if (typeof project !== "undefined") { project = window.project; }' +
@@ -16604,30 +16333,28 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '<\/script>';
 
     // ─── LOADING OVERLAY (nieuw) ──────────────────────────────
-    var loadingHTML = LOADING_HTML 
+    let loadingHTML = LOADING_HTML 
 	
     html = html.replace('<body', '<body>' + loadingHTML);
 
-    var watermarkHTML = '';
+    let watermarkHTML = '';
     if (watermarkData) {
         watermarkHTML = '<div style="position:absolute; bottom:20px; right:20px; pointer-events:none; opacity:0.7; max-width:100px; max-height:100px;">' +
             '<img src="' + watermarkData + '" alt="watermerk" style="width:100%; height:auto; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.3);">' +
             '</div>';
     }
-
-    // Startscherm (Launch overlay) + verwijderen van loading overlay
-    var overlayInnerHTML =
+    let overlayInnerHTML =
         '<h1 style="font-size:48px;">▶ Launch</h1>' +
         '<p style="font-size:18px;opacity:0.7;">' + title + '</p>' +
         watermarkHTML;
 
-    var clickStartScript = '<script>' +
+    let clickStartScript = '<script>' +
         'window.addEventListener("DOMContentLoaded", function() {' +
         // ─── Verwijder de loading overlay ──────────────────
-        '  var loadEl = document.getElementById("loadingOverlay");' +
+        '  let loadEl = document.getElementById("loadingOverlay");' +
         '  if (loadEl) loadEl.remove();' +
         // ─── Bouw de start-overlay ─────────────────────────
-        '  var overlay = document.createElement("div");' +
+        '  let overlay = document.createElement("div");' +
         '  overlay.id = "startOverlay";' +
         '  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:sans-serif;cursor:pointer;";' +
         '  overlay.innerHTML = ' + JSON.stringify(overlayInnerHTML) + ';' +
@@ -16637,9 +16364,9 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '      window.project = window.projectData;' +
         '      window.project.isPublished = true;' +
         '      try {' +
-        '        var ctx = new (window.AudioContext || window.webkitAudioContext)();' +
-        '        var osc = ctx.createOscillator();' +
-        '        var gain = ctx.createGain();' +
+        '        let ctx = new (window.AudioContext || window.webkitAudioContext)();' +
+        '        let osc = ctx.createOscillator();' +
+        '        let gain = ctx.createGain();' +
         '        osc.connect(gain); gain.connect(ctx.destination);' +
         '        osc.frequency.value = 600;' +
         '        gain.gain.setValueAtTime(0.15, ctx.currentTime);' +
@@ -16649,11 +16376,11 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '      if (typeof project !== "undefined") { project = window.project; }' +
         '    }' +
         '    if (typeof fullReset === "function") { fullReset(); }' +
-        '    var el = document.getElementById("startOverlay"); if (el) el.remove();' +
-        '    var intro = document.getElementById("introOverlay");' +
+        '    let el = document.getElementById("startOverlay"); if (el) el.remove();' +
+        '    let intro = document.getElementById("introOverlay");' +
         '    if (intro) {' +
         '      intro.style.display = "flex";' +
-        '      var video = document.getElementById("introVideo");' +
+        '      let video = document.getElementById("introVideo");' +
         '      if (video) {' +
         '        video.muted = true;' +
         '        video.play().then(function() { video.muted = false; }).catch(function() {' +
@@ -16667,22 +16394,21 @@ const launchMode = document.getElementById('publishLaunchMode').value || 'traini
         '  overlay.addEventListener("touchstart", startGame);' +
         '});' +
         '<\/script>';
-
-var overlayHTML = '';
+let overlayHTML = '';
 if (videoData) {
     overlayHTML = `
     <div id="introOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;">
         <video id="introVideo" muted playsinline style="max-width:90%;max-height:80%;" onended="closeIntro()"></video>
         <div style="display:flex;gap:10px;margin-top:20px;">
-            <button hidden id="unmuteIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="this.style.display='none'; var v=document.getElementById('introVideo'); if (v) v.muted = false;">🔊 Sound aan</button>
+            <button hidden id="unmuteIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="this.style.display='none'; let v=document.getElementById('introVideo'); if (v) v.muted = false;">🔊 Sound aan</button>
             <button id="skipIntro" style="padding:10px 20px;background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;" onclick="closeIntro()">Skip intro</button>
         </div>
     </div>
     <script>
     function closeIntro() {
-        var el = document.getElementById('introOverlay');
+        let el = document.getElementById('introOverlay');
         if (el) el.style.display = 'none';
-        var vid = document.getElementById('introVideo');
+        let vid = document.getElementById('introVideo');
         if (vid) {
             vid.pause();
             vid.currentTime = 0;
@@ -16691,7 +16417,7 @@ if (videoData) {
         }
     }
     document.addEventListener('DOMContentLoaded', function() {
-        var video = document.getElementById('introVideo');
+        let video = document.getElementById('introVideo');
         if (!video) return;
         video.src = ` + JSON.stringify(videoData) + `;
         video.muted = true;
@@ -16699,7 +16425,7 @@ if (videoData) {
         function tryPlay() {
             video.play().catch(function(e) {
                 // Autoplay geblokkeerd → wacht op een klik
-                var overlay = document.getElementById('introOverlay');
+                let overlay = document.getElementById('introOverlay');
                 if (overlay) {
                     overlay.addEventListener('click', function playOnClick() {
                         video.play().catch(function() {});
@@ -16714,11 +16440,10 @@ if (videoData) {
     <\/script>
     `;
 }
-
-     var filterScript = '<script>' +
+     let filterScript = '<script>' +
         'document.addEventListener("DOMContentLoaded", function() {' +
-        '  var cfg = (window.project && window.project.publish) ? window.project.publish : { modes:[], actions:[], utilities:[], ui:[], settingsActions:[], charActions:[], stageActions:[] };' +
-        '  var hideCss = "";' +
+        '  let cfg = (window.project && window.project.publish) ? window.project.publish : { modes:[], actions:[], utilities:[], ui:[], settingsActions:[], charActions:[], stageActions:[] };' +
+        '  let hideCss = "";' +
         '  if (!cfg.settingsActions || !cfg.settingsActions.includes("devTools")) { hideCss += "#devTools{display:none !important;}"; }' +
         '  if (!cfg.charActions || !cfg.charActions.includes("newCharacter")) { hideCss += "#addCharBtn{display:none !important;}"; }' +
         '  if (!cfg.charActions || !cfg.charActions.includes("edit")) { hideCss += ".edit-char{display:none !important;}"; }' +
@@ -16729,31 +16454,31 @@ if (videoData) {
         '  if (!cfg.stageActions || !cfg.stageActions.includes("delete")) { hideCss += ".remove-stage{display:none !important;}"; }' +
 		'  if (!cfg.charActions || !cfg.charActions.includes("duplicate")) { hideCss += ".duplicate-char{display:none !important;}"; }' +
 '  if (!cfg.stageActions || !cfg.stageActions.includes("duplicate")) { hideCss += ".duplicate-stage{display:none !important;}"; }' +
-        '  if (hideCss) { var styleEl = document.createElement("style"); styleEl.textContent = hideCss; document.head.appendChild(styleEl); }' +
-        '  var modeSel = document.getElementById("modeSelect");' +
+        '  if (hideCss) { let styleEl = document.createElement("style"); styleEl.textContent = hideCss; document.head.appendChild(styleEl); }' +
+        '  let modeSel = document.getElementById("modeSelect");' +
         '  if (modeSel) {' +
-        '    for (var i = modeSel.options.length - 1; i >= 0; i--) {' +
-        '      var val = modeSel.options[i].value;' +
+        '    for (let i = modeSel.options.length - 1; i >= 0; i--) {' +
+        '      let val = modeSel.options[i].value;' +
         '      if (val !== "" && !cfg.modes.includes(val)) {' +
         '        modeSel.remove(i);' +
         '      }' +
         '    }' +
         '    if (modeSel.options.length <= 1 || !cfg.ui.includes("modeSelect")) modeSel.style.display = "none";' +
         '  }' +
-        '  var actSel = document.getElementById("actionSelect");' +
+        '  let actSel = document.getElementById("actionSelect");' +
         '  if (actSel) {' +
-        '    for (var i = actSel.options.length - 1; i >= 0; i--) {' +
-        '      var val = actSel.options[i].value;' +
+        '    for (let i = actSel.options.length - 1; i >= 0; i--) {' +
+        '      let val = actSel.options[i].value;' +
         '      if (val !== "" && !cfg.actions.includes(val)) {' +
         '        actSel.remove(i);' +
         '      }' +
         '    }' +
         '    if (actSel.options.length <= 1) actSel.style.display = "none";' +
         '  }' +
-        '  var utilSel = document.getElementById("utilitySelect");' +
+        '  let utilSel = document.getElementById("utilitySelect");' +
         '  if (utilSel) {' +
-        '    for (var i = utilSel.options.length - 1; i >= 0; i--) {' +
-        '      var val = utilSel.options[i].value;' +
+        '    for (let i = utilSel.options.length - 1; i >= 0; i--) {' +
+        '      let val = utilSel.options[i].value;' +
         '      if (val !== "" && !cfg.utilities.includes(val)) {' +
         '        utilSel.remove(i);' +
         '      }' +
@@ -16761,15 +16486,15 @@ if (videoData) {
         '    if (utilSel.options.length <= 1) utilSel.style.display = "none";' +
         '  }' +
         '  if (!cfg.ui.includes("pauseBtn")) {' +
-        '    var pBtn = document.getElementById("pauseBtn"); if (pBtn) pBtn.style.display = "none";' +
+        '    let pBtn = document.getElementById("pauseBtn"); if (pBtn) pBtn.style.display = "none";' +
         '  }' +
         '  if (!cfg.ui.includes("stageSelect")) {' +
-        '    var sSel = document.getElementById("stageSelect"); if (sSel) sSel.style.display = "none";' +
+        '    let sSel = document.getElementById("stageSelect"); if (sSel) sSel.style.display = "none";' +
         '  }' +
-        '  var topMenu = document.getElementById("topMenu");' +
+        '  let topMenu = document.getElementById("topMenu");' +
         '  if (topMenu) {' +
-        '    var visible = 0;' +
-        '    for (var child of topMenu.children) {' +
+        '    let visible = 0;' +
+        '    for (let child of topMenu.children) {' +
         '      if (child.style.display !== "none") visible++;' +
         '    }' +
         '    if (visible === 0) topMenu.style.display = "none";' +
@@ -16781,7 +16506,7 @@ if (videoData) {
         '  if (!cfg.utilities.includes("HELP")) { window.showHELP = function() { console.log("Info niet beschikbaar"); }; }' +
         '  if (!cfg.utilities.includes("export")) { window.exportProject = function() { console.log("Export niet beschikbaar"); }; }' +
         '  if (!cfg.utilities.includes("import")) { window.importProject = function() { console.log("Import niet beschikbaar"); }; }' +
-        '  var modal = document.getElementById("modalOverlay");' +
+        '  let modal = document.getElementById("modalOverlay");' +
         '  if (modal) {' +
         '    modal.classList.remove("open");' +
         '  }' +
@@ -16789,29 +16514,26 @@ if (videoData) {
         '<\/script>';
 
     // Alles samenvoegen in de HTML
-    var bodyIndex = html.indexOf('<body');
+    let bodyIndex = html.indexOf('<body');
     if (bodyIndex === -1) {
         html = html.replace('</html>', projectDataScript + globalFunctionsScript + clickStartScript + overlayHTML + filterScript + '</html>');
         return html;
     }
-    var bodyTagEnd = html.indexOf('>', bodyIndex);
+    let bodyTagEnd = html.indexOf('>', bodyIndex);
     if (bodyTagEnd === -1) {
         html = html.replace('</body>', projectDataScript + globalFunctionsScript + clickStartScript + overlayHTML + filterScript + '</body>');
         return html;
     }
-    var before = html.substring(0, bodyTagEnd + 1);
-    var after = html.substring(bodyTagEnd + 1);
+    let before = html.substring(0, bodyTagEnd + 1);
+    let after = html.substring(bodyTagEnd + 1);
     after = projectDataScript + globalFunctionsScript + clickStartScript + overlayHTML + filterScript + after;
     return before + after;
 };
 }
-
 showLoadingScreen();
 hideLoadingScreen(100);
 resizeCanvas() 
- 
       })();
-
 	</script>
 </body>
 </html>
