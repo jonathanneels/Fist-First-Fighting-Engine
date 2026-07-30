@@ -2261,7 +2261,8 @@ const assetCache = {
     sprites: new Map(),       
     stageBg: new Map(),       
     audio: new Map(),        
-    stateImages: new Map()  
+    stateImages: new Map(),
+	moveImages: new Map()      
 };
 
             let project = {
@@ -2531,6 +2532,57 @@ let networkUID  = null
      stopStageAudio();
      GROUND_Y=560;
 }
+function preloadMoveImages() {
+    const loadPromises = [];
+     const activeFighters = [p1, p2, p1_tag, p2_tag].filter(Boolean);
+
+    for (const fighter of activeFighters) {
+        if (fighter && fighter.moves) {
+            for (const move of fighter.moves) {
+                const srcs = [move.attackImage, move.projectileImage, move.mineImage];
+                for (const src of srcs) {
+                    if (src && !assetCache.moveImages.has(src)) {
+                        const img = new Image();
+                        assetCache.moveImages.set(src, img);
+                        const promise = new Promise((resolve) => {
+                            img.onload = () => resolve();
+                            img.onerror = () => resolve();
+                        });
+                        img.src = src;
+                        loadPromises.push(promise);
+                    }
+                }
+            }
+        }
+    }
+    return Promise.all(loadPromises);
+}
+function freeUnusedMoveImages() {
+    // Verzamel alle afbeeldingen die nog in gebruik zijn
+    const activeImages = new Set();
+    const fighters = [p1, p2, p1_tag, p2_tag].filter(Boolean);
+    for (const fighter of fighters) {
+        if (fighter && fighter.moves) {
+            for (const move of fighter.moves) {
+                if (move.attackImage) activeImages.add(move.attackImage);
+                if (move.projectileImage) activeImages.add(move.projectileImage);
+                if (move.mineImage) activeImages.add(move.mineImage);
+            }
+        }
+    }
+
+    // Verwijder alle move-afbeeldingen die niet actief zijn
+    for (const [src, img] of assetCache.moveImages) {
+        if (!activeImages.has(src)) {
+            // Afbeelding ontladen
+            if (img && typeof img === 'object') {
+                if (typeof img.close === 'function') img.close();
+                else if (img.src) img.src = '';
+            }
+            assetCache.moveImages.delete(src);
+        }
+    }
+}
 function freeUnusedSprites() {
     const activeIds = new Set();
     if (p1) activeIds.add(p1.charId);
@@ -2554,7 +2606,8 @@ function freeUnusedSprites() {
             assetCache.stateImages.delete(key);
         }
     }
-
+freeUnusedMoveImages();
+preloadMoveImages();
  }
 function freeUnusedStageBg() {
     const activeId = project.currentStageId;
@@ -4319,15 +4372,16 @@ if (move.type === 'projectile') {
     const endFrame = move.endFrame || startFrame + 3;
     let extraImg = null;
     if (move.projectileImage) {
-        if (extraImages[move.projectileImage]) {
-            extraImg = extraImages[move.projectileImage];
+        if (assetCache.moveImages.has(move.projectileImage)) {
+            extraImg = assetCache.moveImages.get(move.projectileImage);
         } else {
             const img = new Image();
             img.src = move.projectileImage;
-            extraImages[move.projectileImage] = img;
+            assetCache.moveImages.set(move.projectileImage, img);
             extraImg = img;
         }
     }
+
 if (move.attackImage) {
     let img = extraImages[move.attackImage];
     if (!img) {
@@ -4394,15 +4448,16 @@ if (move.type === 'mine') {
     const endFrame = move.endFrame || startFrame + 3;
     let extraImg = null;
     if (move.mineImage) {
-        if (extraImages[move.mineImage]) {
-            extraImg = extraImages[move.mineImage];
+        if (assetCache.moveImages.has(move.mineImage)) {
+            extraImg = assetCache.moveImages.get(move.mineImage);
         } else {
             const img = new Image();
             img.src = move.mineImage;
-            extraImages[move.mineImage] = img;
+            assetCache.moveImages.set(move.mineImage, img);
             extraImg = img;
         }
     }
+
 if (move.attackImage) {
     let img = extraImages[move.attackImage];
     if (!img) {
@@ -6610,17 +6665,18 @@ playMoveCosmetics(move, moveIdx) {
     this.cooldown = Math.floor((move.speed || 20) * 0.3);
     this.animFrame = move.startFrame || 0;
 
-    // ---- Handle optional attack image (for any move type) ----
-    if (move.attackImage) {
-        let img = extraImages[move.attackImage];
-        if (!img) {
-            img = new Image();
-            img.src = move.attackImage;
-            extraImages[move.attackImage] = img;
-        }
-        this.projectileMijnImg = img;
-        this.projectileMijnTimer = 30; // show for 30 frames
+ if (move.attackImage) {
+    let img = assetCache.moveImages.get(move.attackImage);
+    if (!img) {
+        img = new Image();
+        img.src = move.attackImage;
+        assetCache.moveImages.set(move.attackImage, img);
     }
+    this.projectileMijnImg = img;               
+    this.projectileMijnTimer = 30;
+    this.attackActive = false;  
+}
+
 
     // ---- Play the correct sound ----
     if (move.type === 'projectile') {
@@ -10079,16 +10135,10 @@ function drawAttackRanges(ctx, camera) {
         if (fighter.state === 'attack') {
             const move = fighter.getMove(fighter.attackIdx);
             if (move && move.range && move.range > 0) {
-                let sx = (fighter.x - camera.offsetX) * zoom ;
                 const cy = (fighter.cy - camera.offsetY) * zoom;
-                const rangeWorld = move.range * zoom* 0.75; // ←   zoom*X closer/further body
-                const dir = fighter.facing; 
-				
-				
- 				                let cx = (fighter.cx - camera.offsetX) * zoom;
-
-				 
-				
+                const rangeWorld = move.range * zoom * 0.75;
+                const cx = (fighter.cx - camera.offsetX) * zoom;
+                const dir = fighter.facing;
                 ctx.save();
                 ctx.globalAlpha = 0.3;
                 ctx.strokeStyle = '#ff3333';
@@ -10103,7 +10153,7 @@ function drawAttackRanges(ctx, camera) {
                 ctx.restore();
             }
         }
-    
+    }
 
     // ─── Projectiel ranges ────────────────────────
     for (const proj of allProjectiles) {
@@ -10111,17 +10161,13 @@ function drawAttackRanges(ctx, camera) {
             const sx = (proj.x - camera.offsetX) * zoom;
             const sy = (proj.y - camera.offsetY) * zoom;
             const rangeWorld = proj.range * zoom;
-			
-							      let cx = sx + fighter.width / 2;
-			 
-
             ctx.save();
             ctx.globalAlpha = 0.25;
             ctx.strokeStyle = '#ff3333';
             ctx.lineWidth = 1.5 * zoom;
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
-            ctx.arc(cx, sy, rangeWorld, 0, Math.PI * 2);
+            ctx.arc(sx, sy, rangeWorld, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.restore();
@@ -10134,21 +10180,19 @@ function drawAttackRanges(ctx, camera) {
             const sx = (mine.x - camera.offsetX) * zoom;
             const sy = (mine.y - camera.offsetY) * zoom;
             const rangeWorld = mine.range * zoom;
-			      let cx = sx + fighter.width / 2;
-			 
             ctx.save();
             ctx.globalAlpha = 0.25;
             ctx.strokeStyle = '#ff3333';
             ctx.lineWidth = 1.5 * zoom;
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
-            ctx.arc(cx, sy, rangeWorld, 0, Math.PI * 2);
+            ctx.arc(sx, sy, rangeWorld, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.restore();
         }
     }
-}}
+}
             let isOutrRendered = false;
 
             function render() {
