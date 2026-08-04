@@ -1346,6 +1346,12 @@ let activeStageEffect;
             const FALLING_ITEM_GRAVITY = 0.2;
 let isSoloLevel= false;
 let isFreeLook = false;
+
+let cursorWorldX = 0;
+let cursorWorldY = 0;
+let cursorActive = false;
+
+
 let tagCooldown = { p1: 0, p2: 0 };
             let p1Wins = 0;
             let p2Wins = 0;
@@ -9169,6 +9175,53 @@ function getRandomDifficulty() {
     }
 }
                 updateCamera();
+				
+if (project.settings.p1FollowCursor && p1) {
+    if (!cursorActive) {
+        // Geen cursor → stop beweging
+        p1.input.left = false;
+        p1.input.right = false;
+        p1.input.up = false;
+        p1.input.down = false;
+    } else {
+        const dx = cursorWorldX - p1.cx;
+        const dy = cursorWorldY - p1.cy;
+        const threshold = 10;
+
+        // Horizontaal
+        if (Math.abs(dx) > threshold) {
+            p1.input.right = dx > 0;
+            p1.input.left = dx < 0;
+        } else {
+            p1.input.right = false;
+            p1.input.left = false;
+        }
+
+        // Verticaal
+        if (p1.ignorePhysics) {
+            if (Math.abs(dy) > threshold) {
+                p1.input.up = dy < 0;
+                p1.input.down = dy > 0;
+            } else {
+                p1.input.up = false;
+                p1.input.down = false;
+            }
+        } else {
+            if (dy < -20 && p1.onGround) {
+                p1.input.up = true;
+            } else {
+                p1.input.up = false;
+            }
+            p1.input.down = false;
+        }
+    }
+	
+	document.getElementById("touchDpad").style.display= "none";
+} else if(	document.getElementById("touchDpad").style.display== "none")
+{
+	document.getElementById("touchDpad").style.display= "block";
+
+}
 
 	if(frameSaveTimer ==7 || frameSaveTimer==14   ){
 	
@@ -11228,6 +11281,7 @@ if (project.settings.showMoveNamesInTraining === undefined) {
 	  TICK_RATE = project.settings.tickRate;        
   TICK_INTERVAL = 1 / TICK_RATE;  
 
+cursorActive=false;
 	hideLoadingScreen();
 
 }
@@ -11626,6 +11680,8 @@ mobSpawnTimers = {};
     stageSelect.selectedIndex = 0;
     stageSelect[0].innerHTML = stage.name;
 	//hideLoadingScreen();
+	cursorActive=false;
+
 }
 
           let gameOverModalOpen = false;
@@ -12464,7 +12520,7 @@ let newMoveImages = {};
                 <label>Double jump</label><input type="checkbox" id="editCharDoubleJump" ${char.doubleJump ? 'checked' : ''} />
             </div>
 			 <div class="form-group">
-    <label>Cursor-mode (no physics)</label>
+    <label>No physics</label>
     <input type="checkbox" id="editCharIgnorePhysics" ${char.ignorePhysics ? 'checked' : ''} />
 </div>
 
@@ -14848,7 +14904,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <span id="devTools">
 <hr><br>
 <h1> Devtools </h1><br>
- 
+<h3>🖱️ Direct interaction</h3>
+ <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
+    <label>P1 follows cursor/touch</label>
+    <input type="checkbox" id="settingsP1FollowCursor" ${settings.p1FollowCursor ? 'checked' : ''} />
+</div>
 <h3>◆ Win indicators</h3>
 <div class="form-row">
     <div class="form-group">
@@ -15492,6 +15552,7 @@ const instantRoundReset = document.getElementById('settingsInstantReset').checke
 const winStyle = document.getElementById('settingsWinStyle').value;
 const winIndicatorColor = document.getElementById('settingswinIndicatorColor').value;
 const winEmptyColor = document.getElementById('settingsWinEmptyColor').value;
+const p1FollowCursor = document.getElementById('settingsP1FollowCursor').checked;
 
 const tickRate = document.getElementById('tickrateInput').value;
 
@@ -15637,6 +15698,7 @@ project.settings.touchDpadColor = touchDpadColor;
 project.settings.touchTagColor = touchTagColor;
 project.settings.touchAttackColor = touchAttackColor;
 project.settings.touchShape = touchShape;
+project.settings.p1FollowCursor = p1FollowCursor;
 
 project.settings.fatalityText = fatalityText;
 project.settings.fatalityColor = fatalityColor;
@@ -15795,6 +15857,51 @@ fullReset();//resetRound();
  
             }
             window.addEventListener('resize', resizeCanvas);
+
+canvas.addEventListener('mousemove', (e) => {
+    cursorActive = true;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width * W;
+    const y = (e.clientY - rect.top) / rect.height * H;
+    cursorWorldX = x / camera.zoom + camera.offsetX;
+    cursorWorldY = y / camera.zoom + camera.offsetY;
+});
+
+canvas.addEventListener('mouseleave', () => {
+    cursorActive = false;
+});
+
+canvas.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    if (touch) {
+        cursorActive = true;
+        const rect = canvas.getBoundingClientRect();
+        const x = (touch.clientX - rect.left) / rect.width * W;
+        const y = (touch.clientY - rect.top) / rect.height * H;
+        cursorWorldX = x / camera.zoom + camera.offsetX;
+        cursorWorldY = y / camera.zoom + camera.offsetY;
+    }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    if (touch) {
+        cursorActive = true;
+        const rect = canvas.getBoundingClientRect();
+        const x = (touch.clientX - rect.left) / rect.width * W;
+        const y = (touch.clientY - rect.top) / rect.height * H;
+        cursorWorldX = x / camera.zoom + camera.offsetX;
+        cursorWorldY = y / camera.zoom + camera.offsetY;
+    }
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => {
+    cursorActive = false;
+});
+
+canvas.addEventListener('touchcancel', () => {
+    cursorActive = false;
+});
 
             function updateLaneOption() {
                 const opt = actionSelect.querySelector('option[value="lanes"]');
@@ -16494,6 +16601,8 @@ if (videoData) {
             vid.src = '';
             vid.load();
         }
+			cursorActive=false;
+
     }
     document.addEventListener('DOMContentLoaded', function() {
         let video = document.getElementById('introVideo');
