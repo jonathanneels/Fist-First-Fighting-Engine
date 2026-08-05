@@ -1257,13 +1257,7 @@
             <option value="lanes">🔄 Lanes OFF</option>
             <option value="characters">📝 Characters</option>
             <option value="stages">🎚️ Stages</option>
-            <option value="settings">⚙️ Settings</option>
-            <option value="zoom1.0">🔍 Zoom 1.0</option>
-            <option value="zoom1.25">🔍 Zoom 1.25</option>
-            <option value="zoom1.5">🔍 Zoom 1.5</option>
-			            <option value="zoom2">🔍 Zoom 2.0</option>
-            <option value="zoom2.5">🔍 Zoom 2.5</option>
-
+            <option value="settings">⚙️ Settings</option> 
         </select>
         <select id="utilitySelect">
             <option value=""></option>
@@ -1961,25 +1955,29 @@ const DEFAULT_AI_PARAMS = {
         attackChance: 0.4, blockChance: 0.10, counterChance: 0.05,
         superJumpChance: 0.35, recoverChance: 0.08, moveThreshold: 250,
         idleChance: 0.13, specialChance: 0.05, fleeChance: 0.05,
-        oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01
+        oppFlinchAttackChance: 0.25, jumpChanceFar: 0.01,
+        minDistance: 80 
     },
     easy: {
         attackChance: 0.5, blockChance: 0.15, counterChance: 0.3,
         superJumpChance: 0.20, recoverChance: 0.2, moveThreshold: 200,
         idleChance: 0.09, specialChance: 0.2, fleeChance: 0.04,
-        oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03
+        oppFlinchAttackChance: 0.6, jumpChanceFar: 0.03,
+        minDistance: 80 
     },
     normal: {
         attackChance: 0.55, blockChance: 0.3, counterChance: 0.5,
         superJumpChance: 0.15, recoverChance: 0.5, moveThreshold: 150,
         idleChance: 0.04, specialChance: 0.3, fleeChance: 0.03,
-        oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03
+        oppFlinchAttackChance: 0.8, jumpChanceFar: 0.03,
+        minDistance: 80 
     },
     hard: {
         attackChance: 0.6, blockChance: 0.4, counterChance: 0.7,
         superJumpChance: 0.10, recoverChance: 0.8, moveThreshold: 150,
         idleChance: 0.02, specialChance: 0.4, fleeChance: 0.02,
-        oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05
+        oppFlinchAttackChance: 0.9, jumpChanceFar: 0.05,
+        minDistance: 80 
     }
 };
     const DEFAULT_MOVES = [
@@ -3224,6 +3222,13 @@ function startNextSinglePlayerMatch() {
                     return;
                 }
                 info.style.display = 'block';
+				    const winColor = project.settings.winColor || '#ffdd44';
+    const winFont = project.settings.winFont || "'Segoe UI', system-ui, sans-serif";
+    info.style.color = winColor;
+    info.style.fontFamily = winFont;
+     info.style.fontWeight = 'bold';
+    info.style.textShadow = '0 0 20px rgba(0,0,0,0.8)';
+
                 const roundsNeeded = singlePlayer.mode === 'survival' ? 1 : Math.floor(project.settings.roundCount / 2) + 1;
                 let text = '';
                 if (singlePlayer.mode === 'arcade') {
@@ -8394,7 +8399,8 @@ let timeToJumpTONextLane=0;
     }
 
 
- 
+
+
     if (fighter._aiActionCooldown > 0) {
         fighter._aiActionCooldown--;
         return;
@@ -8494,10 +8500,15 @@ if (fighter.ignorePhysics) {
     }
  
     const dist = Math.abs(fighter.cx - opponent.cx);
+	const minDist = params.minDistance ?? 80; 
     const dir = Math.sign(opponent.cx - fighter.cx);
     const difficulty = project.settings.aiDifficulty || 'normal';
     const healthPct = fighter.health / fighter.maxHealth;
     const isLowHealth = healthPct < 0.3;
+	    const borderBuffer = 70;
+    const fighterLeft = fighter.x;
+    const fighterRight = fighter.x + fighter.w;
+
 
     // ─── Bepaal de grenzen ──────────────────────────────────────────
     let leftBound, rightBound;
@@ -8513,8 +8524,23 @@ if (fighter.ignorePhysics) {
         leftBound = camera.offsetX + margin;
         rightBound = camera.offsetX + viewWidth - margin;
     }
+    // ─── limit distance ──────────────────────────────────────────
 
- 	
+ 	    const nearLeftBorder = fighterLeft < leftBound + borderBuffer;
+    const nearRightBorder = fighterRight > rightBound - borderBuffer;
+    const oppNearLeft = opponent.x < leftBound + borderBuffer;
+    const oppNearRight = opponent.x + opponent.w > rightBound - borderBuffer; 
+ console.log(minDist)
+	 if (dist <= minDist  ) {
+         // AI zelf in de hoek → loop naar het midden (naar tegenstander)
+        if (opponent.cx > fighter.cx ||nearLeftBorder ) fighter.input.right = true;
+        else if (opponent.cx > fighter.cx||nearRightBorder) fighter.input.left = true;
+     //   fighter.input.forward = true;
+        // Spring om uit de hoek te komen
+     //   if (fighter.onGround && Math.random() < 0.5) fighter.input.up = true;
+ 
+ //return; // stop hier, geen aanvallen of andere beweging
+}
 ///////////////////////////Experimental platformer handler////////////////////////////////////////////////////////////// 
  if (opponent.onGround  && opponent.groundY === GROUND_Y && fighter.groundY !== GROUND_Y) {
          const chance =0.3;// params.dropThroughChance || 0.3;
@@ -8601,13 +8627,6 @@ if (fighter.ignorePhysics) {
     }	
 	
 // ─── RANDVERMIJDING + AGGRESSIE BIJ DE RAND ────────────────
-    const borderBuffer = 70;
-    const fighterLeft = fighter.x;
-    const fighterRight = fighter.x + fighter.w;
-    const nearLeftBorder = fighterLeft < leftBound + borderBuffer;
-    const nearRightBorder = fighterRight > rightBound - borderBuffer;
-    const oppNearLeft = opponent.x < leftBound + borderBuffer;
-    const oppNearRight = opponent.x + opponent.w > rightBound - borderBuffer;
 
     if (nearLeftBorder || nearRightBorder) {
         const opponentIsAway = (nearLeftBorder && opponent.cx > fighter.cx) ||
@@ -11193,8 +11212,7 @@ if (project.settings.showMoveNamesInTraining === undefined) {
         project.laneMode = data.laneMode || false;
         project.cameraZoom = data.cameraZoom || 1.0;
         camera.zoom = project.cameraZoom;
-        updateActionSelectZoom();
-
+ 
         // --- Karakter eigenschappen aanvullen ---
         for (let id in project.characters) {
             let char = project.characters[id];
@@ -14824,7 +14842,9 @@ const fatalityDuration = parseInt(document.getElementById('settingsFatalityDurat
 
 const cameraOffsetX = parseFloat(document.getElementById('settingsCameraOffsetX').value) ?? 0;
 const cameraOffsetY = parseFloat(document.getElementById('settingsCameraOffsetY').value) ?? 0;
-
+const zoomValue = parseFloat(document.getElementById('settingsZoom').value) || 1.0;
+ camera.zoom = zoomValue;
+cameraAnim = null;
 
     project.settings.audioEnabled = audioEnabled;
     project.settings.roundCount = roundCount;
@@ -14845,6 +14865,7 @@ project.settings.fatalityEnabled = fatalityEnabled;
 project.settings.fatalityDuration = fatalityDuration;
 project.settings.guardColor = document.getElementById('settingsGuardColor').value;
 project.settings.guardShape = document.getElementById('settingsGuardShape').value;
+project.cameraZoom = zoomValue;
 
     try {
         localStorage.setItem('fighting_settings', JSON.stringify({ ...project.settings, projectId: project.projectId }));
@@ -14862,6 +14883,12 @@ project.settings.guardShape = document.getElementById('settingsGuardShape').valu
             function openSettingsModal() {
     const settings = project.settings;
 	    if (!settings.controls) settings.controls = getDefaultControls();
+		
+		const zoomOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5];
+const zoomHtml = zoomOptions.map(z => 
+    `<option value="${z}" ${project.cameraZoom === z ? 'selected' : ''}>${z}</option>`
+).join('');
+
 
     const html = `
         <h2>⚙️ Settings</h2>
@@ -15157,6 +15184,11 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
         <label>Offset Y</label>
         <input type="number" id="settingsCameraOffsetY" value="${settings.cameraOffsetY ?? 0}" step="1" />
     </div>
+	<div class="form-group">
+    <label>Zoom level</label>
+<select id="settingsZoom">${zoomHtml}</select>
+</div>
+
 </div>
 <h3>WITHOUT Ring‑out</h3>
 
@@ -15317,7 +15349,8 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
             <div class="form-group"><label>oppFlinchAttackChance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="oppFlinchAttackChance" value="${p.oppFlinchAttackChance ?? 0.8}" /></div>
             <div class="form-group"><label>jumpChanceFar</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="jumpChanceFar" value="${p.jumpChanceFar ?? 0.03}" /></div>
              <div class="form-group"><label>superjumpChance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="superJumpChance" value="${p.superJumpChance ?? 0.2}" /></div>
- 
+              <div class="form-group"><label>Min. distance</label><input type="number" step="0.01" class="ai-param" data-diff="${diff}" data-param="minDistance" value="${p.minDistance  ?? 80}" /></div>
+
 		</div>`;
     }).join('')}
 </div>
@@ -15528,7 +15561,11 @@ renderPlugins();
 	
 		const filterSelect = document.getElementById('settingsScreenFilter');
      filterSelect.value = project.settings.screenFilter ?? 'none';
- 
+ const zoomSelect = document.getElementById('settingsZoom');
+if (zoomSelect) {
+    zoomSelect.value = String(camera.zoom);
+}
+
 
     document.getElementById('saveSettings')?.addEventListener('click', () => {
         // Tekstvelden en vinkjes
@@ -15998,8 +16035,7 @@ canvas.addEventListener('touchcancel', () => {
                         camera.zoom = zoomVal;
                         project.cameraZoom = zoomVal;
 						 cameraAnim = null; 
-                        updateActionSelectZoom();
-                    }
+                     }
 
                 }
                 actionSelect.selectedIndex = 0;
@@ -16196,8 +16232,7 @@ document.addEventListener('keyup', (e) => {
             }
 
             camera.zoom = project.cameraZoom || 1.0;
-            updateActionSelectZoom();
-
+ 
  if(window.project && window.project.publish.launchMode){
    setMode(window.project.publish.launchMode); 
   applyScreenFilter(project.settings.screenFilter || 'none');
