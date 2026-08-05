@@ -2036,6 +2036,7 @@ const DEFAULT_STATES = {
                 spriteCols: 8,
                 spriteRows: 12,
                 gravity: 0.6,
+				 canBlock: true, 
 				autoReturnToMiddleLane: false,
     autoReturnDelay: 2,    
 				    isBoss: false, 
@@ -3950,6 +3951,7 @@ this.ignorePhysics = charData.ignorePhysics || false;
                     this.charId = charId;
 					this.activeButtons = charData.activeButtons || [true, true, true, true, true, true];
 this.activeDirections = charData.activeDirections || { up: true, down: true, left: true, right: true };
+this.canBlock = charData.canBlock !== undefined ? charData.canBlock : true;
 
 this.projectileMijnImg;
 this.projectileMijnTimer = 0;
@@ -5050,8 +5052,12 @@ if (move.generatesEnergy) {
                             if (this.state !== 'attack' && this.state !== 'hit' && this.state !== 'ko') {
                                 let moving = false;
 
-                                                                const crouchBlock = this.input.down && this.input.back;
-                                const standBlock = this.input.back && !this.input.down && opponent.state === 'attack' ;
+let crouchBlock = false;
+let standBlock = false;
+if (this.canBlock) {
+    crouchBlock = this.input.down && this.input.back;
+    standBlock = this.input.back && !this.input.down && opponent.state === 'attack' ;   
+}
 
                                 if (crouchBlock) {
                                     this.isBlocking = true;
@@ -5173,8 +5179,12 @@ const jumpPower = superJump ? this.superJumpPower : -12;
                             if (this.state !== 'attack' && this.state !== 'hit' && this.state !== 'ko') {
                                 let moving = false;
 
-                                const crouchBlock = this.input.down && this.input.back;
-                                const standBlock = this.input.back && !this.input.down && opponent.state === 'attack' ;
+let crouchBlock = false;
+let standBlock = false;
+if (this.canBlock) {
+    crouchBlock = this.input.down && this.input.back;
+    standBlock = this.input.back && !this.input.down && opponent.state === 'attack' ;  
+}
 
                                 if (crouchBlock) {
                                     this.isBlocking = true;
@@ -12434,19 +12444,26 @@ let newMoveImages = {};
 		   
             <div class="form-group"><label>❤️ Health</label><input type="number" id="editCharHealth" value="${char.health}" /></div>
             <div class="form-group"><label>⚡ Speed</label><input type="number" id="editCharSpeed" value="${char.speed}" step="0.5" /></div>
+		<div class="form-row-2">
 
-         <div class="form-group">
-            <label>Energy bar</label><input type="checkbox" id="editCharEnergy" ${char.hasEnergy !== false ? 'checked' : ''} />
-        </div>
+		<div class="form-group"  >
+    <label>Can block</label>
+    <input type="checkbox" id="editCharCanBlock" ${char.canBlock !== false ? 'checked' : ''} />
+</div>
+
   <div class="form-group">        <label>Enable guard</label>
         <input type="checkbox" id="editCharGuardEnabled" ${char.guardEnabled ? 'checked' : ''} />
     </div>
 </div>
+
 <div class="form-row">
     <div class="form-group"><label>Guard max (%)</label><input type="number" id="editCharGuardMax" value="${char.guardMax ?? 100}" min="1" max="100" /></div>
     <div class="form-group"><label>Guard cost</label><input type="number" id="editCharGuardCost" value="${char.guardCost ?? 10}" min="0" max="100" step="0.5" /></div>
     <div class="form-group"><label>Guard recovery</label><input type="number" id="editCharGuardRecovery" value="${char.guardRecoveryRate ?? 5}" min="0" max="100" step="0.5" /></div>
 </div> 
+         <div class="form-group">
+            <label>Energy bar</label><input type="checkbox" id="editCharEnergy" ${char.hasEnergy !== false ? 'checked' : ''} />
+        </div>
 
 <hr>
 
@@ -12909,6 +12926,7 @@ const guardMax = parseInt(document.getElementById('editCharGuardMax').value) ?? 
 const guardCost = parseFloat(document.getElementById('editCharGuardCost').value) ?? 10;
 const guardRecoveryRate = parseFloat(document.getElementById('editCharGuardRecovery').value) ?? 5;
 const hudOpacityT = parseFloat(document.getElementById('editCharHudOpacity').value) ?? 1;
+const canBlock = document.getElementById('editCharCanBlock').checked;
 
 	const isBoss = document.getElementById('editCharBoss').checked;
  const vpRequired = parseInt(document.getElementById('editCharVP').value) || 0;
@@ -13258,7 +13276,8 @@ belt: belt,
     guardCost:guardCost,
     guardRecoveryRate:guardRecoveryRate,
 	hudOpacity : hudOpacityT,
-	ignorePhysics:ignorePhysics
+	ignorePhysics:ignorePhysics,
+    canBlock: canBlock
 
 
         };
@@ -15858,7 +15877,8 @@ fullReset();//resetRound();
             }
             window.addEventListener('resize', resizeCanvas);
 
-canvas.addEventListener('mousemove', (e) => {
+
+canvas.addEventListener('mousedown', (e) => {
     cursorActive = true;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width * W;
@@ -15867,10 +15887,24 @@ canvas.addEventListener('mousemove', (e) => {
     cursorWorldY = y / camera.zoom + camera.offsetY;
 });
 
+canvas.addEventListener('mousemove', (e) => {
+    if (!cursorActive) return; // alleen tijdens slepen
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width * W;
+    const y = (e.clientY - rect.top) / rect.height * H;
+    cursorWorldX = x / camera.zoom + camera.offsetX;
+    cursorWorldY = y / camera.zoom + camera.offsetY;
+});
+
+canvas.addEventListener('mouseup', () => {
+    cursorActive = false;
+});
+
 canvas.addEventListener('mouseleave', () => {
     cursorActive = false;
 });
 
+// Touch (werkt al, maar we zorgen dat touchstart de positie zet)
 canvas.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
     if (touch) {
@@ -15885,8 +15919,7 @@ canvas.addEventListener('touchstart', (e) => {
 
 canvas.addEventListener('touchmove', (e) => {
     const touch = e.touches[0];
-    if (touch) {
-        cursorActive = true;
+    if (touch && cursorActive) {
         const rect = canvas.getBoundingClientRect();
         const x = (touch.clientX - rect.left) / rect.width * W;
         const y = (touch.clientY - rect.top) / rect.height * H;
@@ -15902,7 +15935,6 @@ canvas.addEventListener('touchend', () => {
 canvas.addEventListener('touchcancel', () => {
     cursorActive = false;
 });
-
             function updateLaneOption() {
                 const opt = actionSelect.querySelector('option[value="lanes"]');
                 if (opt) {
