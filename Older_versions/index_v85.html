@@ -1254,8 +1254,7 @@
         </span>
         <select id="actionSelect">
             <option value=""></option>
-            <option value="lanes">🔄 Lanes OFF</option>
-            <option value="characters">📝 Characters</option>
+             <option value="characters">📝 Characters</option>
             <option value="stages">🎚️ Stages</option>
             <option value="settings">⚙️ Settings</option> 
         </select>
@@ -2034,7 +2033,8 @@ const DEFAULT_STATES = {
                 spriteCols: 8,
                 spriteRows: 12,
                 gravity: 0.6,
-				 canBlock: true, 
+				 canBlock: true, 				 
+	spriteUrl:   null,
 				autoReturnToMiddleLane: false,
     autoReturnDelay: 2,    
 				    isBoss: false, 
@@ -2506,6 +2506,32 @@ let networkUID  = null
                 }
             }
 			
+			function clearCharacterCache(charId) {
+    // Sprite
+    assetCache.sprites.delete(charId);
+    delete spriteImages[charId];
+    if (p1 && p1.charId === charId) { p1.spriteImg = null; p1.customSprite = null; p1.spriteLoaded = false; }
+    if (p2 && p2.charId === charId) { p2.spriteImg = null; p2.customSprite = null; p2.spriteLoaded = false; }
+    
+    // State images (alle keys die beginnen met charId + '_')
+    for (const key of assetCache.stateImages.keys()) {
+        if (key.startsWith(charId + '_')) {
+            assetCache.stateImages.delete(key);
+        }
+    }
+     const char = project.characters[charId];
+    if (char && char.moves) {
+        for (const move of char.moves) {
+            if (move.attackImage) assetCache.moveImages.delete(move.attackImage);
+            if (move.projectileImage) assetCache.moveImages.delete(move.projectileImage);
+            if (move.mineImage) assetCache.moveImages.delete(move.mineImage);
+            // Ook uit extraImages verwijderen
+            delete extraImages[move.attackImage];
+            delete extraImages[move.projectileImage];
+            delete extraImages[move.mineImage];
+        }
+    }
+}
 		  function clearAllCaches() {
     for (const [key, img] of assetCache.sprites) {
         if (img) {
@@ -7322,43 +7348,75 @@ function isImageLoaded(img) {
      return true;
 }
 async function getSpriteForChar(charId) {
-//showLoadingScreen();
-freeUnusedSprites();
-
+    // 1. Cache check
     if (assetCache.sprites.has(charId)) {
-//	hideLoadingScreen(100);
         return assetCache.sprites.get(charId);
     }
+
+    const charData = project.characters[charId];
+    if (!charData) return null;
+
+    // 2. Probeer URL (heeft voorrang)
+    if (charData.spriteUrl && charData.spriteUrl.trim() !== '') {
+        try {
+            const response = await fetch(charData.spriteUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+            // Als het een afbeelding is, probeer ImageBitmap (sneller)
+            let image;
+            try {
+                image = await createImageBitmap(blob, {
+                    premultiplyAlpha: 'premultiply',
+                    colorSpaceConversion: 'default'
+                });
+            } catch (bitmapError) {
+                // Fallback naar HTMLImageElement
+                const img = new Image();
+                img.src = URL.createObjectURL(blob);
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+                image = img;
+                // Revoke object URL na laden
+                URL.revokeObjectURL(img.src);
+            }
+            assetCache.sprites.set(charId, image);
+            return image;
+        } catch (e) {
+            console.warn(`Sprite URL failed for ${charId}:`, e);
+            // val terug op base64
+        }
+    }
+
+    // 3. Fallback: base64 (project.sprites)
     const base64 = project.sprites[charId];
-    if (!base64) {		hideLoadingScreen(100);
-
-return null;}
-
+    if (!base64) return null;
 
     try {
         const response = await fetch(base64);
         const blob = await response.blob();
-        const bitmap = await createImageBitmap(blob, {
-            premultiplyAlpha: 'premultiply',
-            colorSpaceConversion: 'default',
-        });
-        assetCache.sprites.set(charId, bitmap);
-				hideLoadingScreen(100);
-
-
-        return bitmap;
+        let image;
+        try {
+            image = await createImageBitmap(blob, {
+                premultiplyAlpha: 'premultiply',
+                colorSpaceConversion: 'default'
+            });
+        } catch (bitmapError) {
+            const img = new Image();
+            img.src = base64;
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
+            image = img;
+        }
+        assetCache.sprites.set(charId, image);
+        return image;
     } catch (e) {
-        console.warn('createImageBitmap failed, falling back to Image', e);
-        // Fallback: HTMLImageElement
-        const img = new Image();
-        img.src = base64;
-        assetCache.sprites.set(charId, img);
-				hideLoadingScreen(100);
-
-
-        return img;
+        console.warn(`Base64 sprite failed for ${charId}:`, e);
+        return null;
     }
-
 }
 
        function loadSpriteForChar(charId, base64Data) {
@@ -7501,23 +7559,29 @@ function getStageAudioElement(stageId) {
     assetCache.audio.set('stage_' + stageId, audio);
     return audio;
 }
-            function playStageAudio(stageId) {
-                if (!project.settings.audioEnabled) return;
-                try {
-                    if (stageAudio) { stageAudio.pause();
-                        stageAudio = null;
-                        currentStageAudioId = null; }
-                    const stage = project.stages.find(s => s.id === stageId);
-                    if (!stage || !stage.audioData) return;
-    const audio = getStageAudioElement(stageId);
-    if (audio) {
-        audio.volume = 0.3;
-        audio.play().catch(() => {});
-        stageAudio = audio;
-        currentStageAudioId = stageId;
+        function playStageAudio(stageId) {
+    if (!project.settings.audioEnabled) return;
+    const stage = project.stages.find(s => s.id === stageId);
+    if (!stage) return;
+    stopStageAudio();
+    let audio;
+    if (stage.audioUrl) {
+        audio = new Audio(stage.audioUrl);
+        audio.loop = true;
+        audio.crossOrigin = "anonymous";
+    } else if (stage.audioData) {
+        audio = new Audio(stage.audioData);
+        audio.loop = true;
+    } else {
+        return;
     }
-                } catch (e) { /* */ }
-            }
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+    stageAudio = audio;
+    currentStageAudioId = stageId;
+    // Zet in cache
+    assetCache.audio.set('stage_' + stageId, audio);
+}
 
             function stopStageAudio() {
                 if (stageAudio) { stageAudio.pause();
@@ -11251,6 +11315,19 @@ if (project.settings.showMoveNamesInTraining === undefined) {
 
             });
             if (!char.states) char.states = JSON.parse(JSON.stringify(DEFAULT_STATES));
+			
+			    if (char.spriteUrl) {
+         getSpriteForChar(id).then(img => {
+            if (img) {
+                spriteImages[id] = img;
+                if (p1 && p1.charId === id) p1.spriteImg = img;
+                if (p2 && p2.charId === id) p2.spriteImg = img;
+				console.log("here")
+            }
+        });
+    }
+
+
         }
 
         // --- Sprites laden ---
@@ -11635,81 +11712,129 @@ case'negative': filter = 'invert(1) brightness(1.2)';break;
     }
      document.getElementById('gameCanvas').style.filter = filter;
   }
-     function setStage(stageId) {
-	//     showLoadingScreen();
-cameraAnim = null;
-camera.zoom = project.cameraZoom || 1.0;
-mobs = [];
-mobSpawnTimers = {};
- mobSpawnCounts = {};
-
+    function setStage(stageId) {
     const stage = project.stages.find(s => s.id === stageId);
     if (!stage) return;
-	GROUND_Y = stage.floorY;
+
+    GROUND_Y = stage.floorY;
     LANE_Y = [GROUND_Y - PLAYER_H - 70, GROUND_Y - PLAYER_H, GROUND_Y - PLAYER_H + 70];
 
     project.currentStageId = stageId;
 
+    freeUnusedStageBgSoft(10);
+    updateStageAccess(project.currentStageId);
+    stopAllTextCubeAudio();
+    freeStageAudio();
 
-	//freeUnusedStageBg(); => te agressief atm
-	freeUnusedStageBgSoft(10);
-	updateStageAccess(project.currentStageId) ;
-	 stopAllTextCubeAudio(); 
-	freeStageAudio();
-	
+    startCameraAnimation();
 
-	
-			startCameraAnimation( ) ;
+    resetTravelCubes();
 
-   resetTravelCubes();// nota no reset between rounds (only after full reset)
- textCubes = (stage.textcubeConfigs || []).map(cfg => {
-    const cube = { ...cfg,id: cfg.id || 'tc_' + stageId,   active: false, image: null, _audio: null };
-    if (cfg.imageData) {
-        const img = new Image();
-        img.src = cfg.imageData;
-        cube.image = img;
-    }
-    if (cfg.audioData) {
-        cube._audio = new Audio(cfg.audioData);
-        cube._audio.loop = true;
-        cube._audio.volume = 0.5;
-    }
-    return cube;
-});
-    stopStageAudio();
-    if (stage.audioData) {
-        playStageAudio(stageId);
-    }
-
-     const bgVideoEl = document.getElementById('stageBgVideo');
-    const isVideo = stage.imageData && stage.imageData.startsWith('data:video/');
-    if (isVideo) {
-        if (bgVideoEl.src !== stage.imageData) {
-            bgVideoEl.src = stage.imageData;
-            bgVideoEl.load(); // forceer herladen
+     textCubes = (stage.textcubeConfigs || []).map(cfg => {
+        const cube = { ...cfg, id: cfg.id || 'tc_' + stageId, active: false, image: null, _audio: null };
+        if (cfg.imageData) {
+            const img = new Image();
+            img.src = cfg.imageData;
+            cube.image = img;
         }
+        if (cfg.audioData) {
+            cube._audio = new Audio(cfg.audioData);
+            cube._audio.loop = true;
+            cube._audio.volume = 0.5;
+        }
+        return cube;
+    });
+
+    stopStageAudio();
+
+   const bgVideoEl = document.getElementById('stageBgVideo');
+
+// ─── 1. Bepaal bron (URL heeft voorrang) ──────────────
+let mediaSrc = null;
+if (stage.imageUrl && stage.imageUrl.trim() !== '') {
+    mediaSrc = stage.imageUrl.trim();
+} else if (stage.imageData) {
+    mediaSrc = stage.imageData;
+}
+
+// ─── 2. Bepaal of het video is ─────────────────────────
+const isVideo = mediaSrc && (
+    mediaSrc.startsWith('data:video/') ||
+    mediaSrc.match(/\.(mp4|webm|mov|avi)$/i) ||
+    (mediaSrc.startsWith('http') && mediaSrc.match(/\.(mp4|webm|mov|avi)/i))
+);
+
+// ─── 3. Verwerk media ──────────────────────────────────
+if (mediaSrc) {
+    if (isVideo) {
+        // Video: reset en laad
+        bgVideoEl.muted = true;
+        bgVideoEl.playsInline = true;
         bgVideoEl.style.display = 'block';
+
+        // Forceer herladen (ook als src hetzelfde is)
+        bgVideoEl.pause();
+        bgVideoEl.src = '';
+        bgVideoEl.load();
+
+        bgVideoEl.src = mediaSrc;
+        bgVideoEl.load();
         bgVideoEl.play().catch(() => {});
     } else {
+        // Afbeelding: verberg video, laad afbeelding in cache
         bgVideoEl.pause();
         bgVideoEl.style.display = 'none';
+        bgVideoEl.src = '';
+
+        // Oude cache verwijderen
+        assetCache.stageBg.delete(stageId);
+
+        const img = new Image();
+        img.onload = () => {
+            assetCache.stageBg.set(stageId, img);
+        };
+        img.onerror = () => {
+            assetCache.stageBg.delete(stageId);
+            console.warn('Afbeelding niet geladen:', mediaSrc);
+        };
+        img.src = mediaSrc;
+        assetCache.stageBg.set(stageId, null); // placeholder
+    }
+} else {
+    // Geen media: video verbergen en cache leegmaken
+    bgVideoEl.pause();
+    bgVideoEl.style.display = 'none';
+    bgVideoEl.src = '';
+    assetCache.stageBg.delete(stageId);
+}
+
+    // ─── ACHTERGROND AUDIO ──────────────────────────────
+    let audioSrc = null;
+    if (stage.audioUrl && stage.audioUrl.trim() !== '') {
+        audioSrc = stage.audioUrl.trim();
+    } else if (stage.audioData) {
+        audioSrc = stage.audioData;
     }
 
+    if (audioSrc) {
+        // Speel de audio af (via playStageAudio, die we aanpassen)
+        playStageAudio(stageId, audioSrc);
+    }
+
+    // ─── OVERIGE STAGE-EIGENSCHAPPEN ────────────────────
     stageSelect.value = stageId;
-	isFreeLook = stage.freeLook || false; 
+    isFreeLook = stage.freeLook || false;
     project.currentBg = stage.bg || 'dojo';
     springPlatforms = stage.platforms ? stage.platforms.map(p => ({ ...p })) : [];
     activeFallingItems = [];
     fallingItemSpawnTimer = FALLING_ITEM_SPAWN_INTERVAL;
 
     initWeather(stage);
-	    const theme = stage ? stage.colorTheme : 'default'; 
-	applyCanvasFilter(theme)
+    const theme = stage ? stage.colorTheme : 'default';
+    applyCanvasFilter(theme);
     stageSelect.selectedIndex = 0;
     stageSelect[0].innerHTML = stage.name;
-	//hideLoadingScreen();
-	cursorActive=false;
-
+    cursorActive = false;
 }
 
           let gameOverModalOpen = false;
@@ -12717,6 +12842,11 @@ let newMoveImages = {};
             <span style="font-size:10px;color:#5a5a8a;" id="spriteStatus">
                 ${project.sprites[id] ? '🖼️ Sprite present' : 'No sprite'}
             </span>
+			<div class="form-group">
+    <label>Spritesheet URL (overrides upload)</label>
+    <input type="text" id="editCharSpriteUrl" value="${char.spriteUrl || ''}" placeholder="https://example.com/spritesheet.png" />
+</div>
+
         </div>
         <h3>🎞️ Per‑state animation</h3>
         <div style="display:grid; grid-template-columns: 80px 50px 50px 50px 1fr; gap:4px; align-items:center; background:#0f0f1e; padding:6px; border-radius:6px; font-size:12px; margin-bottom:8px;">
@@ -12997,17 +13127,18 @@ let tagSound = char.tagSound;
     });
 
     // ─── Spritesheet ───────────────────────────────────────────
-    let newSpriteData = null;
-    const spriteInput = document.getElementById('editCharSprite');
-    if (spriteInput && spriteInput.files && spriteInput.files[0]) {
-        if (!removalFlags.sprite) {
-            pendingReads++;
-            const reader = new FileReader();
-            reader.onload = (e) => { newSpriteData = e.target.result; pendingReads--; checkAllLoaded(); };
-            reader.onerror = () => { pendingReads--; checkAllLoaded(); };
-            reader.readAsDataURL(spriteInput.files[0]);
-        }
+let newSpriteData = null;
+let newSpriteUrl = document.getElementById('editCharSpriteUrl').value.trim() || null;
+const spriteInput = document.getElementById('editCharSprite');
+if (spriteInput && spriteInput.files && spriteInput.files[0]) {
+    if (!removalFlags.sprite) {
+        pendingReads++;
+        const reader = new FileReader();
+        reader.onload = (e) => { newSpriteData = e.target.result; pendingReads--; checkAllLoaded(); };
+        reader.onerror = () => { pendingReads--; checkAllLoaded(); };
+        reader.readAsDataURL(spriteInput.files[0]);
     }
+}
 
     // ─── Blood image ───────────────────────────────────────────
     let bloodImageData = char.bloodImage;
@@ -13234,6 +13365,8 @@ const stageEffect = row.querySelector('.move-stage-effect')?.value || 'none';
         // ─── Moves verzamelen ──────────────────────────────────
         const moves = collectMoves();
 
+clearCharacterCache(id);
+
         // ─── Project updaten ──────────────────────────────────
         project.characters[id] = {
             ...project.characters[id],
@@ -13295,7 +13428,8 @@ belt: belt,
     guardRecoveryRate:guardRecoveryRate,
 	hudOpacity : hudOpacityT,
 	ignorePhysics:ignorePhysics,
-    canBlock: canBlock
+    canBlock: canBlock, 
+	spriteUrl: newSpriteUrl || null
 
 
         };
@@ -13361,7 +13495,30 @@ applyBarStyles() ;
     });
 }
 
-
+function applyLaneMode() {
+    if (!p1 || !p2) return;
+    if (laneMode) {
+        p1.lane = 1;
+        p2.lane = 1;
+        p1.y = LANE_Y[1] - p1.h;
+        p2.y = LANE_Y[1] - p2.h;
+        p1.groundY = LANE_Y[1];
+        p2.groundY = LANE_Y[1];
+        p1.onGround = true;
+        p2.onGround = true;
+        p1.vy = 0;
+        p2.vy = 0;
+    } else {
+        p1.y = GROUND_Y - p1.h;
+        p2.y = GROUND_Y - p2.h;
+        p1.groundY = GROUND_Y;
+        p2.groundY = GROUND_Y;
+        p1.onGround = true;
+        p2.onGround = true;
+        p1.vy = 0;
+        p2.vy = 0;
+    }
+}
 
 function createNewCharacter() {
     const id = 'char_' + Date.now();
@@ -13541,6 +13698,8 @@ function duplicateStage(idx) {
     floorY: 560,
             imageData: null,
             audioData: null,
+						    imageUrl: null,
+    audioUrl: null,  
             platforms: [],
             itemConfigs: [],
 			mobConfigs: [],
@@ -13557,6 +13716,8 @@ function duplicateStage(idx) {
             platformMarginLeft: 3,
             platformMarginRight: 3,
             platformYOffset: 0,
+			imageUrl: null,
+audioUrl: null, 
 			    textcubeConfigs: []
         };
     } else {
@@ -13574,6 +13735,8 @@ function duplicateStage(idx) {
             colorTheme: 'default',
             weather: 'none',
             hasSpringPlatform: false,
+			    imageUrl: null,
+    audioUrl: null, 
             vpRequired: 0,
             soloAdventure: false,
             nextStageId: null,
@@ -13723,7 +13886,7 @@ function buildStageTargetOptions(selected) {
             <select id="editStageBg">${Object.keys(BG_COLORS).map(k => `<option value="${k}" ${stage.bg === k ? 'selected' : ''}>${k}</option>`).join('')}</select>
         </div>
         <div class="form-group">
-            <label>Background image (PNG/JPG/GIF/MP4/WEBM)</label>
+            <label>Background file (PNG/JPG/GIF/MP4/WEBM)</label>
             <div class="file-input-wrap">
                 <input type="file" id="editStageImage" accept="image/*,video/*" data-field="imageData" />
                 <button class="clear-file" data-field="imageData" data-input="editStageImage" type="button">✕</button>
@@ -13735,7 +13898,12 @@ function buildStageTargetOptions(selected) {
                 : ''}
             </div>
             <span id="imageDataStatus" style="font-size:10px;color:#5a5a8a;">${stage.imageData ? (stage.imageData.startsWith('data:video/') ? '🎬' : '🖼️') : 'No image/video'}</span>
-        </div>
+        <div class="form-group">
+    <label>Background image URL (optional, overrides upload)</label>
+    <input type="text" id="editStageImageUrl" value="${stage.imageUrl || ''}" placeholder="https://example.com/bg.jpg" />
+</div>
+
+		</div>
         <div class="form-group">
             <label>Audio (mp3, wav, mp4)</label>
             <div class="file-input-wrap">
@@ -13743,7 +13911,12 @@ function buildStageTargetOptions(selected) {
                 <button class="clear-file" data-field="audioData" data-input="editStageAudio" type="button">✕</button>
             </div>
             <span id="audioDataStatus" style="font-size:10px;color:#5a5a8a;">${stage.audioData ? '🔊' : 'No audio'}</span>
-        </div>
+        <div class="form-group">
+    <label>Background audio URL (optional, overrides upload)</label>
+    <input type="text" id="editStageAudioUrl" value="${stage.audioUrl || ''}" placeholder="https://example.com/music.mp3" />
+</div>
+
+		</div>
         <div class="form-row">
             <div class="form-group">
                 <label>🎨 Color theme</label>
@@ -14361,6 +14534,9 @@ const textcubeRows = document.querySelectorAll('#editStageTextcubes .stage-item'
         const itemRows = document.querySelectorAll('#editStageItemConfigs .stage-item');
         const travelcubeRows = document.querySelectorAll('#editStageTravelcubes .stage-item');
 
+const imageUrl = document.getElementById('editStageImageUrl').value.trim() || null;
+const audioUrl = document.getElementById('editStageAudioUrl').value.trim() || null;
+
 
         let pendingReads = 0;
 
@@ -14589,6 +14765,8 @@ const winWhenDefeat = row.querySelector('.mob-win')?.checked || false;
 				    floorY: floorY,
                 imageData: finalImageData,
                 audioData: finalAudioData,
+				    imageUrl: imageUrl,
+    audioUrl: audioUrl, 
                 hasSpringPlatform: tempPlatforms.length > 0,
                 platforms: tempPlatforms,
                 itemConfigs: itemConfigs,
@@ -14884,7 +15062,7 @@ project.cameraZoom = zoomValue;
     const settings = project.settings;
 	    if (!settings.controls) settings.controls = getDefaultControls();
 		
-		const zoomOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5];
+		const zoomOptions = [ 1.0, 1.25, 1.5, 2.0, 2.5];
 const zoomHtml = zoomOptions.map(z => 
     `<option value="${z}" ${project.cameraZoom === z ? 'selected' : ''}>${z}</option>`
 ).join('');
@@ -14954,6 +15132,9 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
  <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;">
     <label>P1 follows cursor/touch</label>
     <input type="checkbox" id="settingsP1FollowCursor" ${settings.p1FollowCursor ? 'checked' : ''} />
+	    <label>Lanes</label>
+    <input type="checkbox" id="settingsLaneMode" ${laneMode ? 'checked' : ''} />
+
 </div>
 <h3>◆ Win indicators</h3>
 <div class="form-row">
@@ -15610,6 +15791,10 @@ const winIndicatorColor = document.getElementById('settingswinIndicatorColor').v
 const winEmptyColor = document.getElementById('settingsWinEmptyColor').value;
 const p1FollowCursor = document.getElementById('settingsP1FollowCursor').checked;
 
+const laneModeEnabled = document.getElementById('settingsLaneMode').checked;
+laneMode = laneModeEnabled;
+project.laneMode = laneModeEnabled;
+
 const tickRate = document.getElementById('tickrateInput').value;
 
 const countdownFont = document.getElementById('settingsCountdownFont').value;
@@ -15794,7 +15979,8 @@ pollGamepad()
             else if (newAudioData.matchEndSound !== undefined) project.settings.matchEndSound = newAudioData.matchEndSound;
 
             updateWinIndicators();
-executeAllPlugins();
+			applyLaneMode();  
+ executeAllPlugins();
 fullReset();//resetRound();
 
 
@@ -15873,8 +16059,10 @@ fullReset();//resetRound();
 						   <li><strong>Tag</strong> Press back and button 4</li> 
 						   	  <li><strong>Lanes</strong> Switch lanes by double pressing up or down</li>  
                         </ul>
-
-                        <p style="color:#7a7a9a;margin-top:8px;">💡 Use Export to save all your settings, or Publish to generate a playable version.</p>
+<hr>
+                        <p style="color:#7a7a9a;margin-top:8px;">💡 Use Export to save all your settings, or Publish to generate a playable version.<br> 
+						If you use an external image or audio URL, serve it through a web server (http:// - https://). <br>Otherwise, the upload-file will be used instead.</p>
+						
                     </div>
                     <div class="btn-group"><button class="btn" id="closeHELP">✕ Close</button></div>
                 `;
@@ -15999,31 +16187,7 @@ canvas.addEventListener('touchcancel', () => {
 
             actionSelect.addEventListener('change', (e) => {
                 const val = e.target.value;
-                if (val === 'lanes') {
-                    laneMode = !laneMode;
-                    project.laneMode = laneMode;
-                    updateLaneOption();
-                    if (laneMode) {
-                        p1.lane = 1;
-                        p2.lane = 1;
-                        p1.y = LANE_Y[1];
-                        p2.y = LANE_Y[1];
-                        p1.vy = 0;
-                        p2.vy = 0;
-                        p1.onGround = true;
-                        p2.onGround = true;
-                        p1.state = 'idle';
-                        p2.state = 'idle';
-                    } else {
-                        p1.y = GROUND_Y - PLAYER_H;
-                        p2.y = GROUND_Y - PLAYER_H;
-                        p1.vy = 0;
-                        p2.vy = 0;
-                        p1.onGround = true;
-                        p2.onGround = true;
-                    }
-                    showToast(laneMode ? '🔄 Lanes ON' : '🔄 Lanes OFF', 'info');
-                } else if (val === 'characters') {
+				if (val === 'characters') {
                     openCharacterEditor();
                 } else if (val === 'stages') {
                     openStagesEditor();
