@@ -7,8 +7,7 @@
 
     <title>Fist First Fighting Engine</title>
     <style>
-        /* ───────── RESET & FULLSCREEN ───────── */
-        *,
+         *,
         *::before,
         *::after {
             margin: 0;
@@ -4136,7 +4135,7 @@ this._dead = false;
                 reset(x, facing) {
                     const charData = project.characters[this.charId] || project.characters.fighter;
 					
-					this.name = charData.name || 'Vechter';
+this.name = charData.name !== undefined && charData.name !== null ? charData.name : 'Vechter';
 
 this.activeButtons = charData.activeButtons || [true, true, true, true, true, true];
 this.activeDirections = charData.activeDirections || { up: true, down: true, left: true, right: true };
@@ -8102,11 +8101,11 @@ function rebuildTouchAttacks() {
         }
     }
 
-    if (visibleIndices.length === 0) {
+   /* if (visibleIndices.length === 0) { => no buttons no visibility
         for (let idx = 0; idx < 6; idx++) {
             if (activeButtons[idx]) visibleIndices.push(idx);
         }
-    }
+    }*/
 
     for (const idx of visibleIndices) {
         const move = moves[idx] || { name: 'Move ' + (idx + 1), damage: '?' };
@@ -11026,7 +11025,7 @@ function updatePlayerIcons() {
     if (p1) {
         iconP1.src = p1.profilePic ? p1.profilePic : createFallbackIcon(p1);
         iconP1.style.display = 'block';
-        nameP1.textContent = p1.name || 'P1';
+nameP1.textContent = p1.name !== undefined && p1.name !== null ? p1.name : 'P1';
     } else {
         iconP1.style.display = 'none';
         nameP1.textContent = 'P1';
@@ -11035,7 +11034,7 @@ function updatePlayerIcons() {
     if (p2) {
         iconP2.src = p2.profilePic ? p2.profilePic : createFallbackIcon(p2);
         iconP2.style.display = 'block';
-        nameP2.textContent = p2.name || 'P2';
+nameP2.textContent = p2.name !== undefined && p2.name !== null ? p2.name : 'P2';
     } else {
         iconP2.style.display = 'none';
         nameP2.textContent = 'P2';
@@ -13046,7 +13045,7 @@ document.getElementById('editAddMove')?.addEventListener('click', () => {
     document.getElementById('saveEditChar')?.addEventListener('click', () => {
 	newMoveImages = {};  
     // ─── Gewone velden uitlezen ──────────────────────────────
-    const name2 = document.getElementById('editCharName').value.trim() || char.name;
+const name2 = document.getElementById('editCharName').value !== undefined ? document.getElementById('editCharName').value.trim() : char.name;
     const health2 = parseInt(document.getElementById('editCharHealth').value) || 100;
     const speed2 = parseFloat(document.getElementById('editCharSpeed').value) || 4;
     const color2 = document.getElementById('editCharColor').value || '#3a7ad8';
