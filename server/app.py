@@ -5,6 +5,8 @@ import random
 import string
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+import os
+import mimetypes
 
 lobbies = {}
 portSet = 8087
@@ -13,7 +15,7 @@ def generate_uid():
     return ''.join(random.choices(string.digits, k=4))
 
 async def websocket_handler(websocket, path=None):
-    # path wordt niet gebruikt, maar we houden hem optioneel voor compatibiliteit
+    # (unchanged – your original logic)
     try:
         msg = await websocket.recv()
         data = json.loads(msg)
@@ -70,18 +72,40 @@ async def websocket_handler(websocket, path=None):
 
 class HTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+        # Remove query string
+        path = self.path.split('?')[0]
+        if path == '/':
+            path = '/index.html'
+
+        # Prevent directory traversal (only basic check)
+        if '..' in path:
+            self.send_response(403)
             self.end_headers()
-            try:
-                with open('index.html', 'rb') as f:
-                    self.wfile.write(f.read())
-            except FileNotFoundError:
-                self.wfile.write(b'<h1>index.html niet gevonden</h1>')
-        else:
+            self.wfile.write(b'Forbidden')
+            return
+
+        # Build filesystem path
+        file_path = '.' + path  # relative to current working dir
+
+        try:
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            # Guess MIME type
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if mime_type is None:
+                mime_type = 'application/octet-stream'
+            self.send_response(200)
+            self.send_header('Content-type', mime_type)
+            self.end_headers()
+            self.wfile.write(content)
+        except FileNotFoundError:
             self.send_response(404)
             self.end_headers()
+            self.wfile.write(b'404 Not Found')
+        except Exception:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(b'500 Internal Server Error')
 
 def run_http_server(port):
     HTTPServer(('0.0.0.0', port), HTTPHandler).serve_forever()
