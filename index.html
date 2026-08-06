@@ -1654,7 +1654,7 @@ proj: projectiles.map(p => ({
     life: p.life, tx: p.teleportX, ty: p.teleportY,
     range: p.range, chip: p.chipDamage, act: p.active, mi: p.moveIndex,
     height: p.height || 'mid',          
-    unblockable: p.unblockable || false  
+    unblockable: p.unblockable || false  ,vy: p.vy || 0
 })),
  mines: mines.map(m => ({
     x: m.x, y: m.y, dmg: m.damage,
@@ -1757,7 +1757,8 @@ function deserializeGameStateCompact(data) {
         pd.tx, pd.ty, pd.range, pd.chip !== false, 5,
         pd.mi,
         pd.height || 'mid',            
-        pd.unblockable || false        
+        pd.unblockable || false  ,
+    pd.vy || 0      
     );
     proj.currentOffset = pd.co || 0;
     proj.active = pd.act !== false;
@@ -3553,14 +3554,14 @@ class Projectile {
                 startDistance = 0, extraImage = null, life = 300,
                 teleportX = 0, teleportY = 0, range = 40, chipDamage = true,
                 animSpeed = 5,moveIndex = -1,
-                height = 'mid', unblockable = false) {
+                height = 'mid', unblockable = false, vy = 0)  {
 				
 				        this.moveIndex = moveIndex;
         this.x = x;
         this.y = y;
         this.dir = dir;
-        this.damage = damage || 10;
-        this.speed = speed || 8;
+        this.damage = damage ?? 10;
+        this.speed = speed ?? 8;
         this.owner = owner;
         this.radius = 16;
         this.active = true;
@@ -3580,6 +3581,7 @@ class Projectile {
         this.teleportX = teleportX || 0;
         this.teleportY = teleportY || 0;
         this.range = range || 40;
+		 this.vy = vy;
         this.chipDamage = chipDamage !== undefined ? chipDamage : true;
         this.imageLoaded = false;
 		        this.height = height || 'mid';         
@@ -3607,6 +3609,7 @@ class Projectile {
             }
         }
         this.x += this.dir * this.speed;
+		this.y += this.vy; 
         this.distanceTraveled += this.speed;
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > 10) this.trail.shift();
@@ -3727,7 +3730,8 @@ class Mine {
                 range = 60, startDistance = 0,
                 friendlyFire = false, extraImage = null, life = 300,
                 teleportX = 0, teleportY = 0, chipDamage = true,
-                animSpeed = 5, moveIndex = -1) {				
+                animSpeed = 5, moveIndex = -1,
+                height = 'mid', unblockable = false)  {				
 				        this.moveIndex = moveIndex;
         this.x = x;
         this.y = y;
@@ -4360,9 +4364,9 @@ if (move.type  == 'projectile' ||  move.type  == 'mine') {
 
 
 }
-   if (move.speed < 3) {
+   /*if (move.speed < 3) {
             move.speed = 3; 
-        }
+        }*/
 	    this._lastAttackTime = now;
 
     if (this.hasEnergy) {
@@ -4477,8 +4481,8 @@ const proj = new Projectile(
     projX,
     this.cy - 8 + (move.spawnYOffset ?? 0),
     this.facing,
-    move.damage || 10,
-    move.speed || 10,
+    move.damage ?? 10,
+    move.speed ?? 10,
     this,
     sprite,
     row,
@@ -4493,8 +4497,9 @@ const proj = new Projectile(
     move.chipDamage !== false,
     5,
     idx,
-    move.height || 'mid',      // ← hoogte
-    move.unblockable || false  // ← unblockable
+    move.height || 'mid',      
+    move.unblockable || false ,
+    move.vy || 0
 );
     projectiles.push(proj);
     this.playSound('projectile');
@@ -12272,6 +12277,7 @@ document.querySelectorAll('.tag-char').forEach(el => {
           function updateMoveFields(row) {
     const type = row.querySelector('.move-type').value;
     const grabFields = row.querySelectorAll('.grab-only');
+		const projOnlyFields = row.querySelectorAll('.projectile-only');
     const projectileMineFields = row.querySelectorAll('.projectile-mine-only');
     const mineFields = row.querySelectorAll('.mine-only');
     const attackWrap = row.querySelector('.attack-img-wrap');
@@ -12292,6 +12298,10 @@ document.querySelectorAll('.tag-char').forEach(el => {
     mineFields.forEach(el => {
         el.style.display = (type === 'mine') ? 'flex' : 'none';
     });
+projOnlyFields.forEach(el => {
+    el.style.display = (type === 'projectile') ? '' : 'none';
+});
+
     attackWrap.style.display = (type === 'normal' || type === 'sweep' || type === 'grab' || type === 'projectile' || type === 'mine') ? 'flex' : 'none';
     projWrap.style.display = (type === 'projectile') ? 'flex' : 'none';
     mineWrap.style.display = (type === 'mine') ? 'flex' : 'none';
@@ -12337,6 +12347,11 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
         </div>
         <div class="form-row-4">
             <div class="form-group"><label>Speed</label><input type="number" class="move-spd" value="${data.speed ?? 18}" /></div>
+			<div class="form-group projectile-only" style="display:none;">
+    <label>Vert. speed (neg=up)</label>
+    <input type="number" class="move-vy" value="${data.vy ?? 0}" step="0.5" />
+</div>
+
             <div class="form-group"><label>Command</label>
                 <select class="move-cmd">${cmdOptionsHtml}</select>
             </div>
@@ -12429,6 +12444,7 @@ function addMoveRow(container, idx, data, existingMoves, moveId) {
     <label>Start distance Y</label>
     <input type="number" class="move-spawnyoffset" value="${data.spawnYOffset ?? 0}" step="1" />
 </div>
+
 
             <div class="form-group mine-only" style="display:none; flex-direction:row; align-items:center; gap:6px;">
                 <label>Friendly Fire</label>
@@ -13251,6 +13267,8 @@ function collectMoves() {
         const mThrowPower = parseFloat(row.querySelector('.move-throwpower')?.value) || 8;
         const mThrowHeight = parseFloat(row.querySelector('.move-throwheight')?.value) || -10;
         const mStartDist = parseFloat(row.querySelector('.move-startdist')?.value) || 0;
+		const mVy = parseFloat(row.querySelector('.move-vy')?.value) ?? 0;
+
 		const mSpawnYOffset = parseFloat(row.querySelector('.move-spawnyoffset')?.value) ?? 0;
         const mFriendly = row.querySelector('.move-friendly')?.checked || false;
         const mChip = row.querySelector('.move-chipdamage')?.checked ?? true;
@@ -13325,7 +13343,8 @@ const stageEffect = row.querySelector('.move-stage-effect')?.value || 'none';
             counterType: counterType,
 			fallbackVisual:fallbackVisual,
 			    spawnYOffset: mSpawnYOffset,
-				    stageEffect: stageEffect
+				    stageEffect: stageEffect,
+					vy: mVy
         });
     });
     return moves;
