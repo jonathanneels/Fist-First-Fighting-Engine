@@ -7724,7 +7724,7 @@ if (p1GamepadIndex !== -1 && useP1) {
         }
     }
 }
-if (p2GamepadIndex !== -1 && useP2 && !isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' ))  {
+if (p2GamepadIndex !== -1 && useP2 && !isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' || networkMode))  {
     const gp = connected.find(g => g.index === p2GamepadIndex);
     if (gp && p2) {
         if (!networkMode || networkRole === 'joiner') {
@@ -16288,7 +16288,7 @@ canvas.addEventListener('touchcancel', () => {
     }
 		    if (p2GamepadIndex === -1) { 
 
-	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' )){
+	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' || networkMode)){
      for (const [action, mappedKey] of Object.entries(p2Mappings)) {
         if (key === mappedKey) {
             if (isHost) return; 
@@ -16333,7 +16333,7 @@ document.addEventListener('keyup', (e) => {
 }
     if (p2GamepadIndex === -1) {
 
-	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop' )){
+	if(!isSoloLevel && (currentMode == 'pvp' ||currentMode == 'coop'|| networkMode )){
      for (const [action, mappedKey] of Object.entries(p2Mappings)) {
         if (key === mappedKey && !action.startsWith('attack')) {
             if (!isHost) p2.input[action] = false;
