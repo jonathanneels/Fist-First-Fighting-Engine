@@ -14164,7 +14164,7 @@ function buildStageTargetOptions(selected) {
         <button class="btn" id="addEditStageItemConfig">➕ Add item</button>
 <h3 style="margin-top:16px;">📝 Textcubes (Static text when collision)</h3>
 <p style="font-size:12px;color:#7a7a9a;">
-    Toont tekst boven de cube wanneer een speler erop staat. Stel tekst, kleur, lettertype en grootte in.
+    Shows text above the cube when player collides. Set text, color, font and size.
 </p>
 <div id="editStageTextcubes">
     ${(stage.textcubeConfigs || []).map((cfg, i) => `
@@ -15561,17 +15561,17 @@ If both gamepads are turned on, P1 gets the first controller and P2 the second.
 <div class="form-row-3">
 
 <div class="form-group">
-  <label>Accentkleur (modals)</label>
+  <label>Modal color</label>
   <input type="color" id="settingsThemeColor" value="${project.settings.theme?.primaryColor || '#1a1a2e'}" />
 </div>
 <div class="form-group">
-  <label>Standaard lettertype (modals)</label>
+  <label>Font</label>
   <select id="settingsThemeFont">
     ${FONT_LIST.map(f => `<option value="${f}" ${project.settings.theme?.font === f ? 'selected' : ''}>${f}</option>`).join('')}
   </select>
 </div>
 <div class="form-group">
-  <label>Background image (behind modals)</label>
+  <label>Background image</label>
   <div class="file-input-wrap">
     <input type="file" id="settingsThemeBg" accept="image/*" />
     <button class="clear-file" data-target="themeBg" type="button">✕</button>
